@@ -19,7 +19,7 @@ export default function Home() {
         <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Guardião</h1>
 
         <p className="text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-          Um defensor digital para a velhice — coordenação de cuidado do idoso
+          Um defensor digital para a velhice: coordenação de cuidado do idoso
           com apoio de IA, preservando dignidade, preferências e vontade.
         </p>
 
