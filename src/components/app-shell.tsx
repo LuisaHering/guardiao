@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
-import { navFor, roleLabels, type Membership, type Role } from "@/lib/roles";
+import { navFor, roleLabels, type NavItem } from "@/lib/roles";
 import { cn } from "@/lib/cn";
 
 function Shield() {
@@ -26,11 +26,15 @@ function Shield() {
   );
 }
 
+const semIdoso: NavItem[] = [
+  { href: "/perfil", label: "Perfil do idoso", enabled: true },
+];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { membership, setMembership } = useRole();
+  const membership = useRole();
   const pathname = usePathname();
   const router = useRouter();
-  const items = navFor(membership);
+  const items = membership ? navFor(membership) : semIdoso;
 
   async function sair() {
     const supabase = createClient();
@@ -80,8 +84,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="mt-auto flex flex-col gap-3 border-t border-line pt-4">
-          <RoleSwitcher membership={membership} onChange={setMembership} />
+        <div className="mt-auto flex flex-col gap-2 border-t border-line pt-4">
+          {membership && (
+            <div className="px-3 text-xs text-subtle">
+              <div className="text-ink">{membership.idosoNome}</div>
+              <div>
+                {roleLabels[membership.role]}
+                {membership.admin ? " · admin" : ""}
+              </div>
+            </div>
+          )}
           <button
             type="button"
             onClick={sair}
@@ -98,54 +110,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Shield />
           </span>
           <span className="text-sm font-medium text-ink md:hidden">Guardião</span>
-          <span className="ml-auto text-xs text-subtle">
-            {roleLabels[membership.role]}
-            {membership.admin ? " · admin" : ""}
-          </span>
+          {membership && (
+            <span className="ml-auto text-xs text-subtle">
+              {roleLabels[membership.role]}
+              {membership.admin ? " · admin" : ""}
+            </span>
+          )}
         </header>
         <main className="flex-1 p-6">{children}</main>
       </div>
-    </div>
-  );
-}
-
-const ROLES: Role[] = ["idoso", "cuidador", "familiar"];
-
-function RoleSwitcher({
-  membership,
-  onChange,
-}: {
-  membership: Membership;
-  onChange: (m: Membership) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-[10px] uppercase tracking-wide text-subtle">
-        Ver como (temporário)
-      </span>
-      <select
-        value={membership.role}
-        onChange={(e) =>
-          onChange({ ...membership, role: e.target.value as Role })
-        }
-        className="rounded-lg border border-line bg-canvas px-2 py-1.5 text-sm text-ink"
-      >
-        {ROLES.map((r) => (
-          <option key={r} value={r}>
-            {roleLabels[r]}
-          </option>
-        ))}
-      </select>
-      <label className="flex items-center gap-2 text-xs text-subtle">
-        <input
-          type="checkbox"
-          checked={membership.admin}
-          onChange={(e) =>
-            onChange({ ...membership, admin: e.target.checked })
-          }
-        />
-        Administrador
-      </label>
     </div>
   );
 }

@@ -3,6 +3,8 @@ export type Role = "idoso" | "cuidador" | "familiar";
 export type Membership = {
   role: Role;
   admin: boolean;
+  idosoId?: string;
+  idosoNome?: string;
 };
 
 export type NavItem = {

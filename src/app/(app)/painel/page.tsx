@@ -1,52 +1,47 @@
-import { Badge, Button, Card } from "@/components/ui";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { getMembership } from "@/lib/data/membership";
+import { Card } from "@/components/ui";
 
-const stats = [
-  { label: "Adesão (7 dias)", value: "92%", tone: "success" as const, hint: "sem registro há 0 dias" },
-  { label: "Humor da semana", value: "estável", tone: "primary" as const, hint: "3 registros" },
-  { label: "Próxima consulta", value: "12 ago", tone: "neutral" as const, hint: "cardiologista" },
-];
+export default async function PainelPage() {
+  const membership = await getMembership();
 
-export default function PainelPage() {
+  // Guarda de rota: sem vínculo, o caminho é criar o perfil do idoso.
+  if (!membership) {
+    redirect("/perfil");
+  }
+
+  const proximos = [
+    "Medicação e adesão",
+    "Diário e sintomas",
+    "Timeline do idoso",
+  ];
+
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink">Painel</h1>
-          <p className="text-sm text-subtle">Visão geral do cuidado do idoso</p>
-        </div>
-        <Button variant="primary">Nova entrada</Button>
+    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-ink">Olá!</h1>
+        <p className="text-sm text-subtle">
+          Você está cuidando de {membership.idosoNome}.
+        </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        {stats.map((s) => (
-          <Card key={s.label} className="flex flex-col gap-2">
-            <span className="text-xs text-subtle">{s.label}</span>
-            <span className="text-2xl font-semibold text-ink">{s.value}</span>
-            <Badge tone={s.tone}>{s.hint}</Badge>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link href="/perfil">
+          <Card className="h-full transition-colors hover:border-primary/40">
+            <p className="text-sm font-medium text-ink">Perfil do idoso</p>
+            <p className="mt-1 text-xs text-subtle">
+              Dados, condições e contatos de emergência.
+            </p>
+          </Card>
+        </Link>
+        {proximos.map((p) => (
+          <Card key={p} className="h-full opacity-60">
+            <p className="text-sm font-medium text-ink">{p}</p>
+            <p className="mt-1 text-xs text-subtle">Em breve</p>
           </Card>
         ))}
       </div>
-
-      <Card className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-sm font-medium text-ink">Design system</h2>
-          <p className="text-xs text-subtle">
-            Base visual do projeto. As telas dos próximos cards reaproveitam
-            estes componentes e tokens.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="primary">Primário</Button>
-          <Button variant="secondary">Secundário</Button>
-          <Button variant="ghost">Ghost</Button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="neutral">neutro</Badge>
-          <Badge tone="primary">primário</Badge>
-          <Badge tone="success">ok</Badge>
-          <Badge tone="warn">atenção</Badge>
-        </div>
-      </Card>
     </div>
   );
 }

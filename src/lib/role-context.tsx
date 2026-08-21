@@ -1,32 +1,24 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext } from "react";
 import type { Membership } from "@/lib/roles";
 
-type RoleContextValue = {
-  membership: Membership;
-  setMembership: (m: Membership) => void;
-};
+// O papel vem do vínculo real no banco, carregado no servidor e injetado aqui.
+const RoleContext = createContext<Membership | null>(null);
 
-const RoleContext = createContext<RoleContextValue | null>(null);
-
-// Papel inicial de desenvolvimento. Sera substituido pelo vinculo real do
-// Supabase quando o auth (cards #5 e #6) estiver pronto.
-const DEFAULT_MEMBERSHIP: Membership = { role: "familiar", admin: true };
-
-export function RoleProvider({ children }: { children: React.ReactNode }) {
-  const [membership, setMembership] = useState<Membership>(DEFAULT_MEMBERSHIP);
+export function RoleProvider({
+  membership,
+  children,
+}: {
+  membership: Membership | null;
+  children: React.ReactNode;
+}) {
   return (
-    <RoleContext.Provider value={{ membership, setMembership }}>
-      {children}
-    </RoleContext.Provider>
+    <RoleContext.Provider value={membership}>{children}</RoleContext.Provider>
   );
 }
 
-export function useRole(): RoleContextValue {
-  const ctx = useContext(RoleContext);
-  if (!ctx) {
-    throw new Error("useRole precisa estar dentro de <RoleProvider>");
-  }
-  return ctx;
+/** Retorna o vínculo do usuário, ou null se ele ainda não tem idoso. */
+export function useRole(): Membership | null {
+  return useContext(RoleContext);
 }
