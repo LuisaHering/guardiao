@@ -21,18 +21,21 @@ export const roleLabels: Record<Role, string> = {
 const byRole: Record<Role, NavItem[]> = {
   familiar: [
     { href: "/painel", label: "Painel", enabled: true },
+    { href: "/perfil", label: "Perfil do idoso", enabled: true },
     { href: "/timeline", label: "Timeline", enabled: false },
     { href: "/medicacao", label: "Medicação", enabled: false },
     { href: "/documentos", label: "Documentos", enabled: false },
   ],
   cuidador: [
     { href: "/painel", label: "Hoje", enabled: true },
+    { href: "/perfil", label: "Perfil do idoso", enabled: true },
     { href: "/medicacao", label: "Medicação", enabled: false },
     { href: "/diario", label: "Diário", enabled: false },
     { href: "/sintomas", label: "Sintomas", enabled: false },
   ],
   idoso: [
     { href: "/painel", label: "Painel", enabled: true },
+    { href: "/perfil", label: "Meu perfil", enabled: true },
     { href: "/conversa", label: "Conversa", enabled: false },
     { href: "/preferencias", label: "Minhas preferências", enabled: false },
   ],

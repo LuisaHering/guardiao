@@ -19,6 +19,36 @@ export function Button({
   return <button className={cn(base, variants[variant], className)} {...props} />;
 }
 
+export function Input({
+  className,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      className={cn(
+        "h-10 w-full rounded-lg border border-line bg-card px-3 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-sm text-ink">
+      <span className="text-subtle">{label}</span>
+      {children}
+    </label>
+  );
+}
+
 export function Card({
   className,
   ...props
