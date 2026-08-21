@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { navFor, roleLabels, type Membership, type Role } from "@/lib/roles";
 import { cn } from "@/lib/cn";
@@ -28,7 +29,15 @@ function Shield() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { membership, setMembership } = useRole();
   const pathname = usePathname();
+  const router = useRouter();
   const items = navFor(membership);
+
+  async function sair() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -71,8 +80,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="mt-auto border-t border-line pt-4">
+        <div className="mt-auto flex flex-col gap-3 border-t border-line pt-4">
           <RoleSwitcher membership={membership} onChange={setMembership} />
+          <button
+            type="button"
+            onClick={sair}
+            className="rounded-lg px-3 py-2 text-left text-sm text-subtle hover:bg-panel hover:text-ink"
+          >
+            Sair
+          </button>
         </div>
       </aside>
 

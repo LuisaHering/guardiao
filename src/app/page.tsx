@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   const papeis = ["Idoso", "Cuidador", "Familiar"];
 
@@ -33,6 +35,13 @@ export default function Home() {
             </span>
           ))}
         </div>
+
+        <Link
+          href="/login"
+          className="mt-2 inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-medium text-white hover:opacity-90"
+        >
+          Entrar
+        </Link>
       </div>
 
       <footer className="mt-16 text-sm text-zinc-500">
