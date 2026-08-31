@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Card, Field, Input } from "@/components/ui";
+import { ConsentimentoCard } from "@/components/consentimento-card";
 
 type Idoso = {
   id: string;
@@ -20,6 +21,12 @@ type Contato = {
   relacao: string | null;
 };
 type Condicao = { id: string; nome: string; desde: string | null };
+type Alergia = {
+  id: string;
+  substancia: string;
+  reacao: string | null;
+  gravidade: string | null;
+};
 
 const vazio = {
   nome: "",
@@ -40,9 +47,11 @@ export default function PerfilPage() {
   const [form, setForm] = useState({ ...vazio });
   const [contatos, setContatos] = useState<Contato[]>([]);
   const [condicoes, setCondicoes] = useState<Condicao[]>([]);
+  const [alergias, setAlergias] = useState<Alergia[]>([]);
 
   const [novoContato, setNovoContato] = useState({ nome: "", telefone: "", relacao: "" });
   const [novaCondicao, setNovaCondicao] = useState({ nome: "", desde: "" });
+  const [novaAlergia, setNovaAlergia] = useState({ substancia: "", reacao: "", gravidade: "leve" });
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -62,12 +71,14 @@ export default function PerfilPage() {
         tipo_sanguineo: i.tipo_sanguineo ?? "",
         observacoes: i.observacoes ?? "",
       });
-      const [cts, cds] = await Promise.all([
+      const [cts, cds, algs] = await Promise.all([
         supabase.from("contato_emergencia").select("*").eq("idoso_id", i.id).is("deleted_at", null),
         supabase.from("condicao").select("*").eq("idoso_id", i.id).is("deleted_at", null),
+        supabase.from("alergia").select("*").eq("idoso_id", i.id).is("deleted_at", null),
       ]);
       setContatos((cts.data ?? []) as Contato[]);
       setCondicoes((cds.data ?? []) as Condicao[]);
+      setAlergias((algs.data ?? []) as Alergia[]);
     }
     setCarregando(false);
   }, [supabase]);
@@ -130,7 +141,20 @@ export default function PerfilPage() {
     await carregar();
   }
 
-  async function remover(tabela: "contato_emergencia" | "condicao", id: string) {
+  async function addAlergia(e: React.FormEvent) {
+    e.preventDefault();
+    if (!idoso || !novaAlergia.substancia) return;
+    await supabase.from("alergia").insert({
+      idoso_id: idoso.id,
+      substancia: novaAlergia.substancia,
+      reacao: novaAlergia.reacao || null,
+      gravidade: novaAlergia.gravidade,
+    });
+    setNovaAlergia({ substancia: "", reacao: "", gravidade: "leve" });
+    await carregar();
+  }
+
+  async function remover(tabela: "contato_emergencia" | "condicao" | "alergia", id: string) {
     await supabase.from(tabela).update({ deleted_at: new Date().toISOString() }).eq("id", id);
     await carregar();
   }
@@ -151,6 +175,13 @@ export default function PerfilPage() {
             : "Cadastre a pessoa que será cuidada. Você fica como administradora."}
         </p>
       </div>
+
+      {idoso && (
+        <ConsentimentoCard
+          idosoId={idoso.id}
+          idosoNome={idoso.como_chamar || idoso.nome}
+        />
+      )}
 
       <Card>
         <form onSubmit={salvarIdoso} className="flex flex-col gap-4">
@@ -233,6 +264,41 @@ export default function PerfilPage() {
               <Input placeholder="Condição (ex: hipertensão)" value={novaCondicao.nome} onChange={(e) => setNovaCondicao({ ...novaCondicao, nome: e.target.value })} className="sm:col-span-2" />
               <Input type="date" value={novaCondicao.desde} onChange={(e) => setNovaCondicao({ ...novaCondicao, desde: e.target.value })} />
               <Button type="submit" className="sm:col-span-3">Adicionar condição</Button>
+            </form>
+          </Card>
+
+          <Card className="flex flex-col gap-4">
+            <h2 className="text-sm font-medium text-ink">Alergias</h2>
+            {alergias.length === 0 && (
+              <p className="text-sm text-subtle">Nenhuma alergia registrada.</p>
+            )}
+            {alergias.map((a) => (
+              <div key={a.id} className="flex items-center justify-between border-b border-line pb-2 last:border-0 last:pb-0">
+                <div>
+                  <p className="text-sm text-ink">
+                    {a.substancia}
+                    {a.gravidade ? ` · ${a.gravidade}` : ""}
+                  </p>
+                  {a.reacao && <p className="text-xs text-subtle">{a.reacao}</p>}
+                </div>
+                <Button variant="ghost" onClick={() => remover("alergia", a.id)} className="h-8 px-2 text-xs">
+                  Remover
+                </Button>
+              </div>
+            ))}
+            <form onSubmit={addAlergia} className="grid gap-2 sm:grid-cols-4">
+              <Input placeholder="Substância (ex: dipirona)" value={novaAlergia.substancia} onChange={(e) => setNovaAlergia({ ...novaAlergia, substancia: e.target.value })} className="sm:col-span-2" />
+              <Input placeholder="Reação" value={novaAlergia.reacao} onChange={(e) => setNovaAlergia({ ...novaAlergia, reacao: e.target.value })} />
+              <select
+                value={novaAlergia.gravidade}
+                onChange={(e) => setNovaAlergia({ ...novaAlergia, gravidade: e.target.value })}
+                className="h-10 rounded-lg border border-line bg-card px-2 text-sm text-ink"
+              >
+                <option value="leve">leve</option>
+                <option value="moderada">moderada</option>
+                <option value="grave">grave</option>
+              </select>
+              <Button type="submit" className="sm:col-span-4">Adicionar alergia</Button>
             </form>
           </Card>
 
