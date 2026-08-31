@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Card, Field, Input } from "@/components/ui";
 
@@ -30,6 +31,7 @@ const vazio = {
 
 export default function PerfilPage() {
   const supabase = createClient();
+  const router = useRouter();
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -100,6 +102,7 @@ export default function PerfilPage() {
     }
     setSalvando(false);
     await carregar();
+    router.refresh();
   }
 
   async function addContato(e: React.FormEvent) {
