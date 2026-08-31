@@ -47,7 +47,7 @@ const byRole: Record<Role, NavItem[]> = {
 export function navFor(membership: Membership): NavItem[] {
   const items = [...byRole[membership.role]];
   if (membership.admin) {
-    items.push({ href: "/rede", label: "Rede e acessos", enabled: false });
+    items.push({ href: "/rede", label: "Rede e acessos", enabled: true });
   }
   return items;
 }
