@@ -1,7 +1,7 @@
 # 🛡️ Guardião
 
-![Semana](https://img.shields.io/badge/semana-2%20de%2018-1F7A73)
-![Horas](https://img.shields.io/badge/horas-14%20de%20250-1F7A73)
+![Semana](https://img.shields.io/badge/semana-4%20de%2018-1F7A73)
+![Horas](https://img.shields.io/badge/horas-75%20de%20250-1F7A73)
 ![Commits](https://img.shields.io/github/commit-activity/t/LuisaHering/guardiao?label=commits&color=1F7A73)
 [![Deploy](https://img.shields.io/badge/deploy-online-1D9E75)](https://guardiao-smoky.vercel.app)
 
@@ -22,17 +22,29 @@ O cuidado de idosos costuma ser fragmentado: as informações ficam espalhadas e
 
 **Cliente e beneficiário:** uma família real. Meu avô é o idoso (sujeito dos dados), a cuidadora dele registra o dia a dia, e eu sou a familiar responsável (administradora).
 
-## Status (Semana 2 de 18)
+## Status (Semana 4 de 18)
 
 | Fase | Foco | Status |
 |------|------|--------|
 | P0 | Fundações, modelagem, repositório e deploy | ✅ Concluída |
-| P1 | Autenticação, papéis e funcionalidades núcleo | ⏳ A seguir |
+| P1 | Autenticação, papéis, perfil e núcleo do cuidado | 🔨 Em andamento |
 | P2 | IA, documentos e visão 360 | ⏳ A seguir |
 | P3 | Dashboard, identidade e loop conversacional | ⏳ A seguir |
 | P4 | Hardening, teste com usuário real e entrega | ⏳ A seguir |
 
 A primeira semana foi de idealização do projeto (definição de tema, cliente e escopo). O planejamento completo, a divisão em cards e a timesheet ficam no Notion.
+
+### Já funciona
+
+- Login, cadastro e sessão (Supabase Auth)
+- Papéis e permissões: idoso, cuidador e familiar administrador, com controle de acesso por linha no banco (RLS)
+- Perfil do idoso: dados, condições, alergias e contatos de emergência
+- Consentimento LGPD do titular para tratamento de dados de saúde
+- Convite de cuidadores e familiares por link, com aceite
+
+### Próximo (P1 e P2)
+
+Medicação e adesão, diário do cuidador, sintomas, perfil de emergência com QR, timeline, e depois as funcionalidades de IA (consultas, receitas e exames).
 
 ## Wireframes
 
@@ -47,7 +59,7 @@ Versão dark, com anotações de cada tela:
 ## Stack
 
 - Next.js 16 (App Router) com TypeScript e Tailwind CSS v4
-- Supabase (Postgres, autenticação e storage), a partir da fase P1
+- Supabase (Postgres, autenticação, storage e RLS), já em uso
 - API da Anthropic para as funcionalidades de IA
 - Deploy contínuo na Vercel a cada push na `main`
 
