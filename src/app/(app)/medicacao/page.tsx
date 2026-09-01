@@ -87,13 +87,14 @@ export default function MedicacaoPage() {
       );
 
       const ultimo = recentes?.[0]?.registrado_em as string | undefined;
-      if (!ultimo) {
-        setSilencioDias(999);
-      } else {
+      if (ultimo) {
         const dias = Math.floor(
           (Date.now() - new Date(ultimo).getTime()) / 86400000,
         );
         setSilencioDias(dias >= 3 ? dias : null);
+      } else {
+        // Sem nenhum registro ainda (cadastro novo): não é silêncio de verdade.
+        setSilencioDias(null);
       }
     } else {
       setRegistros({});
@@ -169,9 +170,7 @@ export default function MedicacaoPage() {
       {silencioDias !== null && (
         <Card className="border-warn/40 bg-warn/10">
           <p className="text-sm font-medium text-warn">
-            Faz{" "}
-            {silencioDias === 999 ? "vários dias" : `${silencioDias} dias`} que
-            ninguém registra a medicação.
+            Faz {silencioDias} dias que ninguém registra a medicação.
           </p>
           <p className="mt-1 text-xs text-subtle">
             Isso é sobre o registro, não sobre o idoso. Vale conferir se está
