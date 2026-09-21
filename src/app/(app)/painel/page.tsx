@@ -11,10 +11,37 @@ export default async function PainelPage() {
     redirect("/perfil");
   }
 
-  const proximos = [
-    "Medicação e adesão",
-    "Diário e sintomas",
-    "Timeline do idoso",
+  const atalhos = [
+    {
+      href: "/perfil",
+      titulo: "Perfil do idoso",
+      descricao: "Dados, condições, alergias e contatos de emergência.",
+    },
+    {
+      href: "/medicacao",
+      titulo: "Medicação e adesão",
+      descricao: "Remédios, registro diário e alerta de silêncio.",
+    },
+    {
+      href: "/diario",
+      titulo: "Diário do cuidador",
+      descricao: "Alimentação, ocorrências e a foto do dia.",
+    },
+    {
+      href: "/sintomas",
+      titulo: "Sintomas",
+      descricao: "Registro com gravidade e histórico.",
+    },
+    {
+      href: "/emergencia",
+      titulo: "Emergência",
+      descricao: "QR com os dados críticos, acessível sem login.",
+    },
+    {
+      href: "/timeline",
+      titulo: "Timeline do idoso",
+      descricao: "Tudo que aconteceu, em ordem, num só lugar.",
+    },
   ];
 
   return (
@@ -27,20 +54,18 @@ export default async function PainelPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Link href="/perfil">
-          <Card className="h-full transition-colors hover:border-primary/40">
-            <p className="text-sm font-medium text-ink">Perfil do idoso</p>
-            <p className="mt-1 text-xs text-subtle">
-              Dados, condições e contatos de emergência.
-            </p>
-          </Card>
-        </Link>
-        {proximos.map((p) => (
-          <Card key={p} className="h-full opacity-60">
-            <p className="text-sm font-medium text-ink">{p}</p>
-            <p className="mt-1 text-xs text-subtle">Em breve</p>
-          </Card>
+        {atalhos.map((a) => (
+          <Link key={a.href} href={a.href}>
+            <Card className="h-full transition-colors hover:border-primary/40">
+              <p className="text-sm font-medium text-ink">{a.titulo}</p>
+              <p className="mt-1 text-xs text-subtle">{a.descricao}</p>
+            </Card>
+          </Link>
         ))}
+        <Card className="h-full opacity-60">
+          <p className="text-sm font-medium text-ink">Documentos</p>
+          <p className="mt-1 text-xs text-subtle">Em breve</p>
+        </Card>
       </div>
     </div>
   );
