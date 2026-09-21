@@ -85,3 +85,5 @@ Depois abra http://localhost:3000 no navegador.
 
 - Concepção, escopo e requisitos: [`docs/concepcao.md`](docs/concepcao.md)
 - Modelagem de dados e diagrama ER: [`docs/modelagem.md`](docs/modelagem.md)
+- Núcleo do cuidado (P1) e roteiro de teste: [`docs/nucleo-p1.md`](docs/nucleo-p1.md)
+- Histórico dos check-ins: [`docs/checkins.md`](docs/checkins.md)
