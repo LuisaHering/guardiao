@@ -1,7 +1,7 @@
 # 🛡️ Guardião
 
-![Semana](https://img.shields.io/badge/semana-4%20de%2018-1F7A73)
-![Horas](https://img.shields.io/badge/horas-75%20de%20250-1F7A73)
+![Semana](https://img.shields.io/badge/semana-8%20de%2018-1F7A73)
+![Horas](https://img.shields.io/badge/horas-115%20de%20250-1F7A73)
 ![Commits](https://img.shields.io/github/commit-activity/t/LuisaHering/guardiao?label=commits&color=1F7A73)
 [![Deploy](https://img.shields.io/badge/deploy-online-1D9E75)](https://guardiao-smoky.vercel.app)
 
@@ -22,13 +22,13 @@ O cuidado de idosos costuma ser fragmentado: as informações ficam espalhadas e
 
 **Cliente e beneficiário:** uma família real. Meu avô é o idoso (sujeito dos dados), a cuidadora dele registra o dia a dia, e eu sou a familiar responsável (administradora).
 
-## Status (Semana 4 de 18)
+## Status (Semana 8 de 18)
 
 | Fase | Foco | Status |
 |------|------|--------|
 | P0 | Fundações, modelagem, repositório e deploy | ✅ Concluída |
-| P1 | Autenticação, papéis, perfil e núcleo do cuidado | 🔨 Em andamento |
-| P2 | IA, documentos e visão 360 | ⏳ A seguir |
+| P1 | Autenticação, papéis, perfil e núcleo do cuidado | ✅ Concluída |
+| P2 | IA, documentos e visão 360 | 🔨 A seguir |
 | P3 | Dashboard, identidade e loop conversacional | ⏳ A seguir |
 | P4 | Hardening, teste com usuário real e entrega | ⏳ A seguir |
 
@@ -41,10 +41,15 @@ A primeira semana foi de idealização do projeto (definição de tema, cliente 
 - Perfil do idoso: dados, condições, alergias e contatos de emergência
 - Consentimento LGPD do titular para tratamento de dados de saúde
 - Convite de cuidadores e familiares por link, com aceite
+- Medicação: cadastro de remédios, registro diário de adesão, motivo de não-adesão e alerta de silêncio
+- Diário do cuidador: entradas diárias com foto do dia (Storage privado)
+- Sintomas: registro com gravidade e histórico
+- Perfil de emergência com QR revogável, acessível sem login
+- Timeline unificada do idoso (diário, sintomas e medicação em um só lugar)
 
-### Próximo (P1 e P2)
+### Próximo (P2)
 
-Medicação e adesão, diário do cuidador, sintomas, perfil de emergência com QR, timeline, e depois as funcionalidades de IA (consultas, receitas e exames).
+Funcionalidades de IA: consultas (áudio → transcrição + resumo), receitas (foto → cadastro de remédio), exames (upload → tendências), detecção de padrões e a visão 360 sintetizada pela IA.
 
 ## Wireframes
 
