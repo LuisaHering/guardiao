@@ -1,7 +1,7 @@
 # 🛡️ Guardião
 
 ![Semana](https://img.shields.io/badge/semana-8%20de%2018-1F7A73)
-![Horas](https://img.shields.io/badge/horas-115%20de%20250-1F7A73)
+![Horas](https://img.shields.io/badge/horas-129%20de%20250-1F7A73)
 ![Commits](https://img.shields.io/github/commit-activity/t/LuisaHering/guardiao?label=commits&color=1F7A73)
 [![Deploy](https://img.shields.io/badge/deploy-online-1D9E75)](https://guardiao-smoky.vercel.app)
 
