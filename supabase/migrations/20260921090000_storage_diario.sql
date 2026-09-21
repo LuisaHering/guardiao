@@ -9,6 +9,10 @@ values ('diario', 'diario', false)
 on conflict (id) do nothing;
 
 -- Leitura, escrita e atualizacao restritas a membros do idoso dono da pasta.
+drop policy if exists "diario_sel" on storage.objects;
+drop policy if exists "diario_ins" on storage.objects;
+drop policy if exists "diario_upd" on storage.objects;
+
 create policy "diario_sel" on storage.objects for select to authenticated
   using (
     bucket_id = 'diario'
