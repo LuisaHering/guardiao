@@ -29,6 +29,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/diario", label: "Diário", enabled: true },
     { href: "/sintomas", label: "Sintomas", enabled: true },
     { href: "/emergencia", label: "Emergência", enabled: true },
+    { href: "/consultas", label: "Consultas", enabled: true },
     { href: "/documentos", label: "Documentos", enabled: false },
   ],
   cuidador: [
@@ -39,6 +40,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/diario", label: "Diário", enabled: true },
     { href: "/sintomas", label: "Sintomas", enabled: true },
     { href: "/emergencia", label: "Emergência", enabled: true },
+    { href: "/consultas", label: "Consultas", enabled: true },
   ],
   idoso: [
     { href: "/painel", label: "Painel", enabled: true },
