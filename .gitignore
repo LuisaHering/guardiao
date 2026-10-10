@@ -44,3 +44,6 @@ next-env.d.ts
 # arquivos de agente gerados pelo next dev (nao versionar)
 /CLAUDE.md
 /AGENTS.md
+
+# notas de trabalho pessoais (nao versionar)
+/notas/

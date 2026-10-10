@@ -84,8 +84,8 @@ Nao.
 
 Sim. Todo o codigo esta no GitHub, com um commit por card, e a aplicacao esta em
 producao na Vercel. A documentacao do bloco fica em `/docs`: o documento de IA
-descreve o que foi construido, as decisoes de projeto, como configurar e um roteiro
-de teste.
+descreve o que foi construido, as decisoes de projeto, a verificacao feita e as
+limitacoes.
 
 - Repositorio: https://github.com/LuisaHering/guardiao
 - Documento do bloco de IA: https://github.com/LuisaHering/guardiao/blob/main/docs/ia-p2.md

@@ -2,7 +2,7 @@
 
 Este documento cobre o primeiro bloco da fase de IA (semanas 9 a 11): consultas,
 receitas, exames, analitos, gráfico de tendência e observações. Registra o que foi
-construído, as decisões de projeto, como configurar e um roteiro de teste.
+construído, as decisões de projeto, a verificação feita e as limitações.
 
 ## O que o bloco entrega
 
@@ -64,45 +64,6 @@ colar o texto da consulta (a IA resume a partir dele). Motivos: não depender de
 um serviço de transcrição extra, não enviar áudio de saúde a mais um terceiro e
 não adicionar custo. A consequência é que a transcrição não é automática.
 
-## Como configurar
-
-1. Aplicar a migration nova no Supabase:
-
-```bash
-npx supabase db push
-```
-
-2. Criar uma chave em console.anthropic.com e cadastrar como `ANTHROPIC_API_KEY`
-   no `.env.local` e nas variáveis de ambiente da Vercel (Production e Preview).
-   Sem o prefixo `NEXT_PUBLIC_`, para não ir ao navegador.
-3. Opcional: `ANTHROPIC_MODEL` troca o modelo (padrão `claude-opus-5-5`).
-
-## Roteiro de teste (manual)
-
-1. **Consulta.** Criar uma consulta gravando 10 segundos de áudio. Esperado: o
-   player toca o áudio salvo.
-2. **Resumo.** Colar um texto de consulta (40 caracteres ou mais) e gerar o
-   resumo. Esperado: seções de ações, remédios, exames e dúvidas.
-3. **Receita.** Enviar a foto de uma receita. Esperado: lista de remédios
-   editável; "Confirmar e cadastrar" cria os remédios e o documento fica
-   acessível em "Ver documento".
-4. **Duplicado.** Enviar a mesma receita de novo. Esperado: os remédios aparecem
-   com o aviso "já está na lista" e desmarcados.
-5. **Exame.** Enviar um laudo. Esperado: tela de conferência com todos os
-   valores. Antes de confirmar, abrir Exames em outra aba: o exame não existe.
-6. **Conversão.** Em um laudo com glicose em mmol/L, tendo glicose em mg/dL já
-   cadastrada. Esperado: o selo "convertido" mostra os dois valores.
-7. **Bloqueio.** Mudar a unidade de uma linha para algo sem conversão conhecida.
-   Esperado: erro na linha e botão de confirmar desabilitado.
-8. **Fusão.** Fundir dois analitos de mesma unidade. Esperado: a série passa a
-   ser uma só. Tentar fundir unidades diferentes: o sistema não oferece.
-9. **Tendência.** Abrir Tendências com dois exames de laboratórios diferentes.
-   Esperado: a banda de referência muda de altura entre os pontos.
-10. **Observações.** Com poucos registros, gerar. Esperado: "ainda não há o que
-    apontar". Com registros suficientes: itens com evidência por data.
-11. **Isolamento.** Uma conta sem vínculo chamando `/api/ia/*`. Esperado: sem
-    acesso, nenhum dado revelado.
-
 ## Verificação já feita
 
 - Build de produção e TypeScript sem erros, com as rotas novas geradas.
@@ -117,8 +78,9 @@ npx supabase db push
 
 ## Limitações e pendências
 
-- **Testes de ponta a ponta com a IA real** dependem da chave configurada; até lá
-  a verificação cobre guarda de acesso, tipos, build e a lógica determinística.
+- **Sem suíte automatizada.** A verificação cobre guarda de acesso, tipos, build e
+  a lógica determinística (conversão de unidade); a leitura de documentos pela IA
+  é conferida à mão com documentos reais.
 - **Texto do consentimento LGPD** ainda não menciona que o conteúdo é enviado a
   um provedor de IA externo. Precisa ser revisado e, se mudar, versionado.
 - **Limite de 4 MB por arquivo** (limite da função na Vercel). Foto é reduzida no
