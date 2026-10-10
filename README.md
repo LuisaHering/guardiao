@@ -1,6 +1,6 @@
 # 🛡️ Guardião
 
-![Semana](https://img.shields.io/badge/semana-8%20de%2018-1F7A73)
+![Semana](https://img.shields.io/badge/semana-10%20de%2018-1F7A73)
 ![Horas](https://img.shields.io/badge/horas-129%20de%20250-1F7A73)
 ![Commits](https://img.shields.io/github/commit-activity/t/LuisaHering/guardiao?label=commits&color=1F7A73)
 [![Deploy](https://img.shields.io/badge/deploy-online-1D9E75)](https://guardiao-smoky.vercel.app)
@@ -22,13 +22,13 @@ O cuidado de idosos costuma ser fragmentado: as informações ficam espalhadas e
 
 **Cliente e beneficiário:** uma família real. Meu avô é o idoso (sujeito dos dados), a cuidadora dele registra o dia a dia, e eu sou a familiar responsável (administradora).
 
-## Status (Semana 8 de 18)
+## Status (Semana 10 de 18)
 
 | Fase | Foco | Status |
 |------|------|--------|
 | P0 | Fundações, modelagem, repositório e deploy | ✅ Concluída |
 | P1 | Autenticação, papéis, perfil e núcleo do cuidado | ✅ Concluída |
-| P2 | IA, documentos e visão 360 | 🔨 A seguir |
+| P2 | IA, documentos e visão 360 | 🔨 Em andamento |
 | P3 | Dashboard, identidade e loop conversacional | ⏳ A seguir |
 | P4 | Hardening, teste com usuário real e entrega | ⏳ A seguir |
 
@@ -45,11 +45,16 @@ A primeira semana foi de idealização do projeto (definição de tema, cliente 
 - Diário do cuidador: entradas diárias com foto do dia (Storage privado)
 - Sintomas: registro com gravidade e histórico
 - Perfil de emergência com QR revogável, acessível sem login
-- Timeline unificada do idoso (diário, sintomas e medicação em um só lugar)
+- Timeline unificada do idoso (diário, sintomas, medicação, consultas e exames em um só lugar)
+- Consultas com áudio guardado e resumo estruturado por IA a partir do texto da consulta
+- Receitas: foto ou PDF vira sugestão de remédios, conferida antes de cadastrar
+- Exames: extração por IA, conferência de todos os valores de uma vez e conversão de unidade explícita
+- Gráfico de tendência por analito, com a faixa de referência de cada laudo
+- Observações por IA sobre sintomas, diário e medicação, com a evidência de cada uma
 
-### Próximo (P2)
+### Próximo (P2 e P3)
 
-Funcionalidades de IA: consultas (áudio → transcrição + resumo), receitas (foto → cadastro de remédio), exames (upload → tendências), detecção de padrões e a visão 360 sintetizada pela IA.
+Gerador de diretivas antecipadas, visão 360 sintetizada pela IA, alertas, e depois o dashboard do familiar e o perfil conversacional.
 
 ## Wireframes
 
@@ -86,4 +91,5 @@ Depois abra http://localhost:3000 no navegador.
 - Concepção, escopo e requisitos: [`docs/concepcao.md`](docs/concepcao.md)
 - Modelagem de dados e diagrama ER: [`docs/modelagem.md`](docs/modelagem.md)
 - Núcleo do cuidado (P1) e roteiro de teste: [`docs/nucleo-p1.md`](docs/nucleo-p1.md)
+- IA e documentos (P2, parte 1), decisões e roteiro de teste: [`docs/ia-p2.md`](docs/ia-p2.md)
 - Histórico dos check-ins: [`docs/checkins.md`](docs/checkins.md)

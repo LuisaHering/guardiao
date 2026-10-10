@@ -12,7 +12,7 @@ ficam na timesheet do Notion; aqui guardo o texto de cada entrega.
 | 1 | 10/08 | 1-2 (P0) | 14h | 14h |
 | 2 | 31/08 | 3-5 (P1) | 61h | 75h |
 | 3 | 21/09 | 6-8 (P1) | 54h | 129h |
-| 4 | 12/10 | 9-11 (P2) | a fazer | - |
+| 4 | 12/10 | 9-11 (P2) | 50h | 179h |
 | 5 | ~09/11 | 12-14 (P3) | a fazer | - |
 | 6 | 23/11 | 15-16 (P3) | a fazer | - |
 | Entrega | 07/12 | 17-18 (P4) | a fazer | - |
@@ -73,6 +73,53 @@ travou a aplicacao de uma migracao ate eu reativa-lo pelo painel.
 Luisa - Iniciar a fase de IA (P2): consultas com upload/gravacao de audio e
 transcricao + resumo pela API da Anthropic, e receitas por foto com extracao e
 cadastro automatico do remedio.
+
+**Voce precisa de orientacao?**
+
+Nao.
+
+## Check-in 4 - 12/10 (semanas 9-11, 50h)
+
+**Existem evidencias para comprovar estas horas?**
+
+Sim. Todo o codigo esta no GitHub, com um commit por card, e a aplicacao esta em
+producao na Vercel. A documentacao do bloco fica em `/docs`: o documento de IA
+descreve o que foi construido, as decisoes de projeto, como configurar e um roteiro
+de teste.
+
+- Repositorio: https://github.com/LuisaHering/guardiao
+- Documento do bloco de IA: https://github.com/LuisaHering/guardiao/blob/main/docs/ia-p2.md
+- Historico dos check-ins: https://github.com/LuisaHering/guardiao/blob/main/docs/checkins.md
+- Aplicacao no ar: https://guardiao-smoky.vercel.app
+
+**Quais foram os principais avancos?**
+
+Entrei na fase de IA. Entreguei consultas (gravacao ou upload de audio, guardado em
+storage privado) com resumo estruturado por IA a partir do texto da consulta;
+receitas, em que a foto ou o PDF vira uma sugestao de remedios que eu confiro antes
+de cadastrar, com o documento de origem guardado e ligado a cada remedio; e exames,
+com uma tela que mostra todos os valores extraidos de uma vez para conferir contra o
+papel. Tambem fiz o tratamento de analitos (casamento com os ja existentes,
+conversao de unidade explicita e fusao manual de duplicados), o grafico de
+tendencia por analito e uma tela de observacoes, em que a IA aponta recorrencias
+nos registros com a evidencia de cada uma.
+
+**Quais dificuldades voce encontrou?**
+
+A API da Anthropic nao transcreve audio, entao o card de transcricao automatica nao
+era viavel como estava escrito. Decidi guardar o audio e usar o texto da consulta
+colado, o que evita um servico de transcricao extra e um terceiro a mais recebendo
+audio de saude. A outra dificuldade foi tratar dado clinico com IA com cuidado: nada
+entra sem confirmacao, a conversao de unidade e feita por regra conhecida e nao pela
+IA, e cada observacao precisa citar datas que existem nos registros. Tambem tive de
+respeitar o limite de 4 MB do corpo das funcoes na Vercel, reduzindo as fotos no
+navegador antes do envio.
+
+**O que planejam fazer ate o proximo check-in?**
+
+Luisa - Gerador de diretivas antecipadas (questionario estruturado e PDF com
+versionamento), visao 360 do idoso sintetizada pela IA e alertas gerados pela IA, e
+iniciar o dashboard do familiar.
 
 **Voce precisa de orientacao?**
 
