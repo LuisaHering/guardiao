@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Badge, Button, Card, Field, Input } from "@/components/ui";
 import { extensaoDoArquivo, reduzirParaIA } from "@/lib/imagem";
-import { converter, normalizar } from "@/lib/analitos";
+import { converter, normalizar, normalizarUnidade } from "@/lib/analitos";
 import type { ExameExtraido } from "@/lib/ai/schemas";
 
 type Analito = {
@@ -35,6 +35,7 @@ type ExameSalvo = {
 
 type ResultadoSalvo = {
   exame_id: string;
+  analito_id: string;
   valor: number | null;
   unidade: string | null;
   ref_min: number | null;
@@ -125,6 +126,10 @@ export default function ExamesPage() {
   const [analitos, setAnalitos] = useState<Analito[]>([]);
   const [abertos, setAbertos] = useState<Record<string, boolean>>({});
 
+  const [destinos, setDestinos] = useState<Record<string, string>>({});
+  const [fundindo, setFundindo] = useState<string | null>(null);
+  const [erroFusao, setErroFusao] = useState<string | null>(null);
+
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [lendo, setLendo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -167,7 +172,7 @@ export default function ExamesPage() {
       const { data: rs } = await supabase
         .from("exame_resultado")
         .select(
-          "exame_id, valor, unidade, ref_min, ref_max, convertido, valor_original, unidade_original, analito:analito_id(nome_canonico)",
+          "exame_id, analito_id, valor, unidade, ref_min, ref_max, convertido, valor_original, unidade_original, analito:analito_id(nome_canonico)",
         )
         .in(
           "exame_id",
@@ -262,6 +267,23 @@ export default function ExamesPage() {
     setRevisao((r) => (r ? { ...r, linhas: r.linhas.filter((_, j) => j !== i) } : r));
   }
 
+  async function fundir(origemId: string) {
+    const destinoId = destinos[origemId];
+    if (!destinoId) return;
+    setErroFusao(null);
+    setFundindo(origemId);
+    const { error } = await supabase.rpc("fundir_analitos", {
+      p_origem: origemId,
+      p_destino: destinoId,
+    });
+    if (error) setErroFusao(error.message);
+    setFundindo(null);
+    setDestinos((d) =>
+      Object.fromEntries(Object.entries(d).filter(([k]) => k !== origemId)),
+    );
+    await carregar();
+  }
+
   async function confirmar() {
     if (!revisao || !arquivo || !idosoId) return;
     const calc = revisao.linhas.map((l) => ({ l, r: resolver(l, analitos) }));
@@ -333,6 +355,11 @@ export default function ExamesPage() {
 
   const calculadas = revisao?.linhas.map((l) => resolver(l, analitos)) ?? [];
   const temErro = calculadas.some((c) => c.erro);
+
+  const contagem: Record<string, number> = {};
+  for (const lista of Object.values(resultados)) {
+    for (const r of lista) contagem[r.analito_id] = (contagem[r.analito_id] ?? 0) + 1;
+  }
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -499,6 +526,65 @@ export default function ExamesPage() {
           </Card>
         ))}
       </div>
+
+      {analitos.length >= 2 && (
+        <Card className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-sm font-medium text-ink">Analitos</h2>
+            <p className="text-xs text-subtle">
+              Se o mesmo analito apareceu com dois nomes (ex: &quot;Glicemia&quot; e
+              &quot;Glicose em jejum&quot;), funda os dois para a serie ficar numa
+              linha so. So e possivel fundir analitos com a mesma unidade.
+            </p>
+          </div>
+          {analitos.map((a) => {
+            const candidatos = analitos.filter(
+              (b) =>
+                b.id !== a.id &&
+                normalizarUnidade(b.unidade_canonica) === normalizarUnidade(a.unidade_canonica),
+            );
+            return (
+              <div
+                key={a.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3"
+              >
+                <div>
+                  <p className="text-sm text-ink">{a.nome_canonico}</p>
+                  <p className="text-xs text-subtle">
+                    {a.unidade_canonica || "sem unidade"} · {contagem[a.id] ?? 0} resultados
+                  </p>
+                </div>
+                {candidatos.length > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={destinos[a.id] ?? ""}
+                      onChange={(e) => setDestinos({ ...destinos, [a.id]: e.target.value })}
+                      className="h-9 rounded-lg border border-line bg-card px-2 text-xs text-ink"
+                    >
+                      <option value="">Fundir em...</option>
+                      {candidatos.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.nome_canonico}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      onClick={() => fundir(a.id)}
+                      disabled={!destinos[a.id] || fundindo === a.id}
+                      className="h-9 px-3 text-xs"
+                    >
+                      {fundindo === a.id ? "Fundindo..." : "Fundir"}
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-subtle">sem candidato com a mesma unidade</span>
+                )}
+              </div>
+            );
+          })}
+          {erroFusao && <p className="text-sm text-danger">{erroFusao}</p>}
+        </Card>
+      )}
     </div>
   );
 }
