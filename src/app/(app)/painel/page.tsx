@@ -42,6 +42,31 @@ export default async function PainelPage() {
       titulo: "Timeline do idoso",
       descricao: "Tudo que aconteceu, em ordem, num só lugar.",
     },
+    {
+      href: "/consultas",
+      titulo: "Consultas",
+      descricao: "Áudio, texto da consulta e resumo feito por IA.",
+    },
+    {
+      href: "/receitas",
+      titulo: "Receitas",
+      descricao: "Foto da receita vira sugestão de remédios para conferir.",
+    },
+    {
+      href: "/exames",
+      titulo: "Exames",
+      descricao: "Laudos lidos por IA e confirmados por você.",
+    },
+    {
+      href: "/tendencias",
+      titulo: "Tendências",
+      descricao: "Como cada resultado de exame mudou ao longo do tempo.",
+    },
+    {
+      href: "/insights",
+      titulo: "Observações",
+      descricao: "O que se repete nos registros, para levar ao médico.",
+    },
   ];
 
   return (
