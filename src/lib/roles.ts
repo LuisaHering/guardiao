@@ -33,6 +33,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/receitas", label: "Receitas", enabled: true },
     { href: "/exames", label: "Exames", enabled: true },
     { href: "/tendencias", label: "Tendências", enabled: true },
+    { href: "/insights", label: "Observações", enabled: true },
     { href: "/documentos", label: "Documentos", enabled: false },
   ],
   cuidador: [
@@ -47,6 +48,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/receitas", label: "Receitas", enabled: true },
     { href: "/exames", label: "Exames", enabled: true },
     { href: "/tendencias", label: "Tendências", enabled: true },
+    { href: "/insights", label: "Observações", enabled: true },
   ],
   idoso: [
     { href: "/painel", label: "Painel", enabled: true },
