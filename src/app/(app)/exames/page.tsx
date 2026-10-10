@@ -1,0 +1,504 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useRole } from "@/lib/role-context";
+import { Badge, Button, Card, Field, Input } from "@/components/ui";
+import { extensaoDoArquivo, reduzirParaIA } from "@/lib/imagem";
+import { converter, normalizar } from "@/lib/analitos";
+import type { ExameExtraido } from "@/lib/ai/schemas";
+
+type Analito = {
+  id: string;
+  nome_canonico: string;
+  unidade_canonica: string | null;
+};
+
+type Linha = {
+  nome: string;
+  valor: string;
+  unidade: string;
+  refMin: string;
+  refMax: string;
+  analitoId: string | null;
+  /** o usuario mexeu em algo que veio da IA */
+  editado: boolean;
+};
+
+type ExameSalvo = {
+  id: string;
+  tipo: string | null;
+  laboratorio: string | null;
+  data: string | null;
+  arquivo_url: string | null;
+};
+
+type ResultadoSalvo = {
+  exame_id: string;
+  valor: number | null;
+  unidade: string | null;
+  ref_min: number | null;
+  ref_max: number | null;
+  convertido: boolean;
+  valor_original: number | null;
+  unidade_original: string | null;
+  analito: { nome_canonico: string } | null;
+};
+
+function num(texto: string): number | null {
+  const t = texto.trim();
+  if (t === "") return null;
+  const n = Number(t.replace(",", "."));
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function fmt(n: number | null | undefined) {
+  if (n === null || n === undefined) return "-";
+  return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+}
+
+function dataCurta(iso: string | null) {
+  if (!iso) return "Sem data";
+  const [a, m, d] = iso.slice(0, 10).split("-");
+  return `${d}/${m}/${a}`;
+}
+
+/** Decide, para uma linha, qual analito ela e, em que unidade fica e se precisa converter. */
+function resolver(l: Linha, analitos: Analito[]) {
+  const valor = num(l.valor);
+  const refMin = num(l.refMin);
+  const refMax = num(l.refMax);
+
+  const porId = l.analitoId ? analitos.find((a) => a.id === l.analitoId) : undefined;
+  const alvo =
+    porId ??
+    analitos.find((a) => normalizar(a.nome_canonico) === normalizar(l.nome));
+
+  let erro: string | null = null;
+  if (!l.nome.trim()) erro = "Falta o nome.";
+  else if (valor === null || Number.isNaN(valor)) erro = "Valor invalido.";
+  else if (Number.isNaN(refMin) || Number.isNaN(refMax)) erro = "Faixa de referencia invalida.";
+
+  let valorFinal = valor;
+  let refMinFinal = refMin;
+  let refMaxFinal = refMax;
+  let unidadeFinal = l.unidade.trim();
+  let convertido = false;
+
+  if (!erro && alvo && alvo.unidade_canonica) {
+    const alvoUn = alvo.unidade_canonica;
+    const c = converter(l.nome, valor as number, unidadeFinal, alvoUn);
+    if (c.semFator) {
+      erro = `Unidade ${unidadeFinal || "?"} diferente de ${alvoUn} e nao sei converter. Corrija a unidade ou remova a linha.`;
+    } else if (c.convertido) {
+      convertido = true;
+      valorFinal = c.valor;
+      if (refMin !== null) refMinFinal = converter(l.nome, refMin, unidadeFinal, alvoUn).valor;
+      if (refMax !== null) refMaxFinal = converter(l.nome, refMax, unidadeFinal, alvoUn).valor;
+      unidadeFinal = alvoUn;
+    } else {
+      unidadeFinal = alvoUn;
+    }
+  }
+
+  return {
+    alvo,
+    novo: !alvo,
+    valorFinal,
+    refMinFinal,
+    refMaxFinal,
+    unidadeFinal,
+    convertido,
+    erro,
+  };
+}
+
+export default function ExamesPage() {
+  const supabase = createClient();
+  const membership = useRole();
+  const idosoId = membership?.idosoId;
+
+  const [carregando, setCarregando] = useState(true);
+  const [exames, setExames] = useState<ExameSalvo[]>([]);
+  const [resultados, setResultados] = useState<Record<string, ResultadoSalvo[]>>({});
+  const [docs, setDocs] = useState<Record<string, string>>({});
+  const [analitos, setAnalitos] = useState<Analito[]>([]);
+  const [abertos, setAbertos] = useState<Record<string, boolean>>({});
+
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [lendo, setLendo] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  const [revisao, setRevisao] = useState<{
+    tipo: string;
+    laboratorio: string;
+    data: string;
+    legivel: boolean;
+    linhas: Linha[];
+  } | null>(null);
+
+  const carregar = useCallback(async () => {
+    if (!idosoId) {
+      setCarregando(false);
+      return;
+    }
+    setCarregando(true);
+    const [{ data: es }, { data: as }] = await Promise.all([
+      supabase
+        .from("exame")
+        .select("id, tipo, laboratorio, data, arquivo_url")
+        .eq("idoso_id", idosoId)
+        .is("deleted_at", null)
+        .order("data", { ascending: false })
+        .limit(30),
+      supabase
+        .from("analito")
+        .select("id, nome_canonico, unidade_canonica")
+        .eq("idoso_id", idosoId)
+        .is("fundido_em", null)
+        .order("nome_canonico"),
+    ]);
+    const lista = (es ?? []) as ExameSalvo[];
+    setExames(lista);
+    setAnalitos((as ?? []) as Analito[]);
+
+    if (lista.length > 0) {
+      const { data: rs } = await supabase
+        .from("exame_resultado")
+        .select(
+          "exame_id, valor, unidade, ref_min, ref_max, convertido, valor_original, unidade_original, analito:analito_id(nome_canonico)",
+        )
+        .in(
+          "exame_id",
+          lista.map((e) => e.id),
+        );
+      const mapa: Record<string, ResultadoSalvo[]> = {};
+      for (const r of (rs ?? []) as unknown as ResultadoSalvo[]) {
+        (mapa[r.exame_id] ??= []).push(r);
+      }
+      setResultados(mapa);
+    } else {
+      setResultados({});
+    }
+
+    const urls: Record<string, string> = {};
+    await Promise.all(
+      lista
+        .filter((e) => e.arquivo_url)
+        .map(async (e) => {
+          const { data: a } = await supabase.storage
+            .from("exames")
+            .createSignedUrl(e.arquivo_url as string, 3600);
+          if (a?.signedUrl) urls[e.id] = a.signedUrl;
+        }),
+    );
+    setDocs(urls);
+    setCarregando(false);
+  }, [supabase, idosoId]);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  async function ler() {
+    if (!arquivo || !idosoId) return;
+    setErro(null);
+    setLendo(true);
+    setRevisao(null);
+    try {
+      const enviado = await reduzirParaIA(arquivo);
+      const form = new FormData();
+      form.append("idosoId", idosoId);
+      form.append("arquivo", enviado, arquivo.type === "application/pdf" ? "exame.pdf" : "exame.jpg");
+      const resp = await fetch("/api/ia/exame", { method: "POST", body: form });
+      const json = await resp.json();
+      if (!resp.ok) {
+        setErro(json.erro ?? "Nao consegui ler o exame.");
+        setLendo(false);
+        return;
+      }
+      const e = json.exame as ExameExtraido;
+      setAnalitos(json.analitos as Analito[]);
+      setRevisao({
+        tipo: e.tipo ?? "",
+        laboratorio: e.laboratorio ?? "",
+        data: e.data ?? "",
+        legivel: e.legivel,
+        linhas: e.resultados.map((r) => ({
+          nome: r.nome,
+          valor: String(r.valor),
+          unidade: r.unidade ?? "",
+          refMin: r.ref_min === null ? "" : String(r.ref_min),
+          refMax: r.ref_max === null ? "" : String(r.ref_max),
+          analitoId: r.analito_id,
+          editado: false,
+        })),
+      });
+    } catch {
+      setErro("Sem conexao com o servidor. Tente de novo.");
+    }
+    setLendo(false);
+  }
+
+  function mudar(i: number, parcial: Partial<Linha>) {
+    setRevisao((r) =>
+      r
+        ? {
+            ...r,
+            linhas: r.linhas.map((l, j) => {
+              if (j !== i) return l;
+              const nova = { ...l, ...parcial, editado: true };
+              // Mudou o nome: o casamento sugerido pela IA deixa de valer.
+              if (parcial.nome !== undefined) nova.analitoId = null;
+              return nova;
+            }),
+          }
+        : r,
+    );
+  }
+
+  function remover(i: number) {
+    setRevisao((r) => (r ? { ...r, linhas: r.linhas.filter((_, j) => j !== i) } : r));
+  }
+
+  async function confirmar() {
+    if (!revisao || !arquivo || !idosoId) return;
+    const calc = revisao.linhas.map((l) => ({ l, r: resolver(l, analitos) }));
+    if (calc.length === 0) {
+      setErro("Nao ha resultados para confirmar.");
+      return;
+    }
+    if (calc.some((c) => c.r.erro)) {
+      setErro("Ainda ha linhas com problema. Corrija ou remova antes de confirmar.");
+      return;
+    }
+    if (!revisao.data) {
+      setErro("Informe a data da coleta.");
+      return;
+    }
+    setErro(null);
+    setSalvando(true);
+
+    const caminho = `${idosoId}/${crypto.randomUUID()}.${extensaoDoArquivo(arquivo)}`;
+    const { error: upErro } = await supabase.storage
+      .from("exames")
+      .upload(caminho, arquivo, { upsert: false, contentType: arquivo.type || undefined });
+    if (upErro) {
+      setErro(`Nao consegui guardar o documento: ${upErro.message}`);
+      setSalvando(false);
+      return;
+    }
+
+    const payload = calc.map(({ l, r }) => ({
+      analito_id: r.alvo?.id ?? null,
+      nome: l.nome.trim(),
+      valor: r.valorFinal,
+      unidade: r.unidadeFinal || null,
+      valor_original: r.convertido ? num(l.valor) : null,
+      unidade_original: r.convertido ? l.unidade.trim() : null,
+      convertido: r.convertido,
+      ref_min: r.refMinFinal,
+      ref_max: r.refMaxFinal,
+      corrigido_manualmente: l.editado,
+    }));
+
+    const { error } = await supabase.rpc("confirmar_exame", {
+      p_idoso: idosoId,
+      p_tipo: revisao.tipo.trim() || null,
+      p_laboratorio: revisao.laboratorio.trim() || null,
+      p_data: new Date(`${revisao.data}T12:00:00`).toISOString(),
+      p_arquivo_url: caminho,
+      p_resultados: payload,
+    });
+    if (error) {
+      setErro(error.message);
+      setSalvando(false);
+      return;
+    }
+
+    setRevisao(null);
+    setArquivo(null);
+    setSalvando(false);
+    await carregar();
+  }
+
+  if (!membership) {
+    return (
+      <p className="text-sm text-subtle">
+        Crie o perfil do idoso primeiro para cadastrar exames.
+      </p>
+    );
+  }
+
+  const calculadas = revisao?.linhas.map((l) => resolver(l, analitos)) ?? [];
+  const temErro = calculadas.some((c) => c.erro);
+
+  return (
+    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-ink">Exames</h1>
+        <p className="text-sm text-subtle">
+          Envie o laudo de {membership.idosoNome} (foto ou PDF). A IA le os valores
+          e voce confere todos de uma vez contra o papel. So o que for confirmado
+          entra no sistema.
+        </p>
+      </div>
+
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-ink">Novo exame</h2>
+        <input
+          type="file"
+          accept="image/*,application/pdf"
+          onChange={(e) => {
+            setArquivo(e.target.files?.[0] ?? null);
+            setRevisao(null);
+            setErro(null);
+          }}
+          className="text-sm text-subtle file:mr-3 file:rounded-lg file:border file:border-line file:bg-panel file:px-3 file:py-2 file:text-sm file:text-ink"
+        />
+        {erro && !revisao && <p className="text-sm text-danger">{erro}</p>}
+        <Button variant="primary" onClick={ler} disabled={!arquivo || lendo} className="self-start">
+          {lendo ? "Lendo o exame..." : "Ler exame"}
+        </Button>
+        <p className="text-xs text-subtle">
+          O documento e enviado a IA da Anthropic para a leitura. Enquanto voce nao
+          confirma, nada e salvo: nem o arquivo, nem os valores.
+        </p>
+      </Card>
+
+      {revisao && (
+        <Card className="flex flex-col gap-4 border-primary/40">
+          <h2 className="text-sm font-medium text-ink">
+            Confira contra o documento ({revisao.linhas.length} resultados)
+          </h2>
+          {!revisao.legivel && (
+            <p className="rounded-lg bg-warn/10 p-3 text-sm text-warn">
+              A leitura nao teve certeza de tudo. Confira com atencao cada linha.
+            </p>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Tipo de exame">
+              <Input value={revisao.tipo} onChange={(e) => setRevisao({ ...revisao, tipo: e.target.value })} />
+            </Field>
+            <Field label="Laboratorio">
+              <Input
+                value={revisao.laboratorio}
+                onChange={(e) => setRevisao({ ...revisao, laboratorio: e.target.value })}
+              />
+            </Field>
+            <Field label="Data da coleta">
+              <Input
+                type="date"
+                value={revisao.data}
+                onChange={(e) => setRevisao({ ...revisao, data: e.target.value })}
+              />
+            </Field>
+          </div>
+
+          <div className="flex flex-col">
+            {revisao.linhas.map((l, i) => {
+              const c = calculadas[i];
+              return (
+                <div key={i} className="flex flex-col gap-2 border-t border-line py-3">
+                  <div className="grid gap-2 sm:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
+                    <Input value={l.nome} onChange={(e) => mudar(i, { nome: e.target.value })} placeholder="Analito" />
+                    <Input value={l.valor} onChange={(e) => mudar(i, { valor: e.target.value })} placeholder="Valor" inputMode="decimal" />
+                    <Input value={l.unidade} onChange={(e) => mudar(i, { unidade: e.target.value })} placeholder="Unidade" />
+                    <Input value={l.refMin} onChange={(e) => mudar(i, { refMin: e.target.value })} placeholder="Ref. min" inputMode="decimal" />
+                    <Input value={l.refMax} onChange={(e) => mudar(i, { refMax: e.target.value })} placeholder="Ref. max" inputMode="decimal" />
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {c.erro ? (
+                        <span className="text-xs text-danger">{c.erro}</span>
+                      ) : c.novo ? (
+                        <Badge tone="primary">analito novo</Badge>
+                      ) : (
+                        <Badge tone="neutral">{c.alvo?.nome_canonico}</Badge>
+                      )}
+                      {c.convertido && !c.erro && (
+                        <Badge tone="warn">
+                          convertido: {fmt(num(l.valor))} {l.unidade} → {fmt(c.valorFinal)} {c.unidadeFinal}
+                        </Badge>
+                      )}
+                    </div>
+                    <Button variant="ghost" onClick={() => remover(i)} className="h-7 px-2 text-xs">
+                      Remover linha
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {erro && <p className="text-sm text-danger">{erro}</p>}
+          <div className="flex gap-2">
+            <Button variant="primary" onClick={confirmar} disabled={salvando || temErro || revisao.linhas.length === 0}>
+              {salvando ? "Confirmando..." : "Confirmar exame"}
+            </Button>
+            <Button variant="ghost" onClick={() => setRevisao(null)} disabled={salvando}>
+              Descartar
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-ink">Exames confirmados</h2>
+        {carregando && <p className="text-sm text-subtle">Carregando...</p>}
+        {!carregando && exames.length === 0 && (
+          <p className="text-sm text-subtle">Nenhum exame confirmado ainda.</p>
+        )}
+        {exames.map((e) => (
+          <Card key={e.id} className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setAbertos({ ...abertos, [e.id]: !abertos[e.id] })}
+                className="text-left"
+              >
+                <p className="text-sm font-medium text-ink">
+                  {e.tipo || "Exame"} · {dataCurta(e.data)}
+                </p>
+                <p className="text-xs text-subtle">
+                  {[e.laboratorio, `${(resultados[e.id] ?? []).length} resultados`]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </button>
+              {docs[e.id] && (
+                <a href={docs[e.id]} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+                  Ver documento
+                </a>
+              )}
+            </div>
+            {abertos[e.id] && (
+              <div className="flex flex-col gap-1 border-t border-line pt-2">
+                {(resultados[e.id] ?? []).map((r, i) => (
+                  <p key={i} className="text-sm text-ink">
+                    <span className="font-medium">{r.analito?.nome_canonico}</span>{" "}
+                    {fmt(r.valor)} {r.unidade}
+                    {r.ref_min !== null || r.ref_max !== null ? (
+                      <span className="text-subtle">
+                        {" "}
+                        (ref. {fmt(r.ref_min)} a {fmt(r.ref_max)})
+                      </span>
+                    ) : null}
+                    {r.convertido && (
+                      <span className="text-subtle">
+                        {" "}
+                        · original {fmt(r.valor_original)} {r.unidade_original}
+                      </span>
+                    )}
+                  </p>
+                ))}
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
