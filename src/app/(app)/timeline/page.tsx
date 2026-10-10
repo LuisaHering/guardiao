@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Card } from "@/components/ui";
 
-type Tipo = "diario" | "sintoma" | "medicacao";
+type Tipo = "diario" | "sintoma" | "medicacao" | "consulta" | "exame";
 type Item = {
   id: string;
   tipo: Tipo;
@@ -18,6 +18,8 @@ const CONFIG: Record<Tipo, { rotulo: string; cor: string }> = {
   diario: { rotulo: "Diario", cor: "bg-primary" },
   sintoma: { rotulo: "Sintoma", cor: "bg-warn" },
   medicacao: { rotulo: "Medicacao", cor: "bg-success" },
+  consulta: { rotulo: "Consulta", cor: "bg-ink" },
+  exame: { rotulo: "Exame", cor: "bg-subtle" },
 };
 
 function diaLegivel(iso: string) {
@@ -58,8 +60,13 @@ export default function TimelinePage() {
     }
     setCarregando(true);
 
-    const [{ data: diario }, { data: sintomas }, { data: meds }] =
-      await Promise.all([
+    const [
+      { data: diario },
+      { data: sintomas },
+      { data: meds },
+      { data: consultas },
+      { data: exames },
+    ] = await Promise.all([
         supabase
           .from("entrada_diario")
           .select("id, data, alimentacao, ocorrencias")
@@ -79,6 +86,20 @@ export default function TimelinePage() {
           .select("id, nome")
           .eq("idoso_id", idosoId)
           .is("deleted_at", null),
+        supabase
+          .from("consulta")
+          .select("id, data, medico, especialidade, resumo")
+          .eq("idoso_id", idosoId)
+          .is("deleted_at", null)
+          .order("data", { ascending: false })
+          .limit(30),
+        supabase
+          .from("exame")
+          .select("id, data, tipo, laboratorio")
+          .eq("idoso_id", idosoId)
+          .is("deleted_at", null)
+          .order("data", { ascending: false })
+          .limit(30),
       ]);
 
     const lista: Item[] = [];
@@ -101,6 +122,29 @@ export default function TimelinePage() {
         data: s.data as string,
         titulo: `Sintoma${s.gravidade ? ` (gravidade ${s.gravidade})` : ""}`,
         detalhe: s.descricao as string,
+      });
+    }
+
+    for (const c of (consultas ?? []) as Record<string, unknown>[]) {
+      if (!c.data) continue;
+      lista.push({
+        id: `consulta-${c.id}`,
+        tipo: "consulta",
+        data: c.data as string,
+        titulo:
+          [c.medico, c.especialidade].filter(Boolean).join(" · ") || "Consulta",
+        detalhe: (c.resumo as string | null) ?? null,
+      });
+    }
+
+    for (const x of (exames ?? []) as Record<string, unknown>[]) {
+      if (!x.data) continue;
+      lista.push({
+        id: `exame-${x.id}`,
+        tipo: "exame",
+        data: x.data as string,
+        titulo: (x.tipo as string | null) || "Exame",
+        detalhe: (x.laboratorio as string | null) ?? null,
       });
     }
 
