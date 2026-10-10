@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
-import { Button, Card, Field, Input } from "@/components/ui";
+import { Badge, Button, Card, Field, Input } from "@/components/ui";
+import type { ResumoConsulta } from "@/lib/ai/schemas";
 
 type Consulta = {
   id: string;
@@ -12,7 +13,189 @@ type Consulta = {
   especialidade: string | null;
   audio_url: string | null;
   status_processamento: string | null;
+  transcricao: string | null;
+  resumo_json: ResumoConsulta | null;
 };
+
+const MUDANCA: Record<string, string> = {
+  iniciar: "iniciar",
+  suspender: "suspender",
+  ajustar: "ajustar",
+  manter: "manter",
+  mencionado: "citado",
+};
+
+function ConsultaItem({
+  c,
+  audioUrl,
+  onRemover,
+  onAtualizar,
+}: {
+  c: Consulta;
+  audioUrl?: string;
+  onRemover: () => void;
+  onAtualizar: () => Promise<void>;
+}) {
+  const supabase = createClient();
+  const [texto, setTexto] = useState(c.transcricao ?? "");
+  const [aberto, setAberto] = useState(false);
+  const [gerando, setGerando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const r = c.resumo_json;
+
+  async function gerar() {
+    setErro(null);
+    setGerando(true);
+    const { error } = await supabase
+      .from("consulta")
+      .update({ transcricao: texto.trim() })
+      .eq("id", c.id);
+    if (error) {
+      setErro(error.message);
+      setGerando(false);
+      return;
+    }
+    try {
+      const resp = await fetch("/api/ia/consulta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ consultaId: c.id }),
+      });
+      const json = await resp.json();
+      if (!resp.ok) setErro(json.erro ?? "Nao consegui gerar o resumo.");
+    } catch {
+      setErro("Sem conexao com o servidor. Tente de novo.");
+    }
+    setGerando(false);
+    await onAtualizar();
+  }
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-ink">
+            {[c.medico, c.especialidade].filter(Boolean).join(" · ") || "Consulta"}
+          </p>
+          <p className="text-xs text-subtle">{dataLegivel(c.data)}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {c.status_processamento === "concluido" && <Badge tone="success">resumida</Badge>}
+          {c.status_processamento === "falhou" && <Badge tone="warn">falhou</Badge>}
+          <Button variant="ghost" onClick={onRemover} className="h-7 px-2 text-xs">
+            Remover
+          </Button>
+        </div>
+      </div>
+
+      {audioUrl ? (
+        <audio controls src={audioUrl} className="w-full" />
+      ) : (
+        <p className="text-xs text-subtle">Sem audio.</p>
+      )}
+
+      {r && (
+        <div className="flex flex-col gap-3 rounded-lg bg-panel p-4">
+          <p className="text-sm text-ink">{r.resumo}</p>
+          {r.acoes.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                O que fazer
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-ink">
+                {r.acoes.map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {r.remedios.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                Remedios
+              </p>
+              <ul className="mt-1 flex flex-col gap-1 text-sm text-ink">
+                {r.remedios.map((m, i) => (
+                  <li key={i}>
+                    <span className="font-medium">{m.nome}</span>
+                    {m.dosagem && <span className="text-subtle"> · {m.dosagem}</span>}
+                    <span className="text-subtle"> · {MUDANCA[m.mudanca] ?? m.mudanca}</span>
+                    {m.detalhe && <span className="text-subtle"> · {m.detalhe}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {r.exames.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                Exames pedidos
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-ink">
+                {r.exames.map((x, i) => (
+                  <li key={i}>
+                    {x.nome}
+                    {x.motivo && <span className="text-subtle"> · {x.motivo}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {r.duvidas.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                Ficou em aberto
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-ink">
+                {r.duvidas.map((d, i) => (
+                  <li key={i}>{d}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {r.retorno && <p className="text-sm text-ink">Retorno: {r.retorno}</p>}
+          <p className="text-xs text-subtle">
+            Resumo feito por IA a partir do texto abaixo. Confira com o que foi dito
+            na consulta antes de agir.
+          </p>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => setAberto(!aberto)}
+          className="self-start text-xs text-primary hover:underline"
+        >
+          {aberto ? "Esconder texto da consulta" : r ? "Ver ou editar o texto da consulta" : "Colar o texto da consulta e gerar resumo"}
+        </button>
+        {aberto && (
+          <>
+            <textarea
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              rows={8}
+              placeholder="Cole aqui o que foi dito na consulta (transcricao ou anotacoes)."
+              className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            />
+            {erro && <p className="text-sm text-danger">{erro}</p>}
+            <Button
+              variant="primary"
+              onClick={gerar}
+              disabled={gerando || texto.trim().length < 40}
+              className="self-start"
+            >
+              {gerando ? "Gerando resumo..." : r ? "Gerar resumo de novo" : "Gerar resumo"}
+            </Button>
+            <p className="text-xs text-subtle">
+              O texto e enviado a IA da Anthropic para gerar o resumo.
+            </p>
+          </>
+        )}
+      </div>
+    </Card>
+  );
+}
 
 // Limite de arquivo do plano gratuito do Storage.
 const LIMITE_AUDIO = 50 * 1024 * 1024;
@@ -73,7 +256,9 @@ export default function ConsultasPage() {
     setCarregando(true);
     const { data: lista } = await supabase
       .from("consulta")
-      .select("id, data, medico, especialidade, audio_url, status_processamento")
+      .select(
+        "id, data, medico, especialidade, audio_url, status_processamento, transcricao, resumo_json",
+      )
       .eq("idoso_id", idosoId)
       .is("deleted_at", null)
       .order("data", { ascending: false })
@@ -298,29 +483,13 @@ export default function ConsultasPage() {
           <p className="text-sm text-subtle">Nenhuma consulta ainda.</p>
         )}
         {consultas.map((c) => (
-          <Card key={c.id} className="flex flex-col gap-2">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-ink">
-                  {[c.medico, c.especialidade].filter(Boolean).join(" · ") ||
-                    "Consulta"}
-                </p>
-                <p className="text-xs text-subtle">{dataLegivel(c.data)}</p>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => remover(c.id)}
-                className="h-7 px-2 text-xs"
-              >
-                Remover
-              </Button>
-            </div>
-            {audios[c.id] ? (
-              <audio controls src={audios[c.id]} className="w-full" />
-            ) : (
-              <p className="text-xs text-subtle">Sem audio.</p>
-            )}
-          </Card>
+          <ConsultaItem
+            key={c.id}
+            c={c}
+            audioUrl={audios[c.id]}
+            onRemover={() => remover(c.id)}
+            onAtualizar={carregar}
+          />
         ))}
       </div>
     </div>
