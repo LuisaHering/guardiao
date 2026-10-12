@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { exigirMembro, respostaErro } from "@/lib/ai/acesso";
-import { ErroIA, REGRAS_BASE, extrair } from "@/lib/ai/claude";
+import { ErroIA, REGRAS_BASE } from "@/lib/ai/comum";
+import { extrair } from "@/lib/ai/ia";
 import { InsightsSchema } from "@/lib/ai/schemas";
 
 const PERIODOS = [30, 60, 90];

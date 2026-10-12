@@ -56,13 +56,23 @@ sozinha produz falso positivo.
 que exigem login e vínculo com o idoso antes de gastar qualquer token. O vínculo é
 checado pelo próprio RLS do banco, sem uma segunda regra de permissão.
 
+**O provedor de IA é intercambiável.** As rotas chamam uma única função
+(`extrair`), e uma variável de ambiente escolhe o provedor: Google (Gemini) ou
+Anthropic (Claude). Hoje está ativo o Google, por não exigir cartão enquanto só
+eu uso o sistema; a implementação da Anthropic permanece pronta em standby. O
+formato das respostas é o mesmo nos dois (schemas em zod) e, no servidor, a
+resposta é sempre validada contra o schema antes de ser usada. As telas mostram
+qual provedor recebe o conteúdo, lendo a mesma variável.
+
 ### Desvio de escopo no card 18
 
-A API da Anthropic lê texto, imagem e PDF, mas não transcreve áudio. O card
-previa "áudio vira transcrição". Decidi manter o áudio guardado no Storage e
-colar o texto da consulta (a IA resume a partir dele). Motivos: não depender de
-um serviço de transcrição extra, não enviar áudio de saúde a mais um terceiro e
-não adicionar custo. A consequência é que a transcrição não é automática.
+O card previa "áudio vira transcrição". Quando o card foi construído, o provedor
+era a Anthropic, cuja API lê texto, imagem e PDF mas não transcreve áudio.
+Decidi manter o áudio guardado no Storage e colar o texto da consulta (a IA
+resume a partir dele). Motivos: não depender de um serviço de transcrição extra,
+não enviar áudio de saúde a mais um terceiro e não adicionar custo. A
+consequência é que a transcrição não é automática, e continua assim mesmo com o
+provedor atual, porque enviar o áudio exigiria outro tratamento de privacidade.
 
 ## Verificação já feita
 
@@ -85,6 +95,13 @@ não adicionar custo. A consequência é que a transcrição não é automática
   um provedor de IA externo. Precisa ser revisado e, se mudar, versionado.
 - **Limite de 4 MB por arquivo** (limite da função na Vercel). Foto é reduzida no
   navegador antes de enviar; PDF acima disso é recusado com mensagem.
+- **Plano gratuito do Google.** O Google informa que, nesse plano, o conteúdo
+  enviado pode ser usado para melhorar os produtos dele (no plano pago, não). Por
+  isso, enquanto o provedor ativo estiver no plano gratuito, só devem ser usados
+  documentos sem dados reais. As telas exibem esse aviso. Para usar dados reais, o
+  caminho é um plano pago do Google ou o provedor Anthropic.
+- **Limite do plano gratuito.** O plano gratuito tem limite de requisições por
+  minuto e por dia; ao estourar, a tela mostra uma mensagem e basta tentar de novo.
 - **Sem limite de uso por pessoa** nas rotas de IA: o controle hoje é só estar
   logado e ser membro do idoso.
 - **Recusa da IA** (stop reason `refusal`) é tratada com mensagem clara, mas sem

@@ -6,6 +6,7 @@ import { useRole } from "@/lib/role-context";
 import { Badge, Button, Card, Field, Input } from "@/components/ui";
 import { extensaoDoArquivo, reduzirParaIA } from "@/lib/imagem";
 import { converter, normalizar, normalizarUnidade } from "@/lib/analitos";
+import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
 import type { ExameExtraido } from "@/lib/ai/schemas";
 
 type Analito = {
@@ -389,8 +390,9 @@ export default function ExamesPage() {
           {lendo ? "Lendo o exame..." : "Ler exame"}
         </Button>
         <p className="text-xs text-subtle">
-          O documento e enviado a IA da Anthropic para a leitura. Enquanto voce nao
-          confirma, nada e salvo: nem o arquivo, nem os valores.
+          O documento e enviado a {NOME_PROVEDOR} para a leitura. Enquanto voce
+          nao confirma, nada e salvo aqui: nem o arquivo, nem os valores.
+          {AVISO_PLANO_GRATIS}
         </p>
       </Card>
 

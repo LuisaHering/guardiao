@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Badge, Button, Card } from "@/components/ui";
+import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
 
 type Item = {
   titulo: string;
@@ -132,7 +133,8 @@ export default function InsightsPage() {
           {gerando ? "Analisando..." : "Gerar observacoes"}
         </Button>
         <p className="w-full text-xs text-subtle">
-          Os registros do periodo sao enviados a IA da Anthropic para a analise.
+          Os registros do periodo sao enviados a {NOME_PROVEDOR} para a analise.
+          {AVISO_PLANO_GRATIS}
         </p>
         {erro && <p className="w-full text-sm text-danger">{erro}</p>}
       </Card>

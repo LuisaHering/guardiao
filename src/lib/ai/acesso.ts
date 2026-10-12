@@ -3,7 +3,7 @@
 // entao nao existe uma segunda regra de permissao para manter em sincronia.
 
 import { createClient } from "@/lib/supabase/server";
-import { ErroIA } from "@/lib/ai/claude";
+import { ErroIA } from "@/lib/ai/comum";
 
 export async function exigirMembro(idosoId: string | null | undefined) {
   if (!idosoId) throw new ErroIA("Idoso nao informado.", 400);

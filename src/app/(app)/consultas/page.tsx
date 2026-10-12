@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Badge, Button, Card, Field, Input } from "@/components/ui";
 import type { ResumoConsulta } from "@/lib/ai/schemas";
+import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
 
 type Consulta = {
   id: string;
@@ -188,7 +189,8 @@ function ConsultaItem({
               {gerando ? "Gerando resumo..." : r ? "Gerar resumo de novo" : "Gerar resumo"}
             </Button>
             <p className="text-xs text-subtle">
-              O texto e enviado a IA da Anthropic para gerar o resumo.
+              O texto e enviado a {NOME_PROVEDOR} para gerar o resumo.
+              {AVISO_PLANO_GRATIS}
             </p>
           </>
         )}

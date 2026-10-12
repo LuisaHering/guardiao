@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { exigirMembro, LIMITE_BYTES, respostaErro } from "@/lib/ai/acesso";
-import { ErroIA, REGRAS_BASE, extrair, type Entrada } from "@/lib/ai/claude";
+import { ErroIA, REGRAS_BASE, type Entrada } from "@/lib/ai/comum";
+import { extrair } from "@/lib/ai/ia";
 import { ReceitaSchema } from "@/lib/ai/schemas";
 
 const IMAGENS = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;

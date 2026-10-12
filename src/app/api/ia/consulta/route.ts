@@ -1,7 +1,8 @@
 import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { exigirMembro, respostaErro } from "@/lib/ai/acesso";
-import { ErroIA, REGRAS_BASE, extrair } from "@/lib/ai/claude";
+import { ErroIA, REGRAS_BASE } from "@/lib/ai/comum";
+import { extrair } from "@/lib/ai/ia";
 import { ResumoConsultaSchema } from "@/lib/ai/schemas";
 
 const LIMITE_TEXTO = 60_000;
