@@ -60,6 +60,13 @@ function fmt(n: number | null | undefined) {
   return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 }
 
+function faixaTexto(min: number | null, max: number | null) {
+  if (min !== null && max !== null) return `${fmt(min)} a ${fmt(max)}`;
+  if (max !== null) return `até ${fmt(max)}`;
+  if (min !== null) return `a partir de ${fmt(min)}`;
+  return "";
+}
+
 function dataCurta(iso: string | null) {
   if (!iso) return "Sem data";
   const [a, m, d] = iso.slice(0, 10).split("-");
@@ -541,7 +548,7 @@ export default function ExamesPage() {
                     {r.ref_min !== null || r.ref_max !== null ? (
                       <span className="text-subtle">
                         {" "}
-                        (ref. {fmt(r.ref_min)} a {fmt(r.ref_max)})
+                        (ref. {faixaTexto(r.ref_min, r.ref_max)})
                       </span>
                     ) : null}
                     {r.convertido && (
