@@ -55,6 +55,8 @@ export default function ReceitasPage() {
     linhas: Linha[];
   } | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [removendo, setRemovendo] = useState<string | null>(null);
+  const [removendoAgora, setRemovendoAgora] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!idosoId) {
@@ -148,18 +150,19 @@ export default function ReceitasPage() {
     setLendo(false);
   }
 
-  async function removerReceita(id: string) {
-    if (
-      !window.confirm(
-        "Remover esta receita da lista? Os remedios cadastrados a partir dela continuam na Medicacao e precisam ser removidos la.",
-      )
-    ) {
-      return;
+  async function removerReceita(id: string, comRemedios: boolean) {
+    setRemovendoAgora(true);
+    const agora = new Date().toISOString();
+    if (comRemedios) {
+      await supabase
+        .from("medicacao")
+        .update({ deleted_at: agora })
+        .eq("receita_id", id)
+        .is("deleted_at", null);
     }
-    await supabase
-      .from("receita")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
+    await supabase.from("receita").update({ deleted_at: agora }).eq("id", id);
+    setRemovendo(null);
+    setRemovendoAgora(false);
     await carregar();
   }
 
@@ -371,35 +374,77 @@ export default function ReceitasPage() {
         {!carregando && receitas.length === 0 && (
           <p className="text-sm text-subtle">Nenhuma receita ainda.</p>
         )}
-        {receitas.map((r) => (
-          <Card key={r.id} className="flex flex-col gap-1">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-ink">
-                {r.medico || "Receita"} · {dataCurta(r.data ?? r.created_at)}
+        {receitas.map((r) => {
+          const meds = medsPorReceita[r.id] ?? [];
+          return (
+            <Card key={r.id} className="flex flex-col gap-1">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-ink">
+                  {r.medico || "Receita"} · {dataCurta(r.data ?? r.created_at)}
+                </p>
+                <div className="flex items-center gap-1">
+                  {docs[r.id] && (
+                    <a
+                      href={docs[r.id]}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Ver documento
+                    </a>
+                  )}
+                  <Button
+                    variant="ghost"
+                    onClick={() => setRemovendo(removendo === r.id ? null : r.id)}
+                    className="h-7 px-2 text-xs"
+                  >
+                    Remover
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-subtle">
+                {meds.join(", ") || "Nenhum remedio ativo ligado a esta receita."}
               </p>
-              {docs[r.id] && (
-                <a
-                  href={docs[r.id]}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-primary hover:underline"
-                >
-                  Ver documento
-                </a>
+
+              {removendo === r.id && (
+                <div className="mt-2 flex flex-col gap-3 rounded-lg bg-panel p-3">
+                  <p className="text-sm text-ink">
+                    {meds.length > 0
+                      ? `Esta receita tem ${meds.length} remedio${meds.length > 1 ? "s" : ""} ativo${meds.length > 1 ? "s" : ""} na Medicacao: ${meds.join(", ")}. Quer remove-${meds.length > 1 ? "los" : "lo"} tambem?`
+                      : "Remover esta receita da lista?"}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {meds.length > 0 && (
+                      <Button
+                        variant="primary"
+                        onClick={() => removerReceita(r.id, true)}
+                        disabled={removendoAgora}
+                        className="h-9 px-3 text-xs"
+                      >
+                        Remover receita e remedios
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => removerReceita(r.id, false)}
+                      disabled={removendoAgora}
+                      className="h-9 px-3 text-xs"
+                    >
+                      {meds.length > 0 ? "Remover so a receita" : "Remover receita"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setRemovendo(null)}
+                      disabled={removendoAgora}
+                      className="h-9 px-3 text-xs"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
               )}
-              <Button
-                variant="ghost"
-                onClick={() => removerReceita(r.id)}
-                className="h-7 px-2 text-xs"
-              >
-                Remover
-              </Button>
-            </div>
-            <p className="text-xs text-subtle">
-              {(medsPorReceita[r.id] ?? []).join(", ") || "Nenhum remedio ativo ligado a esta receita."}
-            </p>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
