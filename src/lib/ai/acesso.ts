@@ -6,13 +6,13 @@ import { createClient } from "@/lib/supabase/server";
 import { ErroIA } from "@/lib/ai/comum";
 
 export async function exigirMembro(idosoId: string | null | undefined) {
-  if (!idosoId) throw new ErroIA("Idoso nao informado.", 400);
+  if (!idosoId) throw new ErroIA("Idoso não informado.", 400);
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new ErroIA("Voce precisa estar logada.", 401);
+  if (!user) throw new ErroIA("Você precisa estar logada.", 401);
 
   const { data: idoso } = await supabase
     .from("idoso")

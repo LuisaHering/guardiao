@@ -99,7 +99,7 @@ export default function DiarioPage() {
         .from("diario")
         .upload(caminho, arquivo, { upsert: false });
       if (upErro) {
-        setErro(`Nao consegui subir a foto: ${upErro.message}`);
+        setErro(`Não consegui subir a foto: ${upErro.message}`);
         setSalvando(false);
         return;
       }
@@ -135,7 +135,7 @@ export default function DiarioPage() {
   if (!membership) {
     return (
       <p className="text-sm text-subtle">
-        Crie o perfil do idoso primeiro para usar o diario.
+        Crie o perfil do idoso primeiro para usar o diário.
       </p>
     );
   }
@@ -143,9 +143,9 @@ export default function DiarioPage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Diario do cuidador</h1>
+        <h1 className="text-2xl font-semibold text-ink">Diário do cuidador</h1>
         <p className="text-sm text-subtle">
-          Como foi o dia de {membership.idosoNome}: alimentacao, ocorrencias e uma
+          Como foi o dia de {membership.idosoNome}: alimentação, ocorrências e uma
           foto, se quiser. Cada registro guarda quem escreveu e quando.
         </p>
       </div>
@@ -153,7 +153,7 @@ export default function DiarioPage() {
       <Card className="flex flex-col gap-4">
         <h2 className="text-sm font-medium text-ink">Nova entrada</h2>
         <form onSubmit={salvar} className="flex flex-col gap-3">
-          <Field label="Alimentacao">
+          <Field label="Alimentação">
             <textarea
               value={alimentacao}
               onChange={(e) => setAlimentacao(e.target.value)}
@@ -162,7 +162,7 @@ export default function DiarioPage() {
               className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             />
           </Field>
-          <Field label="Ocorrencias">
+          <Field label="Ocorrências">
             <textarea
               value={ocorrencias}
               onChange={(e) => setOcorrencias(e.target.value)}
@@ -206,13 +206,13 @@ export default function DiarioPage() {
             </div>
             {e.alimentacao && (
               <p className="text-sm text-ink">
-                <span className="text-subtle">Alimentacao: </span>
+                <span className="text-subtle">Alimentação: </span>
                 {e.alimentacao}
               </p>
             )}
             {e.ocorrencias && (
               <p className="text-sm text-ink">
-                <span className="text-subtle">Ocorrencias: </span>
+                <span className="text-subtle">Ocorrências: </span>
                 {e.ocorrencias}
               </p>
             )}

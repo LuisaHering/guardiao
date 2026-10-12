@@ -14,7 +14,7 @@ export async function extrairClaude<S extends z.ZodType>(
 ): Promise<z.infer<S>> {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new ErroIA(
-      "A chave da IA (ANTHROPIC_API_KEY) nao esta configurada no servidor.",
+      "A chave da IA (ANTHROPIC_API_KEY) não está configurada no servidor.",
       503,
     );
   }
@@ -71,14 +71,14 @@ export async function extrairClaude<S extends z.ZodType>(
   } catch (e) {
     if (e instanceof ErroIA) throw e;
     if (e instanceof Anthropic.RateLimitError) {
-      throw new ErroIA("Muitas requisicoes a IA agora. Tente de novo em um minuto.", 429);
+      throw new ErroIA("Muitas requisições à IA agora. Tente de novo em um minuto.", 429);
     }
     if (e instanceof Anthropic.AuthenticationError) {
-      throw new ErroIA("A chave da IA configurada no servidor e invalida.", 503);
+      throw new ErroIA("A chave da IA configurada no servidor é inválida.", 503);
     }
     if (e instanceof Anthropic.BadRequestError) {
-      throw new ErroIA(`A IA nao aceitou o material enviado: ${e.message}`, 422);
+      throw new ErroIA(`A IA não aceitou o material enviado: ${e.message}`, 422);
     }
-    throw new ErroIA("Nao consegui falar com a IA agora. Tente de novo.");
+    throw new ErroIA("Não consegui falar com a IA agora. Tente de novo.");
   }
 }

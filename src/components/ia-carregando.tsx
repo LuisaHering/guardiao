@@ -30,7 +30,7 @@ export function IACarregando({ rotulo }: { rotulo: string }) {
         <span className="text-subtle">
           {segundos}s{" "}
           {segundos < 60
-            ? "· pode levar ate 1 minuto, nao feche a tela"
+            ? "· pode levar até 1 minuto, não feche a tela"
             : "· demorando mais que o normal, aguarde mais um pouco"}
         </span>
       </span>

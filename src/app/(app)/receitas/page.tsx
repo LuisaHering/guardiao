@@ -123,7 +123,7 @@ export default function ReceitasPage() {
       const resp = await fetch("/api/ia/receita", { method: "POST", body: form });
       const json = await resp.json();
       if (!resp.ok) {
-        setErro(json.erro ?? "Nao consegui ler a receita.");
+        setErro(json.erro ?? "Não consegui ler a receita.");
         setLendo(false);
         return;
       }
@@ -145,7 +145,7 @@ export default function ReceitasPage() {
         }),
       });
     } catch {
-      setErro("Sem conexao com o servidor. Tente de novo.");
+      setErro("Sem conexão com o servidor. Tente de novo.");
     }
     setLendo(false);
   }
@@ -193,7 +193,7 @@ export default function ReceitasPage() {
       .from("receitas")
       .upload(caminho, arquivo, { upsert: false, contentType: arquivo.type || undefined });
     if (upErro) {
-      setErro(`Nao consegui guardar o documento: ${upErro.message}`);
+      setErro(`Não consegui guardar o documento: ${upErro.message}`);
       setSalvando(false);
       return;
     }
@@ -211,7 +211,7 @@ export default function ReceitasPage() {
       .select("id")
       .single();
     if (recErro || !nova) {
-      setErro(recErro?.message ?? "Nao consegui salvar a receita.");
+      setErro(recErro?.message ?? "Não consegui salvar a receita.");
       setSalvando(false);
       return;
     }
@@ -254,8 +254,8 @@ export default function ReceitasPage() {
         <h1 className="text-2xl font-semibold text-ink">Receitas</h1>
         <p className="text-sm text-subtle">
           Tire uma foto (ou envie o PDF) da receita de {membership.idosoNome}. A IA
-          sugere os remedios e voce confere antes de cadastrar. O documento fica
-          guardado e ligado a cada remedio.
+          sugere os remédios e você confere antes de cadastrar. O documento fica
+          guardado e ligado a cada remédio.
         </p>
       </div>
 
@@ -282,8 +282,8 @@ export default function ReceitasPage() {
         </Button>
         {lendo && <IACarregando rotulo="Lendo a receita..." />}
         <p className="text-xs text-subtle">
-          A imagem e enviada a {NOME_PROVEDOR} para a leitura. Nada e cadastrado
-          sem a sua confirmacao.{AVISO_PLANO_GRATIS}
+          A imagem é enviada a {NOME_PROVEDOR} para a leitura. Nada é cadastrado
+          sem a sua confirmação.{AVISO_PLANO_GRATIS}
         </p>
       </Card>
 
@@ -292,12 +292,12 @@ export default function ReceitasPage() {
           <h2 className="text-sm font-medium text-ink">Confira antes de cadastrar</h2>
           {!revisao.legivel && (
             <p className="rounded-lg bg-warn/10 p-3 text-sm text-warn">
-              A leitura nao teve certeza de tudo. Compare cada linha com a receita
-              em maos e corrija o que precisar.
+              A leitura não teve certeza de tudo. Compare cada linha com a receita
+              em mãos e corrija o que precisar.
             </p>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Medico">
+            <Field label="Médico">
               <Input
                 value={revisao.medico}
                 onChange={(e) => setRevisao({ ...revisao, medico: e.target.value })}
@@ -314,7 +314,7 @@ export default function ReceitasPage() {
 
           {revisao.linhas.length === 0 && (
             <p className="text-sm text-subtle">
-              Nao encontrei medicamentos legiveis nesta receita.
+              Não encontrei medicamentos legíveis nesta receita.
             </p>
           )}
 
@@ -329,7 +329,7 @@ export default function ReceitasPage() {
                   />
                   Cadastrar
                 </label>
-                {l.jaExiste && <Badge tone="warn">ja esta na lista de medicacao</Badge>}
+                {l.jaExiste && <Badge tone="warn">já está na lista de medicação</Badge>}
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <Input
@@ -350,7 +350,7 @@ export default function ReceitasPage() {
                 <Input
                   value={l.observacoes}
                   onChange={(e) => mudarLinha(i, { observacoes: e.target.value })}
-                  placeholder="Observacoes"
+                  placeholder="Observações"
                 />
               </div>
             </div>
@@ -403,14 +403,14 @@ export default function ReceitasPage() {
                 </div>
               </div>
               <p className="text-xs text-subtle">
-                {meds.join(", ") || "Nenhum remedio ativo ligado a esta receita."}
+                {meds.join(", ") || "Nenhum remédio ativo ligado a esta receita."}
               </p>
 
               {removendo === r.id && (
                 <div className="mt-2 flex flex-col gap-3 rounded-lg bg-panel p-3">
                   <p className="text-sm text-ink">
                     {meds.length > 0
-                      ? `Esta receita tem ${meds.length} remedio${meds.length > 1 ? "s" : ""} ativo${meds.length > 1 ? "s" : ""} na Medicacao: ${meds.join(", ")}. Quer remove-${meds.length > 1 ? "los" : "lo"} tambem?`
+                      ? `Esta receita tem ${meds.length} remédio${meds.length > 1 ? "s" : ""} ativo${meds.length > 1 ? "s" : ""} na Medicação: ${meds.join(", ")}. Quer remove-${meds.length > 1 ? "los" : "lo"} também?`
                       : "Remover esta receita da lista?"}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -421,7 +421,7 @@ export default function ReceitasPage() {
                         disabled={removendoAgora}
                         className="h-9 px-3 text-xs"
                       >
-                        Remover receita e remedios
+                        Remover receita e remédios
                       </Button>
                     )}
                     <Button
@@ -429,7 +429,7 @@ export default function ReceitasPage() {
                       disabled={removendoAgora}
                       className="h-9 px-3 text-xs"
                     >
-                      {meds.length > 0 ? "Remover so a receita" : "Remover receita"}
+                      {meds.length > 0 ? "Remover só a receita" : "Remover receita"}
                     </Button>
                     <Button
                       variant="ghost"

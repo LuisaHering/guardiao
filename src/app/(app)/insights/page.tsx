@@ -90,10 +90,10 @@ export default function InsightsPage() {
         body: JSON.stringify({ idosoId, periodoDias: periodo }),
       });
       const json = await resp.json();
-      if (!resp.ok) setErro(json.erro ?? "Nao consegui gerar as observacoes.");
+      if (!resp.ok) setErro(json.erro ?? "Não consegui gerar as observações.");
       else setResultado(json as Resultado);
     } catch {
-      setErro("Sem conexao com o servidor. Tente de novo.");
+      setErro("Sem conexão com o servidor. Tente de novo.");
     }
     setGerando(false);
   }
@@ -101,7 +101,7 @@ export default function InsightsPage() {
   if (!membership) {
     return (
       <p className="text-sm text-subtle">
-        Crie o perfil do idoso primeiro para ver observacoes.
+        Crie o perfil do idoso primeiro para ver observações.
       </p>
     );
   }
@@ -109,29 +109,29 @@ export default function InsightsPage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Observacoes</h1>
+        <h1 className="text-2xl font-semibold text-ink">Observações</h1>
         <p className="text-sm text-subtle">
-          A IA le os registros recentes de {membership.idosoNome} (sintomas, diario e
-          medicacao) e aponta o que se repete ou parece relacionado. Nao e
-          diagnostico: e uma ajuda para decidir o que levar ao medico.
+          A IA le os registros recentes de {membership.idosoNome} (sintomas, diário e
+          medicação) e aponta o que se repete ou parece relacionado. Não e
+          diagnostico: e uma ajuda para decidir o que levar ao médico.
         </p>
       </div>
 
       <Card className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-subtle">Periodo</span>
+          <span className="text-subtle">Período</span>
           <select
             value={periodo}
             onChange={(e) => setPeriodo(Number(e.target.value))}
             className="h-10 rounded-lg border border-line bg-card px-2 text-sm text-ink"
           >
-            <option value={30}>Ultimos 30 dias</option>
-            <option value={60}>Ultimos 60 dias</option>
-            <option value={90}>Ultimos 90 dias</option>
+            <option value={30}>Últimos 30 dias</option>
+            <option value={60}>Últimos 60 dias</option>
+            <option value={90}>Últimos 90 dias</option>
           </select>
         </label>
         <Button variant="primary" onClick={gerar} disabled={gerando}>
-          {gerando ? "Analisando..." : "Gerar observacoes"}
+          {gerando ? "Analisando..." : "Gerar observações"}
         </Button>
         {gerando && (
           <div className="w-full">
@@ -139,7 +139,7 @@ export default function InsightsPage() {
           </div>
         )}
         <p className="w-full text-xs text-subtle">
-          Os registros do periodo sao enviados a {NOME_PROVEDOR} para a analise.
+          Os registros do período são enviados a {NOME_PROVEDOR} para a análise.
           {AVISO_PLANO_GRATIS}
         </p>
         {erro && <p className="w-full text-sm text-danger">{erro}</p>}
@@ -150,19 +150,19 @@ export default function InsightsPage() {
       {resultado && (
         <div className="flex flex-col gap-3">
           <p className="text-xs text-subtle">
-            Gerado em {quando(resultado.geradoEm)} · ultimos {resultado.periodoDias} dias
+            Gerado em {quando(resultado.geradoEm)} · últimos {resultado.periodoDias} dias
             {resultado.base
-              ? ` · ${resultado.base.sintomas} sintomas, ${resultado.base.diario} entradas de diario, ${resultado.base.registros_medicacao} registros de medicacao`
+              ? ` · ${resultado.base.sintomas} sintomas, ${resultado.base.diario} entradas de diário, ${resultado.base.registros_medicacao} registros de medicação`
               : ""}
           </p>
 
           {!resultado.suficiente && (
             <Card>
               <p className="text-sm text-ink">
-                Ainda nao ha o que apontar com seguranca neste periodo.
+                Ainda não há o que apontar com segurança neste período.
               </p>
               <p className="mt-1 text-sm text-subtle">
-                Padroes so aparecem com registros suficientes e repetidos. Continue
+                Padrões só aparecem com registros suficientes e repetidos. Continue
                 registrando e gere de novo depois.
               </p>
             </Card>
@@ -173,7 +173,7 @@ export default function InsightsPage() {
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-medium text-ink">{it.titulo}</p>
                 <Badge tone={TOM[it.confianca] ?? "neutral"}>
-                  confianca {it.confianca}
+                  confiança {it.confianca}
                 </Badge>
               </div>
               <p className="text-sm text-ink">{it.observacao}</p>
@@ -192,8 +192,8 @@ export default function InsightsPage() {
 
           {resultado.itens.length > 0 && (
             <p className="text-xs text-subtle">
-              Observacoes geradas por IA a partir dos registros. Servem de ponto de
-              partida para conversar com o medico, nao para mudar tratamento.
+              Observações geradas por IA a partir dos registros. Servem de ponto de
+              partida para conversar com o médico, não para mudar tratamento.
             </p>
           )}
         </div>

@@ -5,6 +5,12 @@ import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Card } from "@/components/ui";
 import { GraficoTendencia, type Ponto } from "@/components/grafico-tendencia";
+import {
+  dataCurta,
+  fmt,
+  posicaoNaFaixa,
+  rotuloPosicao,
+} from "@/lib/tendencia";
 
 type Analito = {
   id: string;
@@ -26,8 +32,8 @@ type Linha = {
   } | null;
 };
 
-function fmt(n: number) {
-  return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+function primeiraMaiuscula(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 export default function TendenciasPage() {
@@ -103,7 +109,7 @@ export default function TendenciasPage() {
   if (!membership) {
     return (
       <p className="text-sm text-subtle">
-        Crie o perfil do idoso primeiro para ver as tendencias.
+        Crie o perfil do idoso primeiro para ver as tendências.
       </p>
     );
   }
@@ -115,13 +121,23 @@ export default function TendenciasPage() {
   const ultimo = ordenados[ordenados.length - 1];
   const anterior = ordenados[ordenados.length - 2];
 
+  const posUltimo = ultimo ? posicaoNaFaixa(ultimo) : null;
+  const variacao =
+    ultimo && anterior
+      ? ultimo.valor === anterior.valor
+        ? `Igual ao resultado de ${dataCurta(anterior.data)}.`
+        : `${ultimo.valor < anterior.valor ? "Caiu" : "Subiu"} ${fmt(
+            Math.abs(ultimo.valor - anterior.valor),
+          )} desde ${dataCurta(anterior.data)} (era ${fmt(anterior.valor)}).`
+      : null;
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Tendencias</h1>
+        <h1 className="text-2xl font-semibold text-ink">Tendências</h1>
         <p className="text-sm text-subtle">
           Como cada resultado de exame de {membership.idosoNome} mudou ao longo do
-          tempo. Os valores ja estao na mesma unidade.
+          tempo. Os valores já estão na mesma unidade.
         </p>
       </div>
 
@@ -129,53 +145,51 @@ export default function TendenciasPage() {
 
       {!carregando && analitos.length === 0 && (
         <Card>
-          <p className="text-sm text-ink">Ainda nao ha resultados de exames.</p>
+          <p className="text-sm text-ink">Ainda não há resultados de exames.</p>
           <p className="mt-1 text-sm text-subtle">
-            Confirme um exame em Exames e a serie aparece aqui.
+            Confirme um exame em Exames e a série aparece aqui.
           </p>
         </Card>
       )}
 
       {analitos.length > 0 && (
         <>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-subtle">Analito</span>
-              <select
-                value={selecionado}
-                onChange={(e) => setSelecionado(e.target.value)}
-                className="h-10 min-w-56 rounded-lg border border-line bg-card px-2 text-sm text-ink"
-              >
-                {analitos.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nome_canonico}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-subtle">Exame</span>
+            <select
+              value={selecionado}
+              onChange={(e) => setSelecionado(e.target.value)}
+              className="h-10 max-w-sm rounded-lg border border-line bg-card px-2 text-sm text-ink"
+            >
+              {analitos.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nome_canonico}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <Card className={`flex flex-col gap-4 transition-opacity ${lendo ? "opacity-60" : ""}`}>
             {ultimo && atual && (
-              <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-                <div>
-                  <p className="text-xs text-subtle">{atual.nome_canonico}, ultimo resultado</p>
-                  <p className="text-3xl font-semibold text-ink">
-                    {fmt(ultimo.valor)}{" "}
-                    <span className="text-base font-normal text-subtle">
-                      {atual.unidade_canonica}
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-subtle">
+                  {atual.nome_canonico} · resultado de {dataCurta(ultimo.data)}
+                </p>
+                <p className="text-3xl font-semibold text-ink">
+                  {fmt(ultimo.valor)}{" "}
+                  <span className="text-base font-normal text-subtle">
+                    {atual.unidade_canonica}
+                  </span>
+                </p>
+                <p className="text-sm text-ink">
+                  {(posUltimo === "acima" || posUltimo === "abaixo") && (
+                    <span className="mr-1.5 text-warn" aria-hidden>
+                      ◆
                     </span>
-                  </p>
-                </div>
-                {anterior && (
-                  <p className="text-sm text-subtle">
-                    {ultimo.valor === anterior.valor
-                      ? "igual ao anterior"
-                      : `${ultimo.valor > anterior.valor ? "+" : "-"}${fmt(
-                          Math.abs(ultimo.valor - anterior.valor),
-                        )} em relacao ao anterior (${fmt(anterior.valor)})`}
-                  </p>
-                )}
+                  )}
+                  {primeiraMaiuscula(rotuloPosicao(ultimo))}.
+                </p>
+                {variacao && <p className="text-sm text-subtle">{variacao}</p>}
               </div>
             )}
 
@@ -187,7 +201,9 @@ export default function TendenciasPage() {
                 pontos={ordenados}
               />
             ) : (
-              !lendo && <p className="text-sm text-subtle">Sem resultados para este analito.</p>
+              !lendo && (
+                <p className="text-sm text-subtle">Sem resultados para este exame.</p>
+              )
             )}
           </Card>
         </>

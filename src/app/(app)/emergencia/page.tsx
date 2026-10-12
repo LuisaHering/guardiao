@@ -91,7 +91,7 @@ export default function EmergenciaAdminPage() {
   if (!membership) {
     return (
       <p className="text-sm text-subtle">
-        Crie o perfil do idoso primeiro para gerar o QR de emergencia.
+        Crie o perfil do idoso primeiro para gerar o QR de emergência.
       </p>
     );
   }
@@ -99,10 +99,10 @@ export default function EmergenciaAdminPage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Emergencia</h1>
+        <h1 className="text-2xl font-semibold text-ink">Emergência</h1>
         <p className="text-sm text-subtle">
           Um QR code que mostra os dados criticos de {membership.idosoNome} sem
-          precisar de login: alergias, condicoes, medicacoes e contatos. Imprima e
+          precisar de login: alergias, condições, medicações e contatos. Imprima e
           deixe na carteira ou numa pulseira.
         </p>
       </div>
@@ -112,11 +112,11 @@ export default function EmergenciaAdminPage() {
       {!carregando && !token && (
         <Card className="flex flex-col items-start gap-3">
           <p className="text-sm text-ink">
-            Ainda nao ha um QR de emergencia ativo.
+            Ainda não há um QR de emergência ativo.
           </p>
           {membership.admin ? (
             <Button variant="primary" onClick={gerar} disabled={ocupado}>
-              {ocupado ? "Gerando..." : "Gerar QR de emergencia"}
+              {ocupado ? "Gerando..." : "Gerar QR de emergência"}
             </Button>
           ) : (
             <p className="text-sm text-subtle">
@@ -132,7 +132,7 @@ export default function EmergenciaAdminPage() {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={qr}
-              alt="QR code de emergencia"
+              alt="QR code de emergência"
               className="h-56 w-56 rounded-lg border border-line bg-white p-2"
             />
           )}
@@ -162,7 +162,7 @@ export default function EmergenciaAdminPage() {
             )}
           </div>
           <p className="text-center text-xs text-subtle">
-            Revogar invalida o QR na hora. Gere um novo depois, se precisar (util se
+            Revogar invalida o QR na hora. Gere um novo depois, se precisar (útil se
             a pulseira for perdida).
           </p>
         </Card>

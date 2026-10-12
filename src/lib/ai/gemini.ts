@@ -22,7 +22,7 @@ export async function extrairGemini<S extends z.ZodType>(
   const chave = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
   if (!chave) {
     throw new ErroIA(
-      "A chave da IA (GEMINI_API_KEY) nao esta configurada no servidor.",
+      "A chave da IA (GEMINI_API_KEY) não está configurada no servidor.",
       503,
     );
   }
@@ -78,26 +78,26 @@ export async function extrairGemini<S extends z.ZodType>(
       );
     }
     if (status === 401 || status === 403) {
-      throw new ErroIA("A chave da IA configurada no servidor e invalida.", 503);
+      throw new ErroIA("A chave da IA configurada no servidor é inválida.", 503);
     }
     if (status === 404) {
       throw new ErroIA(
-        "O modelo de IA configurado nao esta disponivel para esta conta.",
+        "O modelo de IA configurado não está disponível para esta conta.",
         503,
       );
     }
     if (status === 400) {
-      throw new ErroIA(`A IA nao aceitou o material enviado: ${detalhe}`, 422);
+      throw new ErroIA(`A IA não aceitou o material enviado: ${detalhe}`, 422);
     }
     if (status === 503) {
       throw new ErroIA("A IA esta sobrecarregada agora. Tente de novo em instantes.", 503);
     }
-    throw new ErroIA("Nao consegui falar com a IA agora. Tente de novo.");
+    throw new ErroIA("Não consegui falar com a IA agora. Tente de novo.");
   }
 
   if (!texto) {
     throw new ErroIA(
-      "A IA nao devolveu resposta para este material. Tente de novo ou preencha manualmente.",
+      "A IA não devolveu resposta para este material. Tente de novo ou preencha manualmente.",
       422,
     );
   }

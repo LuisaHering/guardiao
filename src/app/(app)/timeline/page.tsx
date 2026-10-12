@@ -15,9 +15,9 @@ type Item = {
 };
 
 const CONFIG: Record<Tipo, { rotulo: string; cor: string }> = {
-  diario: { rotulo: "Diario", cor: "bg-primary" },
+  diario: { rotulo: "Diário", cor: "bg-primary" },
   sintoma: { rotulo: "Sintoma", cor: "bg-warn" },
-  medicacao: { rotulo: "Medicacao", cor: "bg-success" },
+  medicacao: { rotulo: "Medicação", cor: "bg-success" },
   consulta: { rotulo: "Consulta", cor: "bg-ink" },
   exame: { rotulo: "Exame", cor: "bg-subtle" },
 };
@@ -110,7 +110,7 @@ export default function TimelinePage() {
         id: `diario-${d.id}`,
         tipo: "diario",
         data: d.data as string,
-        titulo: "Entrada no diario",
+        titulo: "Entrada no diário",
         detalhe: partes.join(" · ") || null,
       });
     }
@@ -161,13 +161,13 @@ export default function TimelinePage() {
         .order("registrado_em", { ascending: false })
         .limit(50);
       for (const r of (regs ?? []) as Record<string, unknown>[]) {
-        const nome = medMap.get(r.medicacao_id as string) ?? "Remedio";
+        const nome = medMap.get(r.medicacao_id as string) ?? "Remédio";
         const deu = r.status === "dada";
         lista.push({
           id: `med-${r.id}`,
           tipo: "medicacao",
           data: r.registrado_em as string,
-          titulo: deu ? `${nome}: dado` : `${nome}: nao dado`,
+          titulo: deu ? `${nome}: dado` : `${nome}: não dado`,
           detalhe: !deu && r.motivo ? String(r.motivo) : null,
         });
       }
@@ -204,15 +204,15 @@ export default function TimelinePage() {
       <div>
         <h1 className="text-2xl font-semibold text-ink">Timeline</h1>
         <p className="text-sm text-subtle">
-          Tudo que aconteceu com {membership.idosoNome} em um so lugar: diario,
-          sintomas e medicacao, em ordem.
+          Tudo que aconteceu com {membership.idosoNome} em um só lugar: diário,
+          sintomas e medicação, em ordem.
         </p>
       </div>
 
       {carregando && <p className="text-sm text-subtle">Carregando...</p>}
       {!carregando && itens.length === 0 && (
         <p className="text-sm text-subtle">
-          Nada registrado ainda. Comece pelo diario, sintomas ou medicacao.
+          Nada registrado ainda. Comece pelo diário, sintomas ou medicação.
         </p>
       )}
 

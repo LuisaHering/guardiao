@@ -85,7 +85,7 @@ export default function EmergenciaPublicaPage() {
             <path d="m9 12 2 2 4-4" />
           </svg>
           <span className="text-sm font-semibold uppercase tracking-wide">
-            Perfil de emergencia
+            Perfil de emergência
           </span>
         </div>
 
@@ -96,10 +96,10 @@ export default function EmergenciaPublicaPage() {
         {estado === "invalido" && (
           <div className="rounded-xl border border-line bg-card p-6 text-center">
             <p className="text-sm text-ink">
-              Este perfil de emergencia nao esta disponivel.
+              Este perfil de emergência não está disponível.
             </p>
             <p className="mt-1 text-sm text-subtle">
-              O codigo pode ter sido revogado ou nao existe.
+              O código pode ter sido revogado ou não existe.
             </p>
           </div>
         )}
@@ -118,7 +118,7 @@ export default function EmergenciaPublicaPage() {
                     : null,
                 ]
                   .filter(Boolean)
-                  .join(" · ") || "Dados basicos nao informados"}
+                  .join(" · ") || "Dados básicos não informados"}
               </p>
             </div>
 
@@ -136,7 +136,7 @@ export default function EmergenciaPublicaPage() {
               </ul>
             </Secao>
 
-            <Secao titulo="Condicoes de saude" vazio={perfil.condicoes.length === 0}>
+            <Secao titulo="Condições de saúde" vazio={perfil.condicoes.length === 0}>
               <ul className="flex flex-col gap-1">
                 {perfil.condicoes.map((c, i) => (
                   <li key={i} className="text-sm text-ink">
@@ -146,7 +146,7 @@ export default function EmergenciaPublicaPage() {
               </ul>
             </Secao>
 
-            <Secao titulo="Medicacoes em uso" vazio={perfil.medicacoes.length === 0}>
+            <Secao titulo="Medicações em uso" vazio={perfil.medicacoes.length === 0}>
               <ul className="flex flex-col gap-1">
                 {perfil.medicacoes.map((m, i) => (
                   <li key={i} className="text-sm text-ink">
@@ -158,7 +158,7 @@ export default function EmergenciaPublicaPage() {
             </Secao>
 
             <Secao
-              titulo="Contatos de emergencia"
+              titulo="Contatos de emergência"
               vazio={perfil.contatos.length === 0}
             >
               <ul className="flex flex-col gap-2">
@@ -184,8 +184,8 @@ export default function EmergenciaPublicaPage() {
             </Secao>
 
             <p className="border-t border-line pt-3 text-center text-xs text-subtle">
-              Dados de emergencia compartilhados via Guardiao. Uso restrito a
-              situacoes de socorro.
+              Dados de emergência compartilhados via Guardião. Uso restrito a
+              situações de socorro.
             </p>
           </div>
         )}

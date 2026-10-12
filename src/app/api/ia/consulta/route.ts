@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   try {
     const corpo = await req.json().catch(() => null);
     consultaId = corpo?.consultaId;
-    if (!consultaId) throw new ErroIA("Consulta nao informada.", 400);
+    if (!consultaId) throw new ErroIA("Consulta não informada.", 400);
 
     // Descobre o idoso pela consulta e valida o vinculo antes de qualquer gasto.
     const anon = await createClient();
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       .eq("id", consultaId)
       .is("deleted_at", null)
       .maybeSingle();
-    if (!consulta) throw new ErroIA("Consulta nao encontrada.", 404);
+    if (!consulta) throw new ErroIA("Consulta não encontrada.", 404);
 
     const { supabase } = await exigirMembro(consulta.idoso_id);
 

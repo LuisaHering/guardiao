@@ -14,7 +14,7 @@ type Sintoma = {
 };
 
 const DURACOES: { valor: string; rotulo: string }[] = [
-  { valor: "hoje", rotulo: "Comecou hoje" },
+  { valor: "hoje", rotulo: "Começou hoje" },
   { valor: "alguns_dias", rotulo: "Alguns dias" },
   { valor: "algumas_semanas", rotulo: "Algumas semanas" },
   { valor: "meses_ou_mais", rotulo: "Meses ou mais" },
@@ -125,8 +125,8 @@ export default function SintomasPage() {
       <div>
         <h1 className="text-2xl font-semibold text-ink">Sintomas</h1>
         <p className="text-sm text-subtle">
-          Registre o que {membership.idosoNome} sentiu, com a gravidade e ha quanto
-          tempo. O historico ajuda a enxergar padroes ao longo do tempo.
+          Registre o que {membership.idosoNome} sentiu, com a gravidade e há quanto
+          tempo. O histórico ajuda a enxergar padrões ao longo do tempo.
         </p>
       </div>
 
@@ -166,7 +166,7 @@ export default function SintomasPage() {
             </p>
           </div>
 
-          <Field label="Ha quanto tempo">
+          <Field label="Há quanto tempo">
             <select
               value={duracao}
               onChange={(e) => setDuracao(e.target.value)}
@@ -188,7 +188,7 @@ export default function SintomasPage() {
       </Card>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-ink">Historico</h2>
+        <h2 className="text-sm font-medium text-ink">Histórico</h2>
         {carregando && <p className="text-sm text-subtle">Carregando...</p>}
         {!carregando && sintomas.length === 0 && (
           <p className="text-sm text-subtle">Nenhum sintoma registrado ainda.</p>

@@ -86,8 +86,8 @@ function resolver(l: Linha, analitos: Analito[]) {
 
   let erro: string | null = null;
   if (!l.nome.trim()) erro = "Falta o nome.";
-  else if (valor === null || Number.isNaN(valor)) erro = "Valor invalido.";
-  else if (Number.isNaN(refMin) || Number.isNaN(refMax)) erro = "Faixa de referencia invalida.";
+  else if (valor === null || Number.isNaN(valor)) erro = "Valor inválido.";
+  else if (Number.isNaN(refMin) || Number.isNaN(refMax)) erro = "Faixa de referência inválida.";
 
   let valorFinal = valor;
   let refMinFinal = refMin;
@@ -99,7 +99,7 @@ function resolver(l: Linha, analitos: Analito[]) {
     const alvoUn = alvo.unidade_canonica;
     const c = converter(l.nome, valor as number, unidadeFinal, alvoUn);
     if (c.semFator) {
-      erro = `Unidade ${unidadeFinal || "?"} diferente de ${alvoUn} e nao sei converter. Corrija a unidade ou remova a linha.`;
+      erro = `Unidade ${unidadeFinal || "?"} diferente de ${alvoUn} e não sei converter. Corrija a unidade ou remova a linha.`;
     } else if (c.convertido) {
       convertido = true;
       valorFinal = c.valor;
@@ -229,7 +229,7 @@ export default function ExamesPage() {
       const resp = await fetch("/api/ia/exame", { method: "POST", body: form });
       const json = await resp.json();
       if (!resp.ok) {
-        setErro(json.erro ?? "Nao consegui ler o exame.");
+        setErro(json.erro ?? "Não consegui ler o exame.");
         setLendo(false);
         return;
       }
@@ -251,7 +251,7 @@ export default function ExamesPage() {
         })),
       });
     } catch {
-      setErro("Sem conexao com o servidor. Tente de novo.");
+      setErro("Sem conexão com o servidor. Tente de novo.");
     }
     setLendo(false);
   }
@@ -280,7 +280,7 @@ export default function ExamesPage() {
   async function removerExame(id: string) {
     if (
       !window.confirm(
-        "Remover este exame? Ele sai da timeline e do grafico de tendencia.",
+        "Remover este exame? Ele sai da timeline e do gráfico de tendência.",
       )
     ) {
       return;
@@ -314,11 +314,11 @@ export default function ExamesPage() {
     if (!revisao || !arquivo || !idosoId) return;
     const calc = revisao.linhas.map((l) => ({ l, r: resolver(l, analitos) }));
     if (calc.length === 0) {
-      setErro("Nao ha resultados para confirmar.");
+      setErro("Não há resultados para confirmar.");
       return;
     }
     if (calc.some((c) => c.r.erro)) {
-      setErro("Ainda ha linhas com problema. Corrija ou remova antes de confirmar.");
+      setErro("Ainda há linhas com problema. Corrija ou remova antes de confirmar.");
       return;
     }
     if (!revisao.data) {
@@ -333,7 +333,7 @@ export default function ExamesPage() {
       .from("exames")
       .upload(caminho, arquivo, { upsert: false, contentType: arquivo.type || undefined });
     if (upErro) {
-      setErro(`Nao consegui guardar o documento: ${upErro.message}`);
+      setErro(`Não consegui guardar o documento: ${upErro.message}`);
       setSalvando(false);
       return;
     }
@@ -393,7 +393,7 @@ export default function ExamesPage() {
         <h1 className="text-2xl font-semibold text-ink">Exames</h1>
         <p className="text-sm text-subtle">
           Envie o laudo de {membership.idosoNome} (foto ou PDF). A IA le os valores
-          e voce confere todos de uma vez contra o papel. So o que for confirmado
+          e você confere todos de uma vez contra o papel. Só o que for confirmado
           entra no sistema.
         </p>
       </div>
@@ -416,8 +416,8 @@ export default function ExamesPage() {
         </Button>
         {lendo && <IACarregando rotulo="Lendo o exame..." />}
         <p className="text-xs text-subtle">
-          O documento e enviado a {NOME_PROVEDOR} para a leitura. Enquanto voce
-          nao confirma, nada e salvo aqui: nem o arquivo, nem os valores.
+          O documento é enviado a {NOME_PROVEDOR} para a leitura. Enquanto você
+          não confirma, nada é salvo aqui: nem o arquivo, nem os valores.
           {AVISO_PLANO_GRATIS}
         </p>
       </Card>
@@ -429,7 +429,7 @@ export default function ExamesPage() {
           </h2>
           {!revisao.legivel && (
             <p className="rounded-lg bg-warn/10 p-3 text-sm text-warn">
-              A leitura nao teve certeza de tudo. Confira com atencao cada linha.
+              A leitura não teve certeza de tudo. Confira com atenção cada linha.
             </p>
           )}
 
@@ -437,7 +437,7 @@ export default function ExamesPage() {
             <Field label="Tipo de exame">
               <Input value={revisao.tipo} onChange={(e) => setRevisao({ ...revisao, tipo: e.target.value })} />
             </Field>
-            <Field label="Laboratorio">
+            <Field label="Laboratório">
               <Input
                 value={revisao.laboratorio}
                 onChange={(e) => setRevisao({ ...revisao, laboratorio: e.target.value })}
@@ -458,7 +458,7 @@ export default function ExamesPage() {
               return (
                 <div key={i} className="flex flex-col gap-2 border-t border-line py-3">
                   <div className="grid gap-2 sm:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
-                    <Input value={l.nome} onChange={(e) => mudar(i, { nome: e.target.value })} placeholder="Analito" />
+                    <Input value={l.nome} onChange={(e) => mudar(i, { nome: e.target.value })} placeholder="Exame" />
                     <Input value={l.valor} onChange={(e) => mudar(i, { valor: e.target.value })} placeholder="Valor" inputMode="decimal" />
                     <Input value={l.unidade} onChange={(e) => mudar(i, { unidade: e.target.value })} placeholder="Unidade" />
                     <Input value={l.refMin} onChange={(e) => mudar(i, { refMin: e.target.value })} placeholder="Ref. min" inputMode="decimal" />
@@ -469,7 +469,7 @@ export default function ExamesPage() {
                       {c.erro ? (
                         <span className="text-xs text-danger">{c.erro}</span>
                       ) : c.novo ? (
-                        <Badge tone="primary">analito novo</Badge>
+                        <Badge tone="primary">exame novo</Badge>
                       ) : (
                         <Badge tone="neutral">{c.alvo?.nome_canonico}</Badge>
                       )}
@@ -573,10 +573,10 @@ export default function ExamesPage() {
           </summary>
           <div className="flex flex-col gap-4 border-t border-line px-5 py-4">
             <p className="text-xs text-subtle">
-              Acontece quando laboratorios chamam o mesmo exame de jeitos
+              Acontece quando laboratórios chamam o mesmo exame de jeitos
               diferentes (por exemplo &quot;Glicemia&quot; e &quot;Glicose em
-              jejum&quot;). Ao unir, os resultados passam a aparecer na mesma serie
-              do grafico. So da para unir nomes que usam a mesma unidade, e nao
+              jejum&quot;). Ao unir, os resultados passam a aparecer na mesma série
+              do gráfico. Só da para unir nomes que usam a mesma unidade, e não
               existe botao para desfazer.
             </p>
 
@@ -616,7 +616,7 @@ export default function ExamesPage() {
               if (candidatos.length === 0) {
                 return (
                   <p className="rounded-lg bg-panel p-3 text-sm text-subtle">
-                    Nao ha outro nome na mesma unidade
+                    Não há outro nome na mesma unidade
                     {fica.unidade_canonica ? ` (${fica.unidade_canonica})` : ""} para
                     unir a &quot;{fica.nome_canonico}&quot;.
                   </p>
@@ -647,7 +647,7 @@ export default function ExamesPage() {
                     <div className="flex flex-col gap-3 rounded-lg bg-panel p-3">
                       <p className="text-sm text-ink">
                         {n === 0
-                          ? `"${some.nome_canonico}" nao tem resultados; ele so deixa de aparecer na lista.`
+                          ? `"${some.nome_canonico}" não tem resultados; ele só deixa de aparecer na lista.`
                           : `${n} resultado${n > 1 ? "s" : ""} de "${some.nome_canonico}" passara${n > 1 ? "o" : ""} a aparecer como "${fica.nome_canonico}".`}
                       </p>
                       <Button

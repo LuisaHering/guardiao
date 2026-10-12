@@ -64,9 +64,9 @@ function ConsultaItem({
         body: JSON.stringify({ consultaId: c.id }),
       });
       const json = await resp.json();
-      if (!resp.ok) setErro(json.erro ?? "Nao consegui gerar o resumo.");
+      if (!resp.ok) setErro(json.erro ?? "Não consegui gerar o resumo.");
     } catch {
-      setErro("Sem conexao com o servidor. Tente de novo.");
+      setErro("Sem conexão com o servidor. Tente de novo.");
     }
     setGerando(false);
     await onAtualizar();
@@ -93,7 +93,7 @@ function ConsultaItem({
       {audioUrl ? (
         <audio controls src={audioUrl} className="w-full" />
       ) : (
-        <p className="text-xs text-subtle">Sem audio.</p>
+        <p className="text-xs text-subtle">Sem áudio.</p>
       )}
 
       {r && (
@@ -114,7 +114,7 @@ function ConsultaItem({
           {r.remedios.length > 0 && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
-                Remedios
+                Remédios
               </p>
               <ul className="mt-1 flex flex-col gap-1 text-sm text-ink">
                 {r.remedios.map((m, i) => (
@@ -177,7 +177,7 @@ function ConsultaItem({
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               rows={8}
-              placeholder="Cole aqui o que foi dito na consulta (transcricao ou anotacoes)."
+              placeholder="Cole aqui o que foi dito na consulta (transcrição ou anotações)."
               className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             />
             {erro && <p className="text-sm text-danger">{erro}</p>}
@@ -191,7 +191,7 @@ function ConsultaItem({
             </Button>
             {gerando && <IACarregando rotulo="Gerando o resumo..." />}
             <p className="text-xs text-subtle">
-              O texto e enviado a {NOME_PROVEDOR} para gerar o resumo.
+              O texto é enviado a {NOME_PROVEDOR} para gerar o resumo.
               {AVISO_PLANO_GRATIS}
             </p>
           </>
@@ -300,7 +300,7 @@ export default function ConsultasPage() {
   async function iniciarGravacao() {
     setErro(null);
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setErro("Este navegador nao grava audio. Envie um arquivo de audio no lugar.");
+      setErro("Este navegador não grava áudio. Envie um arquivo de áudio no lugar.");
       return;
     }
     try {
@@ -322,7 +322,7 @@ export default function ConsultasPage() {
       setGravando(true);
       relogio.current = setInterval(() => setSegundos((s) => s + 1), 1000);
     } catch {
-      setErro("Nao consegui acessar o microfone. Libere a permissao no navegador.");
+      setErro("Não consegui acessar o microfone. Libere a permissão no navegador.");
     }
   }
 
@@ -344,7 +344,7 @@ export default function ConsultasPage() {
     if (!idosoId) return;
     setErro(null);
     if (audio && audio.size > LIMITE_AUDIO) {
-      setErro("O audio passa de 50 MB. Grave em partes ou comprima o arquivo.");
+      setErro("O áudio passa de 50 MB. Grave em partes ou comprima o arquivo.");
       return;
     }
     setSalvando(true);
@@ -359,7 +359,7 @@ export default function ConsultasPage() {
         .from("consultas")
         .upload(caminho, audio, { upsert: false, contentType: audio.type || undefined });
       if (upErro) {
-        setErro(`Nao consegui subir o audio: ${upErro.message}`);
+        setErro(`Não consegui subir o áudio: ${upErro.message}`);
         setSalvando(false);
         return;
       }
@@ -411,8 +411,8 @@ export default function ConsultasPage() {
       <div>
         <h1 className="text-2xl font-semibold text-ink">Consultas</h1>
         <p className="text-sm text-subtle">
-          Registre as consultas de {membership.idosoNome} e guarde o audio para
-          ouvir depois. Gravar uma consulta exige o aviso e o aceite de quem esta
+          Registre as consultas de {membership.idosoNome} e guarde o áudio para
+          ouvir depois. Gravar uma consulta exige o aviso e o aceite de quem está
           sendo atendido.
         </p>
       </div>
@@ -429,7 +429,7 @@ export default function ConsultasPage() {
                 required
               />
             </Field>
-            <Field label="Medico">
+            <Field label="Médico">
               <Input
                 value={medico}
                 onChange={(e) => setMedico(e.target.value)}
@@ -446,7 +446,7 @@ export default function ConsultasPage() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <p className="text-sm text-subtle">Audio (opcional)</p>
+            <p className="text-sm text-subtle">Áudio (opcional)</p>
             <div className="flex flex-wrap items-center gap-2">
               {!gravando ? (
                 <Button type="button" onClick={iniciarGravacao}>
@@ -467,7 +467,7 @@ export default function ConsultasPage() {
             </div>
             {audio && !gravando && (
               <p className="text-xs text-subtle">
-                Audio pronto: {audioNome ?? "gravacao"} (
+                Áudio pronto: {audioNome ?? "gravação"} (
                 {(audio.size / 1024 / 1024).toFixed(1)} MB).
               </p>
             )}

@@ -12,7 +12,7 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData().catch(() => null);
-    if (!form) throw new ErroIA("Envio invalido.", 400);
+    if (!form) throw new ErroIA("Envio inválido.", 400);
 
     const idosoId = form.get("idosoId");
     const arquivo = form.get("arquivo");
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     if (!(arquivo instanceof File)) throw new ErroIA("Envie a foto ou o PDF da receita.", 400);
     if (arquivo.size > LIMITE_BYTES) {
       throw new ErroIA(
-        "O arquivo passa de 4 MB. Tire a foto de novo ou envie so as paginas da receita.",
+        "O arquivo passa de 4 MB. Tire a foto de novo ou envie só as páginas da receita.",
         413,
       );
     }
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
         mediaType: arquivo.type as (typeof IMAGENS)[number],
       };
     } else {
-      throw new ErroIA("Formato nao suportado. Use foto (JPG, PNG, WEBP) ou PDF.", 415);
+      throw new ErroIA("Formato não suportado. Use foto (JPG, PNG, WEBP) ou PDF.", 415);
     }
 
     const receita = await extrair({
