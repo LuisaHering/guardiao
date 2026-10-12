@@ -191,7 +191,7 @@ function ConsultaItem({
             </Button>
             {gerando && <IACarregando rotulo="Gerando o resumo..." />}
             <p className="text-xs text-subtle">
-              O texto é enviado a {NOME_PROVEDOR} para gerar o resumo.
+              O texto é enviado à {NOME_PROVEDOR} para gerar o resumo.
               {AVISO_PLANO_GRATIS}
             </p>
           </>

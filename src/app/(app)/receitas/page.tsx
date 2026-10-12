@@ -282,7 +282,7 @@ export default function ReceitasPage() {
         </Button>
         {lendo && <IACarregando rotulo="Lendo a receita..." />}
         <p className="text-xs text-subtle">
-          A imagem é enviada a {NOME_PROVEDOR} para a leitura. Nada é cadastrado
+          A imagem é enviada à {NOME_PROVEDOR} para a leitura. Nada é cadastrado
           sem a sua confirmação.{AVISO_PLANO_GRATIS}
         </p>
       </Card>

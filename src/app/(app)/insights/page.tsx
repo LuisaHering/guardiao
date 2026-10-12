@@ -28,6 +28,10 @@ const TOM: Record<string, "neutral" | "primary" | "success"> = {
   alta: "success",
 };
 
+function plural(n: number, singular: string, plural: string) {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
+
 function quando(iso: string | null) {
   if (!iso) return "";
   return new Date(iso).toLocaleString("pt-BR", {
@@ -111,9 +115,9 @@ export default function InsightsPage() {
       <div>
         <h1 className="text-2xl font-semibold text-ink">Observações</h1>
         <p className="text-sm text-subtle">
-          A IA le os registros recentes de {membership.idosoNome} (sintomas, diário e
-          medicação) e aponta o que se repete ou parece relacionado. Não e
-          diagnostico: e uma ajuda para decidir o que levar ao médico.
+          A IA lê os registros recentes de {membership.idosoNome} (sintomas, diário e
+          medicação) e aponta o que se repete ou parece relacionado. Não é
+          diagnóstico: é uma ajuda para decidir o que levar ao médico.
         </p>
       </div>
 
@@ -139,7 +143,7 @@ export default function InsightsPage() {
           </div>
         )}
         <p className="w-full text-xs text-subtle">
-          Os registros do período são enviados a {NOME_PROVEDOR} para a análise.
+          Os registros do período são enviados à {NOME_PROVEDOR} para a análise.
           {AVISO_PLANO_GRATIS}
         </p>
         {erro && <p className="w-full text-sm text-danger">{erro}</p>}
@@ -152,7 +156,7 @@ export default function InsightsPage() {
           <p className="text-xs text-subtle">
             Gerado em {quando(resultado.geradoEm)} · últimos {resultado.periodoDias} dias
             {resultado.base
-              ? ` · ${resultado.base.sintomas} sintomas, ${resultado.base.diario} entradas de diário, ${resultado.base.registros_medicacao} registros de medicação`
+              ? ` · ${plural(resultado.base.sintomas, "sintoma", "sintomas")}, ${plural(resultado.base.diario, "entrada de diário", "entradas de diário")}, ${plural(resultado.base.registros_medicacao, "registro de medicação", "registros de medicação")}`
               : ""}
           </p>
 

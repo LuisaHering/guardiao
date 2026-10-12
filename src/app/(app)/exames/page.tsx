@@ -392,7 +392,7 @@ export default function ExamesPage() {
       <div>
         <h1 className="text-2xl font-semibold text-ink">Exames</h1>
         <p className="text-sm text-subtle">
-          Envie o laudo de {membership.idosoNome} (foto ou PDF). A IA le os valores
+          Envie o laudo de {membership.idosoNome} (foto ou PDF). A IA lê os valores
           e você confere todos de uma vez contra o papel. Só o que for confirmado
           entra no sistema.
         </p>
@@ -416,7 +416,7 @@ export default function ExamesPage() {
         </Button>
         {lendo && <IACarregando rotulo="Lendo o exame..." />}
         <p className="text-xs text-subtle">
-          O documento é enviado a {NOME_PROVEDOR} para a leitura. Enquanto você
+          O documento é enviado à {NOME_PROVEDOR} para a leitura. Enquanto você
           não confirma, nada é salvo aqui: nem o arquivo, nem os valores.
           {AVISO_PLANO_GRATIS}
         </p>
@@ -425,7 +425,8 @@ export default function ExamesPage() {
       {revisao && (
         <Card className="flex flex-col gap-4 border-primary/40">
           <h2 className="text-sm font-medium text-ink">
-            Confira contra o documento ({revisao.linhas.length} resultados)
+            Confira contra o documento ({revisao.linhas.length}{" "}
+            {revisao.linhas.length === 1 ? "resultado" : "resultados"})
           </h2>
           {!revisao.legivel && (
             <p className="rounded-lg bg-warn/10 p-3 text-sm text-warn">

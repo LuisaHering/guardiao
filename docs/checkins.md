@@ -80,47 +80,55 @@ Nao.
 
 ## Check-in 4 - 12/10 (semanas 9-11, 50h)
 
-**Existem evidencias para comprovar estas horas?**
+**Existem evidências para comprovar estas horas?**
 
-Sim. Todo o codigo esta no GitHub, com um commit por card, e a aplicacao esta em
-producao na Vercel. A documentacao do bloco fica em `/docs`: o documento de IA
-descreve o que foi construido, as decisoes de projeto, a verificacao feita e as
-limitacoes.
+Sim. Todo o código está no GitHub, com um commit por card, e a aplicação está em
+produção na Vercel. A documentação do bloco fica em `/docs`: o documento de IA
+descreve o que foi construído, as decisões de projeto, a verificação feita e as
+limitações.
 
-- Repositorio: https://github.com/LuisaHering/guardiao
+- Repositório: https://github.com/LuisaHering/guardiao
 - Documento do bloco de IA: https://github.com/LuisaHering/guardiao/blob/main/docs/ia-p2.md
-- Historico dos check-ins: https://github.com/LuisaHering/guardiao/blob/main/docs/checkins.md
-- Aplicacao no ar: https://guardiao-smoky.vercel.app
+- Histórico dos check-ins: https://github.com/LuisaHering/guardiao/blob/main/docs/checkins.md
+- Aplicação no ar: https://guardiao-smoky.vercel.app
 
-**Quais foram os principais avancos?**
+**Quais foram os principais avanços?**
 
-Entrei na fase de IA. Entreguei consultas (gravacao ou upload de audio, guardado em
-storage privado) com resumo estruturado por IA a partir do texto da consulta;
-receitas, em que a foto ou o PDF vira uma sugestao de remedios que eu confiro antes
-de cadastrar, com o documento de origem guardado e ligado a cada remedio; e exames,
-com uma tela que mostra todos os valores extraidos de uma vez para conferir contra o
-papel. Tambem fiz o tratamento de analitos (casamento com os ja existentes,
-conversao de unidade explicita e fusao manual de duplicados), o grafico de
-tendencia por analito e uma tela de observacoes, em que a IA aponta recorrencias
-nos registros com a evidencia de cada uma.
+Entrei na fase de IA. Entreguei consultas (gravação ou envio de áudio, guardado
+em storage privado) com resumo estruturado por IA a partir do texto da consulta;
+receitas, em que a foto ou o PDF vira uma sugestão de remédios que eu confiro
+antes de cadastrar, com o documento de origem guardado e ligado a cada remédio; e
+exames, com uma tela que mostra todos os valores extraídos de uma vez para
+conferir contra o documento. Também fiz o tratamento dos nomes de exames
+(casamento com os já existentes, conversão de unidade explícita e união manual de
+duplicados), o gráfico de tendência por exame, com a faixa de referência de cada
+laudo, e uma tela de observações, em que a IA aponta recorrências nos registros
+com a evidência de cada uma. Validei com documentos fictícios: a leitura de uma
+receita, a de dois laudos de laboratórios diferentes (a conversão de mg/dL para
+mmol/L funcionou e o gráfico mostrou a faixa de cada laudo) e o resumo de uma
+consulta. Ainda estão em validação o envio de áudio, a união de nomes duplicados
+e as observações com volume suficiente de registros.
 
-**Quais dificuldades voce encontrou?**
+**Quais dificuldades você encontrou?**
 
-A API da Anthropic nao transcreve audio, entao o card de transcricao automatica nao
-era viavel como estava escrito. Decidi guardar o audio e usar o texto da consulta
-colado, o que evita um servico de transcricao extra e um terceiro a mais recebendo
-audio de saude. A outra dificuldade foi tratar dado clinico com IA com cuidado: nada
-entra sem confirmacao, a conversao de unidade e feita por regra conhecida e nao pela
-IA, e cada observacao precisa citar datas que existem nos registros. Tambem tive de
-respeitar o limite de 4 MB do corpo das funcoes na Vercel, reduzindo as fotos no
-navegador antes do envio.
+A API da Anthropic, que eu tinha previsto, é pré-paga e exige cartão. Por isso
+migrei a camada de IA para o Google (Gemini, plano gratuito) e mantive a da
+Anthropic pronta em standby, trocável por uma variável de ambiente. No plano
+gratuito o Google informa que o conteúdo enviado pode ser usado para melhorar os
+produtos dele, então usei apenas documentos fictícios nos testes. Também lidei
+com um modelo gratuito que estourou a cota na primeira chamada e com respostas
+que levam de 5 segundos a quase 1 minuto, o que resolvi trocando de modelo e
+adicionando um indicador de carregamento. Por fim, tratar dado clínico com IA
+exigiu cuidado: nada entra sem confirmação, a conversão de unidade é feita por
+regra conhecida e não pela IA, e cada observação precisa citar datas que existem
+nos registros.
 
-**O que planejam fazer ate o proximo check-in?**
+**O que planejam fazer até o próximo check-in?**
 
-Luisa - Gerador de diretivas antecipadas (questionario estruturado e PDF com
-versionamento), visao 360 do idoso sintetizada pela IA e alertas gerados pela IA, e
-iniciar o dashboard do familiar.
+Luísa - Gerador de diretivas antecipadas (questionário estruturado e PDF com
+versionamento), visão 360 do idoso sintetizada pela IA e alertas gerados pela IA,
+e iniciar o dashboard do familiar.
 
-**Voce precisa de orientacao?**
+**Você precisa de orientação?**
 
-Nao.
+Não.
