@@ -6,6 +6,9 @@ import { ReceitaSchema } from "@/lib/ai/schemas";
 
 const IMAGENS = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 
+// A IA pode levar quase um minuto; sem isso a Vercel corta a funcao em 10 s.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData().catch(() => null);

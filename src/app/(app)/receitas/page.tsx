@@ -7,6 +7,7 @@ import { Badge, Button, Card, Field, Input } from "@/components/ui";
 import { extensaoDoArquivo, reduzirParaIA } from "@/lib/imagem";
 import { normalizar } from "@/lib/analitos";
 import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
+import { IACarregando } from "@/components/ia-carregando";
 import type { ReceitaExtraida } from "@/lib/ai/schemas";
 
 type Linha = {
@@ -261,6 +262,7 @@ export default function ReceitasPage() {
         >
           {lendo ? "Lendo a receita..." : "Ler receita"}
         </Button>
+        {lendo && <IACarregando rotulo="Lendo a receita..." />}
         <p className="text-xs text-subtle">
           A imagem e enviada a {NOME_PROVEDOR} para a leitura. Nada e cadastrado
           sem a sua confirmacao.{AVISO_PLANO_GRATIS}

@@ -10,6 +10,9 @@ const MINIMO_REGISTROS = 8;
 
 const dia = (iso: string) => iso.slice(0, 10);
 
+// A IA pode levar quase um minuto; sem isso a Vercel corta a funcao em 10 s.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const corpo = await req.json().catch(() => null);

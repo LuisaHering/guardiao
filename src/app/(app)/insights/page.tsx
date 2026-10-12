@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Badge, Button, Card } from "@/components/ui";
 import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
+import { IACarregando } from "@/components/ia-carregando";
 
 type Item = {
   titulo: string;
@@ -132,6 +133,11 @@ export default function InsightsPage() {
         <Button variant="primary" onClick={gerar} disabled={gerando}>
           {gerando ? "Analisando..." : "Gerar observacoes"}
         </Button>
+        {gerando && (
+          <div className="w-full">
+            <IACarregando rotulo="Analisando os registros..." />
+          </div>
+        )}
         <p className="w-full text-xs text-subtle">
           Os registros do periodo sao enviados a {NOME_PROVEDOR} para a analise.
           {AVISO_PLANO_GRATIS}

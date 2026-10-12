@@ -7,6 +7,7 @@ import { Badge, Button, Card, Field, Input } from "@/components/ui";
 import { extensaoDoArquivo, reduzirParaIA } from "@/lib/imagem";
 import { converter, normalizar, normalizarUnidade } from "@/lib/analitos";
 import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
+import { IACarregando } from "@/components/ia-carregando";
 import type { ExameExtraido } from "@/lib/ai/schemas";
 
 type Analito = {
@@ -389,6 +390,7 @@ export default function ExamesPage() {
         <Button variant="primary" onClick={ler} disabled={!arquivo || lendo} className="self-start">
           {lendo ? "Lendo o exame..." : "Ler exame"}
         </Button>
+        {lendo && <IACarregando rotulo="Lendo o exame..." />}
         <p className="text-xs text-subtle">
           O documento e enviado a {NOME_PROVEDOR} para a leitura. Enquanto voce
           nao confirma, nada e salvo aqui: nem o arquivo, nem os valores.

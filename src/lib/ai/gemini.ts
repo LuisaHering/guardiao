@@ -3,12 +3,18 @@
 // Atencao ao plano gratuito: o Google informa que o conteudo enviado nele pode ser
 // usado para melhorar os produtos. Por isso, nele, so documentos sem dado real.
 
-import { ApiError, GoogleGenAI } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import type { z } from "zod";
 import { ErroIA, type OpcoesExtracao } from "@/lib/ai/comum";
 import { schemaParaGemini } from "@/lib/ai/schema-gemini";
 
-export const MODELO_GEMINI = process.env.GEMINI_MODEL ?? "gemini-3.8-flash";
+// gemini-3.6-flash: no teste com esta conta, o 3.8 estourou a cota logo na primeira
+// chamada e os 2.5 ja nao aceitam contas novas. Troque por GEMINI_MODEL se preciso.
+export const MODELO_GEMINI = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
+
+// Opcional: reduz o "raciocinio" do modelo para responder bem mais rapido
+// (medido: ~5 s com "low" contra ~18 a 59 s no padrao), a custo de profundidade.
+const NIVEL_RACIOCINIO = process.env.GEMINI_THINKING;
 
 export async function extrairGemini<S extends z.ZodType>(
   opts: OpcoesExtracao<S>,
@@ -53,25 +59,38 @@ export async function extrairGemini<S extends z.ZodType>(
         mime_type: "application/json",
         schema: schemaJson,
       },
+      ...(NIVEL_RACIOCINIO === "low" ||
+      NIVEL_RACIOCINIO === "medium" ||
+      NIVEL_RACIOCINIO === "high"
+        ? { generation_config: { thinking_level: NIVEL_RACIOCINIO } }
+        : {}),
     });
     texto = resposta.output_text;
   } catch (err) {
-    if (err instanceof ApiError) {
-      if (err.status === 429) {
-        throw new ErroIA(
-          "Limite gratuito da IA atingido. Espere um minuto e tente de novo.",
-          429,
-        );
-      }
-      if (err.status === 401 || err.status === 403) {
-        throw new ErroIA("A chave da IA configurada no servidor e invalida.", 503);
-      }
-      if (err.status === 400) {
-        throw new ErroIA(`A IA nao aceitou o material enviado: ${err.message}`, 422);
-      }
-      if (err.status === 503) {
-        throw new ErroIA("A IA esta sobrecarregada agora. Tente de novo em instantes.", 503);
-      }
+    // O SDK lanca classes diferentes por status (ex: RateLimitError), nem todas
+    // herdam de ApiError; por isso olho o status, nao a classe.
+    const status = (err as { status?: number } | null)?.status;
+    const detalhe = err instanceof Error ? err.message : "";
+    if (status === 429) {
+      throw new ErroIA(
+        "Limite gratuito da IA atingido. Espere um minuto e tente de novo.",
+        429,
+      );
+    }
+    if (status === 401 || status === 403) {
+      throw new ErroIA("A chave da IA configurada no servidor e invalida.", 503);
+    }
+    if (status === 404) {
+      throw new ErroIA(
+        "O modelo de IA configurado nao esta disponivel para esta conta.",
+        503,
+      );
+    }
+    if (status === 400) {
+      throw new ErroIA(`A IA nao aceitou o material enviado: ${detalhe}`, 422);
+    }
+    if (status === 503) {
+      throw new ErroIA("A IA esta sobrecarregada agora. Tente de novo em instantes.", 503);
     }
     throw new ErroIA("Nao consegui falar com a IA agora. Tente de novo.");
   }

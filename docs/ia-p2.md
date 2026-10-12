@@ -102,6 +102,14 @@ provedor atual, porque enviar o áudio exigiria outro tratamento de privacidade.
   caminho é um plano pago do Google ou o provedor Anthropic.
 - **Limite do plano gratuito.** O plano gratuito tem limite de requisições por
   minuto e por dia; ao estourar, a tela mostra uma mensagem e basta tentar de novo.
+- **Tempo de resposta.** Uma leitura pode levar de alguns segundos a cerca de um
+  minuto, conforme o "raciocínio" do modelo (medido: de 5 s com raciocínio baixo a
+  59 s no padrão). As telas mostram um indicador com cronômetro e as rotas
+  aceitam até 60 s. O nível de raciocínio é ajustável por variável de ambiente.
+- **Disponibilidade de modelos.** Modelos gratuitos variam por conta: nos testes,
+  o modelo mais novo estourou a cota na primeira chamada e a geração 2.5 já não
+  aceita contas novas. O modelo padrão é o `gemini-3.6-flash` e pode ser trocado
+  por variável de ambiente.
 - **Sem limite de uso por pessoa** nas rotas de IA: o controle hoje é só estar
   logado e ser membro do idoso.
 - **Recusa da IA** (stop reason `refusal`) é tratada com mensagem clara, mas sem

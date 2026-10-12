@@ -8,6 +8,9 @@ const IMAGENS = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 
 type Analito = { id: string; nome_canonico: string; unidade_canonica: string | null };
 
+// A IA pode levar quase um minuto; sem isso a Vercel corta a funcao em 10 s.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData().catch(() => null);

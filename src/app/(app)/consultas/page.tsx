@@ -6,6 +6,7 @@ import { useRole } from "@/lib/role-context";
 import { Badge, Button, Card, Field, Input } from "@/components/ui";
 import type { ResumoConsulta } from "@/lib/ai/schemas";
 import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
+import { IACarregando } from "@/components/ia-carregando";
 
 type Consulta = {
   id: string;
@@ -188,6 +189,7 @@ function ConsultaItem({
             >
               {gerando ? "Gerando resumo..." : r ? "Gerar resumo de novo" : "Gerar resumo"}
             </Button>
+            {gerando && <IACarregando rotulo="Gerando o resumo..." />}
             <p className="text-xs text-subtle">
               O texto e enviado a {NOME_PROVEDOR} para gerar o resumo.
               {AVISO_PLANO_GRATIS}

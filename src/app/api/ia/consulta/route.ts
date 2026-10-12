@@ -7,6 +7,9 @@ import { ResumoConsultaSchema } from "@/lib/ai/schemas";
 
 const LIMITE_TEXTO = 60_000;
 
+// A IA pode levar quase um minuto; sem isso a Vercel corta a funcao em 10 s.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   let consultaId: string | undefined;
   try {
