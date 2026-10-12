@@ -19,7 +19,11 @@ type Linha = {
   convertido: boolean;
   valor_original: number | null;
   unidade_original: string | null;
-  exame: { data: string | null; laboratorio: string | null } | null;
+  exame: {
+    data: string | null;
+    laboratorio: string | null;
+    deleted_at: string | null;
+  } | null;
 };
 
 function fmt(n: number) {
@@ -69,14 +73,14 @@ export default function TendenciasPage() {
       const { data } = await supabase
         .from("exame_resultado")
         .select(
-          "valor, ref_min, ref_max, convertido, valor_original, unidade_original, exame:exame_id(data, laboratorio)",
+          "valor, ref_min, ref_max, convertido, valor_original, unidade_original, exame:exame_id(data, laboratorio, deleted_at)",
         )
         .eq("analito_id", selecionado);
       if (cancelado) return;
       const linhas = (data ?? []) as unknown as Linha[];
       setPontos(
         linhas
-          .filter((l) => l.exame?.data && l.valor !== null)
+          .filter((l) => l.exame?.data && !l.exame.deleted_at && l.valor !== null)
           .map((l) => ({
             data: l.exame!.data as string,
             valor: Number(l.valor),

@@ -148,6 +148,21 @@ export default function ReceitasPage() {
     setLendo(false);
   }
 
+  async function removerReceita(id: string) {
+    if (
+      !window.confirm(
+        "Remover esta receita da lista? Os remedios cadastrados a partir dela continuam na Medicacao e precisam ser removidos la.",
+      )
+    ) {
+      return;
+    }
+    await supabase
+      .from("receita")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+    await carregar();
+  }
+
   function mudarLinha(i: number, parcial: Partial<Linha>) {
     setRevisao((r) =>
       r ? { ...r, linhas: r.linhas.map((l, j) => (j === i ? { ...l, ...parcial } : l)) } : r,
@@ -372,6 +387,13 @@ export default function ReceitasPage() {
                   Ver documento
                 </a>
               )}
+              <Button
+                variant="ghost"
+                onClick={() => removerReceita(r.id)}
+                className="h-7 px-2 text-xs"
+              >
+                Remover
+              </Button>
             </div>
             <p className="text-xs text-subtle">
               {(medsPorReceita[r.id] ?? []).join(", ") || "Nenhum remedio ativo ligado a esta receita."}

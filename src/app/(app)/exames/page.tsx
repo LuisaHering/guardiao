@@ -269,6 +269,21 @@ export default function ExamesPage() {
     setRevisao((r) => (r ? { ...r, linhas: r.linhas.filter((_, j) => j !== i) } : r));
   }
 
+  async function removerExame(id: string) {
+    if (
+      !window.confirm(
+        "Remover este exame? Ele sai da timeline e do grafico de tendencia.",
+      )
+    ) {
+      return;
+    }
+    await supabase
+      .from("exame")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+    await carregar();
+  }
+
   async function fundir(origemId: string) {
     const destinoId = destinos[origemId];
     if (!destinoId) return;
@@ -504,6 +519,13 @@ export default function ExamesPage() {
                   Ver documento
                 </a>
               )}
+              <Button
+                variant="ghost"
+                onClick={() => removerExame(e.id)}
+                className="h-7 px-2 text-xs"
+              >
+                Remover
+              </Button>
             </div>
             {abertos[e.id] && (
               <div className="flex flex-col gap-1 border-t border-line pt-2">
