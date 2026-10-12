@@ -128,8 +128,9 @@ export default function ExamesPage() {
   const [analitos, setAnalitos] = useState<Analito[]>([]);
   const [abertos, setAbertos] = useState<Record<string, boolean>>({});
 
-  const [destinos, setDestinos] = useState<Record<string, string>>({});
-  const [fundindo, setFundindo] = useState<string | null>(null);
+  const [manter, setManter] = useState("");
+  const [unir, setUnir] = useState("");
+  const [fundindo, setFundindo] = useState(false);
   const [erroFusao, setErroFusao] = useState<string | null>(null);
 
   const [arquivo, setArquivo] = useState<File | null>(null);
@@ -284,20 +285,21 @@ export default function ExamesPage() {
     await carregar();
   }
 
-  async function fundir(origemId: string) {
-    const destinoId = destinos[origemId];
-    if (!destinoId) return;
+  async function unirNomes() {
+    if (!manter || !unir) return;
     setErroFusao(null);
-    setFundindo(origemId);
+    setFundindo(true);
     const { error } = await supabase.rpc("fundir_analitos", {
-      p_origem: origemId,
-      p_destino: destinoId,
+      p_origem: unir,
+      p_destino: manter,
     });
-    if (error) setErroFusao(error.message);
-    setFundindo(null);
-    setDestinos((d) =>
-      Object.fromEntries(Object.entries(d).filter(([k]) => k !== origemId)),
-    );
+    if (error) {
+      setErroFusao(error.message);
+    } else {
+      setManter("");
+      setUnir("");
+    }
+    setFundindo(false);
     await carregar();
   }
 
@@ -509,7 +511,10 @@ export default function ExamesPage() {
                   {e.tipo || "Exame"} · {dataCurta(e.data)}
                 </p>
                 <p className="text-xs text-subtle">
-                  {[e.laboratorio, `${(resultados[e.id] ?? []).length} resultados`]
+                  {[
+                    e.laboratorio,
+                    `${(resultados[e.id] ?? []).length} resultado${(resultados[e.id] ?? []).length === 1 ? "" : "s"}`,
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
@@ -554,62 +559,107 @@ export default function ExamesPage() {
       </div>
 
       {analitos.length >= 2 && (
-        <Card className="flex flex-col gap-3">
-          <div>
-            <h2 className="text-sm font-medium text-ink">Analitos</h2>
+        <details className="group rounded-xl border border-line bg-card">
+          <summary className="cursor-pointer list-none px-5 py-3 text-sm text-subtle hover:text-ink">
+            O mesmo exame apareceu com dois nomes?{" "}
+            <span className="text-primary group-open:hidden">Unir nomes</span>
+          </summary>
+          <div className="flex flex-col gap-4 border-t border-line px-5 py-4">
             <p className="text-xs text-subtle">
-              Se o mesmo analito apareceu com dois nomes (ex: &quot;Glicemia&quot; e
-              &quot;Glicose em jejum&quot;), funda os dois para a serie ficar numa
-              linha so. So e possivel fundir analitos com a mesma unidade.
+              Acontece quando laboratorios chamam o mesmo exame de jeitos
+              diferentes (por exemplo &quot;Glicemia&quot; e &quot;Glicose em
+              jejum&quot;). Ao unir, os resultados passam a aparecer na mesma serie
+              do grafico. So da para unir nomes que usam a mesma unidade, e nao
+              existe botao para desfazer.
             </p>
-          </div>
-          {analitos.map((a) => {
-            const candidatos = analitos.filter(
-              (b) =>
-                b.id !== a.id &&
-                normalizarUnidade(b.unidade_canonica) === normalizarUnidade(a.unidade_canonica),
-            );
-            return (
-              <div
-                key={a.id}
-                className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3"
+
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-subtle">1. Qual nome deve ficar?</span>
+              <select
+                value={manter}
+                onChange={(e) => {
+                  setManter(e.target.value);
+                  setUnir("");
+                  setErroFusao(null);
+                }}
+                className="h-10 rounded-lg border border-line bg-card px-2 text-sm text-ink"
               >
-                <div>
-                  <p className="text-sm text-ink">{a.nome_canonico}</p>
-                  <p className="text-xs text-subtle">
-                    {a.unidade_canonica || "sem unidade"} · {contagem[a.id] ?? 0} resultados
+                <option value="">Escolha...</option>
+                {analitos.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nome_canonico}
+                    {a.unidade_canonica ? ` (${a.unidade_canonica})` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {(() => {
+              const fica = analitos.find((a) => a.id === manter);
+              if (!fica) return null;
+              const candidatos = analitos.filter(
+                (b) =>
+                  b.id !== fica.id &&
+                  normalizarUnidade(b.unidade_canonica) ===
+                    normalizarUnidade(fica.unidade_canonica),
+              );
+              const some = analitos.find((a) => a.id === unir);
+              const n = some ? (contagem[some.id] ?? 0) : 0;
+
+              if (candidatos.length === 0) {
+                return (
+                  <p className="rounded-lg bg-panel p-3 text-sm text-subtle">
+                    Nao ha outro nome na mesma unidade
+                    {fica.unidade_canonica ? ` (${fica.unidade_canonica})` : ""} para
+                    unir a &quot;{fica.nome_canonico}&quot;.
                   </p>
-                </div>
-                {candidatos.length > 0 ? (
-                  <div className="flex items-center gap-2">
+                );
+              }
+
+              return (
+                <>
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="text-subtle">
+                      2. Qual nome repetido deve sumir?
+                    </span>
                     <select
-                      value={destinos[a.id] ?? ""}
-                      onChange={(e) => setDestinos({ ...destinos, [a.id]: e.target.value })}
-                      className="h-9 rounded-lg border border-line bg-card px-2 text-xs text-ink"
+                      value={unir}
+                      onChange={(e) => setUnir(e.target.value)}
+                      className="h-10 rounded-lg border border-line bg-card px-2 text-sm text-ink"
                     >
-                      <option value="">Fundir em...</option>
+                      <option value="">Escolha...</option>
                       {candidatos.map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.nome_canonico}
                         </option>
                       ))}
                     </select>
-                    <Button
-                      onClick={() => fundir(a.id)}
-                      disabled={!destinos[a.id] || fundindo === a.id}
-                      className="h-9 px-3 text-xs"
-                    >
-                      {fundindo === a.id ? "Fundindo..." : "Fundir"}
-                    </Button>
-                  </div>
-                ) : (
-                  <span className="text-xs text-subtle">sem candidato com a mesma unidade</span>
-                )}
-              </div>
-            );
-          })}
-          {erroFusao && <p className="text-sm text-danger">{erroFusao}</p>}
-        </Card>
+                  </label>
+
+                  {some && (
+                    <div className="flex flex-col gap-3 rounded-lg bg-panel p-3">
+                      <p className="text-sm text-ink">
+                        {n === 0
+                          ? `"${some.nome_canonico}" nao tem resultados; ele so deixa de aparecer na lista.`
+                          : `${n} resultado${n > 1 ? "s" : ""} de "${some.nome_canonico}" passara${n > 1 ? "o" : ""} a aparecer como "${fica.nome_canonico}".`}
+                      </p>
+                      <Button
+                        variant="primary"
+                        onClick={unirNomes}
+                        disabled={fundindo}
+                        className="self-start"
+                      >
+                        {fundindo ? "Unindo..." : "Unir nomes"}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+
+            {erroFusao && <p className="text-sm text-danger">{erroFusao}</p>}
+          </div>
+        </details>
       )}
     </div>
   );
