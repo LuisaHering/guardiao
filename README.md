@@ -1,7 +1,7 @@
 # 🛡️ Guardião
 
-![Semana](https://img.shields.io/badge/semana-10%20de%2018-1F7A73)
-![Horas](https://img.shields.io/badge/horas-129%20de%20250-1F7A73)
+![Semana](https://img.shields.io/badge/semana-12%20de%2018-1F7A73)
+![Horas](https://img.shields.io/badge/horas-179%20de%20250-1F7A73)
 ![Commits](https://img.shields.io/github/commit-activity/t/LuisaHering/guardiao?label=commits&color=1F7A73)
 [![Deploy](https://img.shields.io/badge/deploy-online-1D9E75)](https://guardiao-smoky.vercel.app)
 
@@ -22,7 +22,7 @@ O cuidado de idosos costuma ser fragmentado: as informações ficam espalhadas e
 
 **Cliente e beneficiário:** uma família real. Meu avô é o idoso (sujeito dos dados), a cuidadora dele registra o dia a dia, e eu sou a familiar responsável (administradora).
 
-## Status (Semana 10 de 18)
+## Status (Semana 12 de 18)
 
 | Fase | Foco | Status |
 |------|------|--------|
