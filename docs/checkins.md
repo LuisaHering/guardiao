@@ -80,6 +80,32 @@ Nao.
 
 ## Check-in 4 - 12/10 (semanas 9-11, 50h)
 
+**O que foi desenvolvido durante este período?**
+
+Luísa (projeto individual):
+
+- Consultas: cadastro com gravação ou envio de áudio em storage privado e resumo
+  estruturado por IA (ações, remédios, exames pedidos, dúvidas e retorno) a
+  partir do texto da consulta.
+- Receitas: a foto ou o PDF é lido por IA e vira uma sugestão de remédios que eu
+  confiro antes de cadastrar; o documento de origem fica guardado e ligado a cada
+  remédio.
+- Exames: leitura de laudos (foto ou PDF) com uma tela que mostra todos os valores
+  de uma vez para conferência; só o que é confirmado entra no sistema, gravado
+  numa única transação.
+- Nomes de exames: casamento com os já existentes, conversão de unidade por regra
+  conhecida (explícita na confirmação) e união manual de nomes duplicados.
+- Gráfico de tendência por exame, com a faixa de referência de cada laudo.
+- Observações: a IA aponta recorrências nos sintomas, no diário e na medicação,
+  citando as datas que sustentam cada uma.
+- Camada de IA trocável entre provedores (Google ativo, Anthropic em standby),
+  indicador de carregamento, remoção de receitas e exames, consultas e exames na
+  timeline, revisão dos textos e da acentuação das telas e documentação do bloco.
+
+**Informe a quantidade de horas por componente do grupo.**
+
+Luísa - 50 horas
+
 **Existem evidências para comprovar estas horas?**
 
 Sim. Todo o código está no GitHub, com um commit por card, e a aplicação está em
@@ -94,20 +120,13 @@ limitações.
 
 **Quais foram os principais avanços?**
 
-Entrei na fase de IA. Entreguei consultas (gravação ou envio de áudio, guardado
-em storage privado) com resumo estruturado por IA a partir do texto da consulta;
-receitas, em que a foto ou o PDF vira uma sugestão de remédios que eu confiro
-antes de cadastrar, com o documento de origem guardado e ligado a cada remédio; e
-exames, com uma tela que mostra todos os valores extraídos de uma vez para
-conferir contra o documento. Também fiz o tratamento dos nomes de exames
-(casamento com os já existentes, conversão de unidade explícita e união manual de
-duplicados), o gráfico de tendência por exame, com a faixa de referência de cada
-laudo, e uma tela de observações, em que a IA aponta recorrências nos registros
-com a evidência de cada uma. Validei com documentos fictícios: a leitura de uma
-receita, a de dois laudos de laboratórios diferentes (a conversão de mg/dL para
-mmol/L funcionou e o gráfico mostrou a faixa de cada laudo) e o resumo de uma
-consulta. Ainda estão em validação o envio de áudio, a união de nomes duplicados
-e as observações com volume suficiente de registros.
+Entrei na fase de IA com as funcionalidades que transformam documentos (consultas,
+receitas e laudos) em informação organizada, sempre com conferência humana antes
+de gravar. Validei com documentos fictícios: a leitura de uma receita, a de dois
+laudos de laboratórios diferentes (a conversão de mg/dL para mmol/L funcionou e o
+gráfico mostrou a faixa de cada laudo) e o resumo de uma consulta. Ainda estão em
+validação o envio de áudio, a união de nomes duplicados e as observações com
+volume suficiente de registros.
 
 **Quais dificuldades você encontrou?**
 
