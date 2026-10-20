@@ -13,7 +13,7 @@ ficam na timesheet do Notion; aqui guardo o texto de cada entrega.
 | 2 | 31/08 | 3-5 (P1) | 61h | 75h |
 | 3 | 21/09 | 6-8 (P1) | 54h | 129h |
 | 4 | 12/10 | 9-11 (P2) | 50h | 179h |
-| 5 | ~09/11 | 12-14 (P3) | a fazer | - |
+| 5 | 02/11 | 12-14 (P2/P3) | a fazer | - |
 | 6 | 23/11 | 15-16 (P3) | a fazer | - |
 | Entrega | 07/12 | 17-18 (P4) | a fazer | - |
 
