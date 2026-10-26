@@ -23,6 +23,7 @@ export const roleLabels: Record<Role, string> = {
 const byRole: Record<Role, NavItem[]> = {
   familiar: [
     { href: "/painel", label: "Painel", enabled: true },
+    { href: "/visao-360", label: "Visão 360", enabled: true },
     { href: "/perfil", label: "Perfil do idoso", enabled: true },
     { href: "/timeline", label: "Timeline", enabled: true },
     { href: "/medicacao", label: "Medicação", enabled: true },

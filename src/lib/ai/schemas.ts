@@ -83,3 +83,55 @@ export const InsightsSchema = z.object({
   ),
 });
 export type InsightsGerados = z.infer<typeof InsightsSchema>;
+
+export const Visao360Schema = z.object({
+  resumo: z
+    .string()
+    .describe("Panorama atual da pessoa em 3 a 5 frases, só com o que os registros mostram."),
+  saude: z.array(
+    z.object({
+      titulo: z.string(),
+      detalhe: z.string(),
+      fonte: z.enum([
+        "condicao",
+        "alergia",
+        "sintoma",
+        "exame",
+        "consulta",
+        "diario",
+        "medicacao",
+        "humor",
+      ]),
+      data: z.string().nullable().describe("Data AAAA-MM-DD do registro, se houver."),
+    }),
+  ),
+  medicacao: z.object({
+    situacao: z
+      .string()
+      .describe("Como estão os registros de medicação, sem tratar falta de registro como dose perdida."),
+    pontos: z.array(z.string()),
+  }),
+  humor: z
+    .string()
+    .nullable()
+    .describe("O que os registros de humor mostram; null se não há registros de humor."),
+  divergencias: z.array(
+    z.object({
+      tema: z.string(),
+      relatos: z.array(
+        z.object({
+          quem: z.string().describe("Nome exato de quem registrou, como na lista fornecida."),
+          relato: z.string(),
+          data: z.string().nullable().describe("Data AAAA-MM-DD do registro."),
+        }),
+      ),
+      observacao: z
+        .string()
+        .describe("Descrição neutra da diferença, sem dizer quem tem razão."),
+    }),
+  ),
+  lacunas: z
+    .array(z.string())
+    .describe("O que não dá para saber por falta de registros."),
+});
+export type Visao360Gerada = z.infer<typeof Visao360Schema>;
