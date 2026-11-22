@@ -263,7 +263,8 @@ Regras de honestidade:
 - "Nao registrou" nao e "nao aconteceu": so afirme que algo nao ocorreu se um registro disser isso expressamente. Caso contrario, diga apenas que nao ha registro.
 - Falta de registro de medicacao nao significa dose nao dada.
 - Nos relatos use exatamente um destes nomes em "quem": ${nomesPermitidos.join("; ") || "(nenhum)"}.
-- Use datas AAAA-MM-DD que existam nos registros.
+- Nos campos "data" use o formato AAAA-MM-DD, com datas que existam nos registros. No texto corrido (resumo, detalhes, observações) escreva as datas como dd/mm/aaaa, do jeito que uma pessoa lê.
+- Nao afirme ausencia ("nao possui", "nao tem"): diga "nao ha registro de ..." ou "nenhum registro de ...", porque falta de registro nao e falta do fato.
 - Se faltar informacao para algum tema, diga em "lacunas" em vez de preencher.
 - O valor de exame ja vem comparado com a faixa do proprio laudo: repita essa comparacao, sem reinterpretar.`,
       instrucao: `Registros atuais:\n\n${linhas.join("\n")}\n\nMonte a visao 360.`,

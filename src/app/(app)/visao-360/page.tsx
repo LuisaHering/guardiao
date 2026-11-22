@@ -177,15 +177,18 @@ export default function Visao360Page() {
             Gerada em {geradoEm ? quando(geradoEm) : ""}
             {visao.base
               ? ` · ${Object.entries({
-                  sintomas: "sintomas",
-                  diario: "entradas de diário",
-                  registros_medicacao: "registros de medicação",
-                  consultas: "consultas",
-                  exames: "exames",
-                  humor: "registros de humor",
+                  sintomas: ["sintoma", "sintomas"],
+                  diario: ["entrada de diário", "entradas de diário"],
+                  registros_medicacao: ["registro de medicação", "registros de medicação"],
+                  consultas: ["consulta", "consultas"],
+                  exames: ["exame", "exames"],
+                  humor: ["registro de humor", "registros de humor"],
                 })
                   .filter(([k]) => (visao.base?.[k] ?? 0) > 0)
-                  .map(([k, rotulo]) => `${visao.base?.[k]} ${rotulo}`)
+                  .map(([k, [um, varios]]) => {
+                    const n = visao.base?.[k] ?? 0;
+                    return `${n} ${n === 1 ? um : varios}`;
+                  })
                   .join(", ")}`
               : ""}
           </p>
