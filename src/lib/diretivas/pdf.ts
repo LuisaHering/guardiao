@@ -22,12 +22,12 @@ export type DadosPdf = {
   substitui: { geradaEm: Date } | null;
 };
 
-const A4 = { w: 595.28, h: 841.89 };
-const MARGEM = 56;
+export const A4 = { w: 595.28, h: 841.89 };
+export const MARGEM = 56;
 const RODAPE = 48;
-const LARGURA = A4.w - MARGEM * 2;
+export const LARGURA = A4.w - MARGEM * 2;
 
-const COR = {
+export const COR = {
   texto: rgb(0.1, 0.1, 0.12),
   suave: rgb(0.4, 0.42, 0.46),
   linha: rgb(0.82, 0.84, 0.86),
@@ -56,7 +56,7 @@ function papelTexto(a: NonNullable<DadosPdf["assistente"]>) {
   return "titular";
 }
 
-class Folha {
+export class Folha {
   doc: PDFDocument;
   normal!: PDFFont;
   negrito!: PDFFont;
@@ -214,10 +214,10 @@ class Folha {
     this.y = topo - altura - 10;
   }
 
-  rodapes(id: string) {
+  rodapes(prefixo: string) {
     const paginas = this.doc.getPages();
     paginas.forEach((pg, i) => {
-      const texto = `Guardião · registro ${id} · página ${i + 1} de ${paginas.length}`;
+      const texto = `${prefixo} · página ${i + 1} de ${paginas.length}`;
       const larg = this.normal.widthOfTextAtSize(texto, 8);
       pg.drawText(this.limpar(texto), {
         x: (A4.w - larg) / 2,
@@ -328,6 +328,6 @@ export async function gerarPdfDiretiva(d: DadosPdf): Promise<Uint8Array> {
     COR.avisoBorda,
   );
 
-  f.rodapes(d.id);
+  f.rodapes(`Guardião · registro ${d.id}`);
   return f.doc.save();
 }

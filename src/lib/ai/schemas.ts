@@ -135,3 +135,18 @@ export const Visao360Schema = z.object({
     .describe("O que não dá para saber por falta de registros."),
 });
 export type Visao360Gerada = z.infer<typeof Visao360Schema>;
+
+export const FolhaSchema = z.object({
+  apresentacao: z
+    .string()
+    .describe("Uma ou duas frases práticas sobre como a pessoa quer ser tratada, só com o que está nos registros."),
+  secoes: z.array(
+    z.object({
+      titulo: z.string(),
+      itens: z
+        .array(z.string())
+        .describe("Orientações curtas e práticas, no imperativo ou em frases diretas."),
+    }),
+  ),
+});
+export type FolhaGerada = z.infer<typeof FolhaSchema>;
