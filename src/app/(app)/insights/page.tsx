@@ -1,5 +1,6 @@
 "use client";
 
+import { SemAcesso } from "@/components/sem-acesso";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
@@ -100,6 +101,10 @@ export default function InsightsPage() {
       setErro("Sem conexão com o servidor. Tente de novo.");
     }
     setGerando(false);
+  }
+
+  if (membership?.role === "cuidador") {
+    return <SemAcesso area="Observações" />;
   }
 
   if (!membership) {

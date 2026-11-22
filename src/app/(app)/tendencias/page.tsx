@@ -1,5 +1,6 @@
 "use client";
 
+import { SemAcesso } from "@/components/sem-acesso";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
@@ -105,6 +106,10 @@ export default function TendenciasPage() {
       cancelado = true;
     };
   }, [supabase, selecionado]);
+
+  if (membership?.role === "cuidador") {
+    return <SemAcesso area="Tendências" />;
+  }
 
   if (!membership) {
     return (

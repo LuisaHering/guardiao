@@ -1,5 +1,6 @@
 "use client";
 
+import { SemAcesso } from "@/components/sem-acesso";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
@@ -122,6 +123,10 @@ export default function Visao360Page() {
       setErro("Sem conexão com o servidor. Tente de novo.");
     }
     setGerando(false);
+  }
+
+  if (membership?.role === "cuidador") {
+    return <SemAcesso area="A Visão 360" />;
   }
 
   if (!membership) {

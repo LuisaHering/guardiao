@@ -393,8 +393,8 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Resumo */}
-      <Card>
+      {/* Resumo (clínico: só para o familiar) */}
+      {clinico && <Card>
         <Titulo href="/visao-360" link={visao ? "Ver visão 360" : "Gerar visão 360"}>
           Resumo
         </Titulo>
@@ -411,7 +411,7 @@ export function Dashboard() {
             Ainda não há uma visão 360. Ela reúne tudo o que foi registrado em um panorama atual.
           </p>
         )}
-      </Card>
+      </Card>}
 
       <CompletudePerfil />
 
