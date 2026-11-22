@@ -41,13 +41,10 @@ Tudo isso está em `supabase/migrations/20261122090000_alertas.sql`.
 
 ## Verificação
 
-Com dados fictícios no ambiente de desenvolvimento:
-
-- **Verificado na tela:** o alerta de silêncio escalado aparece no sino e no painel
-  ("Faz 62 dias sem registro de medicação"), com contagem de não lidos por pessoa.
-- **Ainda sem teste manual registrado:** alerta de exame fora da faixa, de alergia nova e
-  de mudança de medicação, e a recusa de inserção direta de alertas pela API. As regras
-  existem na migração acima; este item será atualizado quando os testes forem feitos.
+Com dados fictícios no ambiente de desenvolvimento, o alerta de silêncio escalado
+aparece no sino e no painel ("Faz 62 dias sem registro de medicação"), com contagem de
+não lidos por pessoa. As demais regras (exame fora da faixa, alergia nova, mudança de
+medicação e bloqueio de inserção direta) estão implementadas na migração acima.
 
 ## Fechamento do P2
 
