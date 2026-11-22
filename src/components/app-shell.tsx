@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { navFor, roleLabels, type NavItem } from "@/lib/roles";
 import { cn } from "@/lib/cn";
+import { SinoAlertas } from "@/components/sino-alertas";
 
 function Shield() {
   return (
@@ -111,10 +112,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </span>
           <span className="text-sm font-medium text-ink md:hidden">Guardião</span>
           {membership && (
-            <span className="ml-auto text-xs text-subtle">
-              {roleLabels[membership.role]}
-              {membership.admin ? " · admin" : ""}
-            </span>
+            <div className="ml-auto flex items-center gap-3">
+              <SinoAlertas />
+              <span className="text-xs text-subtle">
+                {roleLabels[membership.role]}
+                {membership.admin ? " · admin" : ""}
+              </span>
+            </div>
           )}
         </header>
         <main className="flex-1 p-6">{children}</main>
