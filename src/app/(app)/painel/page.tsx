@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getMembership } from "@/lib/data/membership";
 import { Card } from "@/components/ui";
+import { Dashboard } from "@/components/dashboard";
 
 export default async function PainelPage() {
   const membership = await getMembership();
@@ -67,10 +68,25 @@ export default async function PainelPage() {
       titulo: "Observações",
       descricao: "O que se repete nos registros, para levar ao médico.",
     },
+    {
+      href: "/visao-360",
+      titulo: "Visão 360",
+      descricao: "Panorama atual, com os relatos que não coincidem à vista.",
+    },
+    {
+      href: "/alertas",
+      titulo: "Alertas",
+      descricao: "Avisos para cada pessoa, com leitura individual.",
+    },
+    {
+      href: "/diretivas",
+      titulo: "Diretivas",
+      descricao: "Preferências de cuidado e de fim de vida, em PDF.",
+    },
   ];
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold text-ink">Olá!</h1>
         <p className="text-sm text-subtle">
@@ -78,6 +94,9 @@ export default async function PainelPage() {
         </p>
       </div>
 
+      <Dashboard />
+
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-subtle">Atalhos</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         {atalhos.map((a) => (
           <Link key={a.href} href={a.href}>
