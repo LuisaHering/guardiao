@@ -1,6 +1,6 @@
 # 🛡️ Guardião
 
-![Semana](https://img.shields.io/badge/semana-12%20de%2018-1F7A73)
+![Semana](https://img.shields.io/badge/semana-16%20de%2018-1F7A73)
 ![Horas](https://img.shields.io/badge/horas-179%20de%20250-1F7A73)
 ![Commits](https://img.shields.io/github/commit-activity/t/LuisaHering/guardiao?label=commits&color=1F7A73)
 [![Deploy](https://img.shields.io/badge/deploy-online-1D9E75)](https://guardiao-smoky.vercel.app)
@@ -22,14 +22,14 @@ O cuidado de idosos costuma ser fragmentado: as informações ficam espalhadas e
 
 **Cliente e beneficiário:** uma família real. Meu avô é o idoso (sujeito dos dados), a cuidadora dele registra o dia a dia, e eu sou a familiar responsável (administradora).
 
-## Status (Semana 12 de 18)
+## Status (Semana 16 de 18)
 
 | Fase | Foco | Status |
 |------|------|--------|
 | P0 | Fundações, modelagem, repositório e deploy | ✅ Concluída |
 | P1 | Autenticação, papéis, perfil e núcleo do cuidado | ✅ Concluída |
-| P2 | IA, documentos e visão 360 | 🔨 Em andamento |
-| P3 | Dashboard, identidade e loop conversacional | ⏳ A seguir |
+| P2 | IA, documentos e visão 360 | ✅ Concluída |
+| P3 | Dashboard, identidade e loop conversacional | 🔨 Em andamento (falta o chat) |
 | P4 | Hardening, teste com usuário real e entrega | ⏳ A seguir |
 
 A primeira semana foi de idealização do projeto (definição de tema, cliente e escopo). O planejamento completo, a divisão em cards e a timesheet ficam no Notion.
@@ -51,10 +51,19 @@ A primeira semana foi de idealização do projeto (definição de tema, cliente 
 - Exames: extração por IA, conferência de todos os valores de uma vez e conversão de unidade explícita
 - Gráfico de tendência por analito, com a faixa de referência de cada laudo
 - Observações por IA sobre sintomas, diário e medicação, com a evidência de cada uma
+- Diretivas antecipadas: questionário guiado, PDF assinável e versionado, imutável depois de gerado, com registro de quem preencheu
+- Visão 360: panorama feito por IA que mostra relatos divergentes sem decidir quem tem razão, e aponta o que ainda não dá para saber
+- Alertas com estado de leitura por pessoa: exame fora da faixa, alergia nova, mudança de medicação e silêncio de registro (a cuidadora é avisada primeiro e, se persistir, a família)
+- Painel do familiar: adesão da semana, alertas, últimos registros e exames fora da faixa
+- Pauta médica: lista de dúvidas para a próxima consulta, com origem e data
+- Preferências e história de vida ("como quero ser tratado"), com quem afirmou cada registro
+- Score de completude do perfil, com sugestão do que preencher a seguir
+- Folha "como cuidar de mim" em PDF, para quem começa a cuidar; os fatos de segurança (alergias, medicação, contatos) vêm do banco, e a IA só redige as preferências
+- Menu por papel (o cuidador vê só o operacional) e navegação adaptada ao celular
 
-### Próximo (P2 e P3)
+### Próximo
 
-Gerador de diretivas antecipadas, visão 360 sintetizada pela IA, alertas, e depois o dashboard do familiar e o perfil conversacional.
+Chat de cuidado com extração de perfil e check-in diário conversacional (P3), e depois endurecimento de segurança, teste com usuário real e entrega final (P4).
 
 ## Wireframes
 
@@ -70,7 +79,7 @@ Versão dark, com anotações de cada tela:
 
 - Next.js 16 (App Router) com TypeScript e Tailwind CSS v4
 - Supabase (Postgres, autenticação, storage e RLS), já em uso
-- API da Anthropic para as funcionalidades de IA
+- IA por provedor intercambiável (variável de ambiente): hoje a API do Google (Gemini); a da Anthropic está pronta em standby
 - Deploy contínuo na Vercel a cada push na `main`
 
 ## Como rodar localmente
@@ -91,5 +100,8 @@ Depois abra http://localhost:3000 no navegador.
 - Concepção, escopo e requisitos: [`docs/concepcao.md`](docs/concepcao.md)
 - Modelagem de dados e diagrama ER: [`docs/modelagem.md`](docs/modelagem.md)
 - Núcleo do cuidado (P1) e roteiro de teste: [`docs/nucleo-p1.md`](docs/nucleo-p1.md)
+- Alertas e fechamento do P2: [`docs/alertas.md`](docs/alertas.md)
 - IA e documentos (P2, parte 1), decisões de projeto e limitações: [`docs/ia-p2.md`](docs/ia-p2.md)
+- Diretivas antecipadas (questionário, PDF, versionamento): [`docs/diretivas.md`](docs/diretivas.md)
+- Quem vê e edita o quê, e onde cada regra é garantida: [`docs/permissoes.md`](docs/permissoes.md)
 - Histórico dos check-ins: [`docs/checkins.md`](docs/checkins.md)
