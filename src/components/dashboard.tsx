@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Badge, Card } from "@/components/ui";
+import { CompletudePerfil } from "@/components/completude-perfil";
 import { dataCurta, fmt, posicaoNaFaixa, rotuloPosicao } from "@/lib/tendencia";
 
 type Remedio = { id: string; nome: string; dosagem: string | null };
@@ -411,6 +412,8 @@ export function Dashboard() {
           </p>
         )}
       </Card>
+
+      <CompletudePerfil />
 
       <div className={`grid gap-4 ${clinico ? "md:grid-cols-2" : ""}`}>
         {/* Últimos registros */}

@@ -26,6 +26,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/visao-360", label: "Visão 360", enabled: true },
     { href: "/alertas", label: "Alertas", enabled: true },
     { href: "/perfil", label: "Perfil do idoso", enabled: true },
+    { href: "/identidade", label: "Preferências e história", enabled: true },
     { href: "/timeline", label: "Timeline", enabled: true },
     { href: "/medicacao", label: "Medicação", enabled: true },
     { href: "/diario", label: "Diário", enabled: true },
@@ -44,6 +45,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/painel", label: "Hoje", enabled: true },
     { href: "/alertas", label: "Alertas", enabled: true },
     { href: "/perfil", label: "Perfil do idoso", enabled: true },
+    { href: "/identidade", label: "Preferências e história", enabled: true },
     { href: "/timeline", label: "Timeline", enabled: true },
     { href: "/medicacao", label: "Medicação", enabled: true },
     { href: "/diario", label: "Diário", enabled: true },
@@ -62,7 +64,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/alertas", label: "Alertas", enabled: true },
     { href: "/diretivas", label: "Diretivas", enabled: true },
     { href: "/conversa", label: "Conversa", enabled: false },
-    { href: "/preferencias", label: "Minhas preferências", enabled: false },
+    { href: "/identidade", label: "Minhas preferências", enabled: true },
   ],
 };
 
