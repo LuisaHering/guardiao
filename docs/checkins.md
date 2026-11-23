@@ -15,7 +15,7 @@ ficam na timesheet do Notion; aqui guardo o texto de cada entrega.
 | 4 | 12/10 | 9-11 (P2) | 50h | 179h |
 | 5 | 02/11 | 12-14 (P2/P3) | 45h | 224h |
 | 6 | 23/11 | 15-16 (P3) | 30h | 254h |
-| Entrega | 07/12 | 17-18 (P4) | a fazer | - |
+| Entrega | 11/12 | 17-18 (P4) | a fazer | - |
 
 ## Check-in 1 — 10/08 (semanas 1-2, 14h)
 
@@ -242,7 +242,7 @@ só uso documentos fictícios até trocar de plano para o teste com dados reais.
 Luísa - Fechar a P3 com o chat de cuidado (conversa com a IA, extração do perfil a
 partir da conversa e check-in diário conversacional) e entrar na P4: endurecimento de
 segurança (políticas de leitura por papel no banco), teste com usuário real, documentação
-final do projeto e entrega (timesheet, vídeo de demonstração e Moodle) em 07/12.
+final do projeto e entrega (timesheet, vídeo de demonstração e Moodle) até 11/12.
 
 **Você precisa de orientação?**
 

@@ -34,6 +34,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/medicacao", label: "Medicação", enabled: true, grupo: "Dia a dia" },
     { href: "/diario", label: "Diário", enabled: true, grupo: "Dia a dia" },
     { href: "/sintomas", label: "Sintomas", enabled: true, grupo: "Dia a dia" },
+    { href: "/conversa", label: "Conversa e check-in", enabled: true, grupo: "Dia a dia" },
     { href: "/timeline", label: "Timeline", enabled: true, grupo: "Dia a dia" },
 
     { href: "/consultas", label: "Consultas", enabled: true, grupo: "Saúde" },
@@ -57,6 +58,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/medicacao", label: "Medicação", enabled: true, grupo: "Dia a dia" },
     { href: "/diario", label: "Diário", enabled: true, grupo: "Dia a dia" },
     { href: "/sintomas", label: "Sintomas", enabled: true, grupo: "Dia a dia" },
+    { href: "/conversa", label: "Conversa e check-in", enabled: true, grupo: "Dia a dia" },
     { href: "/timeline", label: "Timeline", enabled: true, grupo: "Dia a dia" },
 
     { href: "/consultas", label: "Consultas", enabled: true, grupo: "Cuidado" },
@@ -75,7 +77,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/perfil", label: "Meu perfil", enabled: true, grupo: "Sobre mim" },
     { href: "/identidade", label: "Minhas preferências", enabled: true, grupo: "Sobre mim" },
     { href: "/diretivas", label: "Diretivas", enabled: true, grupo: "Sobre mim" },
-    { href: "/conversa", label: "Conversa", enabled: false, grupo: "Sobre mim" },
+    { href: "/conversa", label: "Conversa", enabled: true, grupo: "Sobre mim" },
   ],
 };
 

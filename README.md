@@ -29,7 +29,7 @@ O cuidado de idosos costuma ser fragmentado: as informações ficam espalhadas e
 | P0 | Fundações, modelagem, repositório e deploy | ✅ Concluída |
 | P1 | Autenticação, papéis, perfil e núcleo do cuidado | ✅ Concluída |
 | P2 | IA, documentos e visão 360 | ✅ Concluída |
-| P3 | Dashboard, identidade e loop conversacional | 🔨 Em andamento (falta o chat) |
+| P3 | Dashboard, identidade e loop conversacional | ✅ Concluída |
 | P4 | Hardening, teste com usuário real e entrega | ⏳ A seguir |
 
 A primeira semana foi de idealização do projeto (definição de tema, cliente e escopo). O planejamento completo, a divisão em cards e a timesheet ficam no Notion.
@@ -60,10 +60,11 @@ A primeira semana foi de idealização do projeto (definição de tema, cliente 
 - Score de completude do perfil, com sugestão do que preencher a seguir
 - Folha "como cuidar de mim" em PDF, para quem começa a cuidar; os fatos de segurança (alergias, medicação, contatos) vêm do banco, e a IA só redige as preferências
 - Menu por papel (o cuidador vê só o operacional) e navegação adaptada ao celular
+- Chat de cuidado com resposta em fluxo e autoria em cada fala, check-in diário conduzido pela IA e proposta de registros a partir da conversa (cada item mostra quem disse e a fala de origem; nada entra sem confirmação)
 
 ### Próximo
 
-Chat de cuidado com extração de perfil e check-in diário conversacional (P3), e depois endurecimento de segurança, teste com usuário real e entrega final (P4).
+Endurecimento de segurança, teste com usuário real, documentação final e entrega (P4).
 
 ## Wireframes
 
@@ -100,6 +101,7 @@ Depois abra http://localhost:3000 no navegador.
 - Concepção, escopo e requisitos: [`docs/concepcao.md`](docs/concepcao.md)
 - Modelagem de dados e diagrama ER: [`docs/modelagem.md`](docs/modelagem.md)
 - Núcleo do cuidado (P1) e roteiro de teste: [`docs/nucleo-p1.md`](docs/nucleo-p1.md)
+- Chat de cuidado e check-in diário: [`docs/chat.md`](docs/chat.md)
 - Alertas e fechamento do P2: [`docs/alertas.md`](docs/alertas.md)
 - IA e documentos (P2, parte 1), decisões de projeto e limitações: [`docs/ia-p2.md`](docs/ia-p2.md)
 - Diretivas antecipadas (questionário, PDF, versionamento): [`docs/diretivas.md`](docs/diretivas.md)

@@ -150,3 +150,47 @@ export const FolhaSchema = z.object({
   ),
 });
 export type FolhaGerada = z.infer<typeof FolhaSchema>;
+
+// Extracao de uma conversa. Cada item cita a fala de onde saiu (rotulo M1, M2...) e o
+// trecho exato; o servidor confere o trecho contra a fala e descarta o que nao bater.
+const Citacao = {
+  fala: z.string().describe("Rótulo da fala do usuário de onde saiu (ex: M3)."),
+  trecho: z.string().describe("Trecho copiado literalmente dessa fala que sustenta o item."),
+};
+
+export const ExtracaoConversaSchema = z.object({
+  preferencias: z.array(
+    z.object({
+      categoria: z.enum(["comunicacao", "agrada", "incomoda", "rotina", "alimentacao"]),
+      chave: z.string().describe("Rótulo curto, ex: Café da manhã."),
+      valor: z.string(),
+      ...Citacao,
+    }),
+  ),
+  memorias: z.array(
+    z.object({
+      titulo: z.string(),
+      conteudo: z.string(),
+      ...Citacao,
+    }),
+  ),
+  humor: z.object({ valor: z.string(), ...Citacao }).nullable(),
+  alimentacao: z.object({ texto: z.string(), ...Citacao }).nullable(),
+  ocorrencias: z.object({ texto: z.string(), ...Citacao }).nullable(),
+  sintomas: z.array(
+    z.object({
+      descricao: z.string(),
+      gravidade: z.number().nullable().describe("1 a 5, só se a pessoa der a medida; senão null."),
+      ...Citacao,
+    }),
+  ),
+  nao_adesao: z.array(
+    z.object({
+      medicacao: z.string(),
+      motivo: z.enum(["esqueceu", "recusou", "efeito_adverso", "acabou", "outro"]),
+      detalhe: z.string().nullable(),
+      ...Citacao,
+    }),
+  ),
+});
+export type ExtracaoConversa = z.infer<typeof ExtracaoConversaSchema>;
