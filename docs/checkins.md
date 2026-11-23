@@ -13,8 +13,8 @@ ficam na timesheet do Notion; aqui guardo o texto de cada entrega.
 | 2 | 31/08 | 3-5 (P1) | 61h | 75h |
 | 3 | 21/09 | 6-8 (P1) | 54h | 129h |
 | 4 | 12/10 | 9-11 (P2) | 50h | 179h |
-| 5 | 02/11 | 12-14 (P2/P3) | a fazer | - |
-| 6 | 23/11 | 15-16 (P3) | a fazer | - |
+| 5 | 02/11 | 12-14 (P2/P3) | 45h | 224h |
+| 6 | 23/11 | 15-16 (P3) | 30h | 254h |
 | Entrega | 07/12 | 17-18 (P4) | a fazer | - |
 
 ## Check-in 1 — 10/08 (semanas 1-2, 14h)
@@ -147,6 +147,102 @@ nos registros.
 Luísa - Gerador de diretivas antecipadas (questionário estruturado e PDF com
 versionamento), visão 360 do idoso sintetizada pela IA e alertas gerados pela IA,
 e iniciar o dashboard do familiar.
+
+**Você precisa de orientação?**
+
+Não.
+
+## Check-ins 5 e 6 combinados - 23/11 (semanas 12-16, 75h)
+
+O professor autorizou entregar os dois check-ins no formulário de 23/11. Por isso este
+registro cobre o dobro do período: o check-in 5 (semanas 12 a 14, 45h) e o check-in 6
+(semanas 15 e 16, 30h).
+
+**O que foi desenvolvido durante este período?**
+
+Luísa (projeto individual):
+
+- Diretivas antecipadas: questionário guiado, PDF com versionamento e vigência, e
+  imutabilidade garantida no banco (um PDF gerado não pode ser alterado). O PDF sempre
+  declara quem preencheu e se o titular estava presente.
+- Visão 360: panorama do idoso montado pela IA a partir de tudo o que foi registrado.
+  Quando duas pessoas relatam coisas diferentes, os dois relatos aparecem lado a lado,
+  sem que o sistema decida quem tem razão. Também lista o que ainda não dá para saber.
+- Alertas e notificações: estado de leitura por pessoa, texto guardado na criação,
+  exame fora da faixa sempre avisa, alergia nova e mudança de medicação avisam, e o
+  silêncio de registro avisa primeiro a cuidadora e depois, se persistir, os
+  administradores. Titular e cuidador recebem textos diferentes.
+- Painel do familiar: adesão dos últimos 7 dias, alertas não lidos, resumo, últimos
+  registros e exames fora da faixa.
+- Pauta médica: lista de dúvidas para a próxima consulta, com origem e data, referenciada
+  pela visão 360 sem ser reescrita pela IA.
+- Preferências e história de vida ("como quero ser tratado"), com registro de quem
+  afirmou cada item, e score de completude do perfil com sugestão do que preencher.
+- Folha "como cuidar de mim" em PDF, para quem começa a cuidar: fatos de segurança
+  (alergias, condições, medicação e contatos) vêm direto do cadastro e a IA só redige
+  as preferências.
+- Permissões por papel e polimento de UX: menu em grupos, menu para celular, telas
+  clínicas fechadas ao cuidador e documento de permissões.
+- Documentação do bloco (diretivas, alertas e permissões) e atualização de
+  dependências por avisos de segurança.
+
+**Informe a quantidade de horas por componente do grupo.**
+
+Luísa - 75 horas
+
+**Existem evidências para comprovar estas horas?**
+
+Sim. Todo o código está no GitHub, com um commit por card (ou por par de cards
+relacionados), e a aplicação está em produção na Vercel. Cada card do meu quadro
+aponta para o commit correspondente, e a timesheet do Notion detalha as horas por card.
+A documentação fica em `/docs`.
+
+- Repositório: https://github.com/LuisaHering/guardiao
+- Diretivas (cards 23 e 24): https://github.com/LuisaHering/guardiao/commit/302643e
+- Visão 360 (card 25): https://github.com/LuisaHering/guardiao/commit/2b1b38c
+- Alertas e notificações (cards 26 e 28): https://github.com/LuisaHering/guardiao/commit/8137ea7
+- Painel do familiar (card 27): https://github.com/LuisaHering/guardiao/commit/684840e
+- Pauta médica (card 44): https://github.com/LuisaHering/guardiao/commit/bf4bb3c
+- Identidade e score (cards 29 e 31): https://github.com/LuisaHering/guardiao/commit/e2b658e
+- Folha de cuidado (card 30): https://github.com/LuisaHering/guardiao/commit/3fa309d
+- Permissões e menu (card 32): https://github.com/LuisaHering/guardiao/commit/24f9947
+- Documento das diretivas: https://github.com/LuisaHering/guardiao/blob/main/docs/diretivas.md
+- Documento dos alertas e fechamento do P2: https://github.com/LuisaHering/guardiao/blob/main/docs/alertas.md
+- Documento de permissões: https://github.com/LuisaHering/guardiao/blob/main/docs/permissoes.md
+- Histórico dos check-ins: https://github.com/LuisaHering/guardiao/blob/main/docs/checkins.md
+- Aplicação no ar: https://guardiao-smoky.vercel.app
+
+**Quais foram os principais avanços?**
+
+Fechei a fase de IA (P2) e avancei bastante na P3, que ficou só sem o chat. O sistema
+agora não só guarda registros: ele os junta (visão 360), avisa a pessoa certa na hora
+certa (alertas) e entrega ao familiar um painel único. Nas decisões de projeto, mantive
+três regras: a IA organiza e nunca decide, quando há relatos diferentes o sistema mostra
+os dois sem escolher um, e os fatos de segurança vêm do cadastro, não da IA. Na tela,
+validei a visão 360 mostrando os "relatos que não coincidem", o alerta de silêncio
+escalado, o painel, a folha em PDF, a pauta e o score de completude do perfil (87% no
+perfil de teste), também no celular.
+
+**Quais dificuldades você encontrou?**
+
+A principal foi de modelagem: um alerta precisa ter leitura individual e texto diferente
+para cada pessoa (o titular não deve receber o dado bruto, a cuidadora não deve receber
+o que é clínico), e isso teve de ser garantido no banco, e não só na tela. Outra foi
+a visão 360 com relatos divergentes: foi preciso fazer a IA apontar a diferença sem
+arbitrar e conferir a resposta dela antes de exibir. Na folha em PDF, a fonte padrão
+não aceita alguns caracteres, o que exigiu tratar o texto. Tive também contratempos de
+infraestrutura: o projeto Supabase gratuito pausa por inatividade e travou a aplicação
+de migrações até eu reativá-lo, o modelo gratuito do Google estourou a cota e foi
+trocado, e atualizei o Next.js e outras dependências por avisos de segurança. Segue a
+limitação do plano gratuito de IA, em que o conteúdo pode ser usado pelo provedor, então
+só uso documentos fictícios até trocar de plano para o teste com dados reais.
+
+**O que planejam fazer até o próximo check-in?**
+
+Luísa - Fechar a P3 com o chat de cuidado (conversa com a IA, extração do perfil a
+partir da conversa e check-in diário conversacional) e entrar na P4: endurecimento de
+segurança (políticas de leitura por papel no banco), teste com usuário real, documentação
+final do projeto e entrega (timesheet, vídeo de demonstração e Moodle) em 07/12.
 
 **Você precisa de orientação?**
 
