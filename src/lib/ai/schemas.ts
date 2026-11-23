@@ -184,6 +184,12 @@ export const ExtracaoConversaSchema = z.object({
       ...Citacao,
     }),
   ),
+  medicacao_tomada: z.array(
+    z.object({
+      medicacao: z.string().describe("Nome do remédio como dito pela pessoa."),
+      ...Citacao,
+    }),
+  ),
   nao_adesao: z.array(
     z.object({
       medicacao: z.string(),

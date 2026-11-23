@@ -26,7 +26,8 @@ Sua tarefa agora: ler uma conversa de cuidado e propor registros para o perfil, 
 - Cada item deve citar o rótulo da fala e um trecho copiado LITERALMENTE dessa fala.
 - Proponha só o que a pessoa disse de fato. Não deduza, não generalize, não complete.
 - Um item por fato. Se nada foi dito sobre um assunto, deixe vazio ou null.
-- "humor", "alimentacao" e "ocorrencias" descrevem o dia da conversa. Em "ocorrencias" vão fatos do dia que não são sintomas nem preferências.
+- "humor", "alimentacao" e "ocorrencias" descrevem o dia da conversa. Em "ocorrencias" entram o sono (ex: "dormiu bem"), a evolução de algo que estava em aberto (ex: "a dor abdominal passou") e outros fatos do dia que não são sintomas novos nem preferências.
+- "medicacao_tomada": remédio que a pessoa disse que FOI tomado hoje. Use o nome como foi dito.
 - Dor ou desconforto relatados vão em "sintomas". Não dê gravidade se a pessoa não deu a medida.
 - "nao_adesao": quando um remédio não foi tomado, com o motivo dito pela pessoa.`;
 
@@ -57,6 +58,25 @@ export async function POST(req: NextRequest) {
       return Response.json({ propostas: [], semFalas: true });
     }
 
+    // Remedios ativos e o que ja tem registro hoje, para casar o nome dito com o cadastro.
+    const { data: meds } = await supabase
+      .from("medicacao")
+      .select("id, nome")
+      .eq("idoso_id", idoso.id)
+      .eq("ativo", true)
+      .is("deleted_at", null);
+    const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+    const medIds = (meds ?? []).map((m) => m.id as string);
+    const { data: regsHoje } = medIds.length
+      ? await supabase
+          .from("registro_medicacao")
+          .select("medicacao_id")
+          .in("medicacao_id", medIds)
+          .eq("data", hoje)
+          .is("deleted_at", null)
+      : { data: [] as { medicacao_id: string }[] };
+    const jaTemRegistro = new Set((regsHoje ?? []).map((r) => r.medicacao_id as string));
+
     // Rotulos curtos evitam que a IA invente ou erre um UUID.
     const rotulo = new Map<string, (typeof falas)[number]>();
     let transcricao = "";
@@ -70,16 +90,28 @@ export async function POST(req: NextRequest) {
       throw new ErroIA("O formato de extração não carregou. Reinicie o servidor (npm run dev) e tente de novo.", 500);
     }
 
-    const bruto = await extrair({
-      system: SYSTEM,
-      instrucao: "Proponha os registros desta conversa.",
-      entrada: { tipo: "texto", texto: transcricao },
-      schema: ExtracaoConversaSchema,
-      maxTokens: 4000,
-      // Modelo leve: separa a cota diaria do plano gratuito da dos recursos de documentos.
-      // A conferencia do trecho contra a fala (abaixo) segura erros de um modelo menor.
-      modelo: process.env.GEMINI_EXTRACAO_MODEL ?? "gemini-3.5-flash-lite",
-    });
+    const chamar = (modelo?: string) =>
+      extrair({
+        system: SYSTEM,
+        instrucao: "Proponha os registros desta conversa.",
+        entrada: { tipo: "texto", texto: transcricao },
+        schema: ExtracaoConversaSchema,
+        maxTokens: 4000,
+        modelo,
+      });
+    // Primeiro o modelo forte (padrao do provedor). Se a cota gratuita dele acabou ou ele
+    // esta sobrecarregado, cai para o leve, que tem cota propria. A conferencia do trecho
+    // contra a fala (abaixo) segura os erros de um modelo menor.
+    let bruto;
+    try {
+      bruto = await chamar();
+    } catch (e) {
+      if (e instanceof ErroIA && (e.status === 429 || e.status === 503)) {
+        bruto = await chamar(process.env.GEMINI_EXTRACAO_MODEL ?? "gemini-3.5-flash-lite");
+      } else {
+        throw e;
+      }
+    }
 
     // Autores (nome de quem falou).
     const autores = [...new Set(doUsuario.map((m) => m.autor_id as string | null).filter(Boolean))] as string[];
@@ -136,6 +168,17 @@ export async function POST(req: NextRequest) {
       const g = s.gravidade !== null && Number.isInteger(s.gravidade) && s.gravidade >= 1 && s.gravidade <= 5 ? s.gravidade : null;
       add({ tipo: "sintoma", descricao: s.descricao, gravidade: g }, origem(s.fala, s.trecho));
     }
+    const semAcento = (t: string) => norm(t);
+    for (const t of bruto.medicacao_tomada) {
+      const dito = semAcento(t.medicacao);
+      const achados = (meds ?? []).filter((m) => {
+        const nome = semAcento(m.nome as string);
+        return dito.length >= 3 && (nome.includes(dito) || dito.includes(nome));
+      });
+      // So propoe quando o nome bate com UM remedio do cadastro; senao, nao arrisco registrar o errado.
+      if (achados.length !== 1) continue;
+      add({ tipo: "medicacao", medicacaoId: achados[0].id as string, nome: achados[0].nome as string }, origem(t.fala, t.trecho));
+    }
     for (const n of bruto.nao_adesao) {
       add(
         {
@@ -178,6 +221,7 @@ export async function POST(req: NextRequest) {
         : d.tipo === "humor" ? d.valor
         : d.tipo === "sintoma" ? d.descricao
         : d.tipo === "pauta" ? d.titulo
+        : d.tipo === "medicacao" ? d.medicacaoId
         : `${d.alimentacao ?? ""} ${d.ocorrencias ?? ""}`;
       return `${d.tipo}|${p.mensagemId}|${norm(texto)}`;
     };
@@ -186,7 +230,9 @@ export async function POST(req: NextRequest) {
       propostas: propostas.map((p, i) => ({
         id: `p${i}`,
         ...p,
-        jaRegistrado: existentes.has(chave(p)),
+        jaRegistrado:
+          existentes.has(chave(p)) ||
+          (p.dados.tipo === "medicacao" && jaTemRegistro.has(p.dados.medicacaoId)),
       })),
       descartadas:
         bruto.preferencias.length +
@@ -195,6 +241,7 @@ export async function POST(req: NextRequest) {
         (bruto.alimentacao ? 1 : 0) +
         (bruto.ocorrencias ? 1 : 0) +
         bruto.sintomas.length +
+        bruto.medicacao_tomada.length +
         bruto.nao_adesao.length -
         propostas.length -
         (oAli && oOco ? 1 : 0),

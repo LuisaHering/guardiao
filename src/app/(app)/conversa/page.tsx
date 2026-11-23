@@ -57,6 +57,8 @@ function camposDe(d: DadosProposta): { campo: string; rotulo: string; valor: str
       ];
     case "sintoma":
       return [{ campo: "descricao", rotulo: "Sintoma", valor: d.descricao }];
+    case "medicacao":
+      return [];
     case "pauta":
       return [
         { campo: "titulo", rotulo: "Para a pauta", valor: d.titulo },
@@ -469,6 +471,11 @@ export default function ConversaPage() {
                       />
                     </label>
                   ))}
+                  {p.dados.tipo === "medicacao" && (
+                    <p className="text-sm text-ink">
+                      Registrar <strong>{p.dados.nome}</strong> como tomado hoje (adesão).
+                    </p>
+                  )}
                   <p className="text-xs text-subtle">
                     {p.autorNome} disse: “{p.trecho}”
                   </p>

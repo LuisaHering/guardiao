@@ -8,7 +8,8 @@ export type DadosProposta =
   | { tipo: "humor"; valor: string }
   | { tipo: "diario"; alimentacao: string | null; ocorrencias: string | null }
   | { tipo: "sintoma"; descricao: string; gravidade: number | null }
-  | { tipo: "pauta"; titulo: string; detalhe: string | null };
+  | { tipo: "pauta"; titulo: string; detalhe: string | null }
+  | { tipo: "medicacao"; medicacaoId: string; nome: string };
 
 export type Proposta = {
   id: string;
@@ -30,4 +31,5 @@ export const ROTULO_TIPO: Record<DadosProposta["tipo"], string> = {
   diario: "Diário do dia",
   sintoma: "Sintoma",
   pauta: "Pauta médica",
+  medicacao: "Remédio tomado",
 };

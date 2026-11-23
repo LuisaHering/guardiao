@@ -8,7 +8,7 @@ registros a partir do que foi dito e o check-in diário conversacional.
 | Card | Entrega |
 |------|---------|
 | 37 | Conversa com a IA em fluxo (a resposta aparece enquanto é escrita), com o contexto do idoso. Cada fala fica salva e vinculada ao perfil, com autoria. |
-| 38 | A IA propõe registros a partir da conversa (preferências, memórias, humor, diário, sintomas). Nada entra sem confirmação, e cada registro guarda quem disse e a fala de origem. |
+| 38 | A IA propõe registros a partir da conversa (preferências, memórias, humor, diário, sintomas, remédio tomado). Nada entra sem confirmação, e cada registro guarda quem disse e a fala de origem. |
 | 39 | Check-in diário conduzido pela IA. Roteiro: como a pessoa está, sono e alimentação, dor ou desconforto, medicação do dia e algo a levar ao médico. A não adesão vira item da pauta médica. |
 
 ## Decisões de projeto
@@ -47,6 +47,14 @@ registros a partir do que foi dito e o check-in diário conversacional.
 - **Gênero e interlocutor.** O cadastro tem o campo "como se referir" (ele ou ela); sem
   ele, a IA usa só o nome. Quando quem escreve é o próprio idoso, a IA fala diretamente
   com ele; quando é alguém da rede, fala com essa pessoa sobre ele.
+
+- **Dose tomada vira adesão, com confirmação.** Se a conversa diz que um remédio foi
+  tomado hoje, a IA propõe registrar a dose, mas só quando o nome bate com um único remédio
+  do cadastro. Se já existe registro do dia, a proposta vem desmarcada e nada é
+  sobrescrito sem escolha.
+- **Modelo forte primeiro, leve como reserva.** A extração usa o modelo padrão do provedor
+  e cai para o leve (`GEMINI_EXTRACAO_MODEL`) se a cota gratuita acabar ou o modelo estiver
+  sobrecarregado.
 
 ## Onde cada regra é garantida
 

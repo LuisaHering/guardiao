@@ -70,6 +70,19 @@ export async function gravarProposta(
       gravidade: d.gravidade,
       ...origem,
     }));
+  } else if (d.tipo === "medicacao") {
+    const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+    ({ error: erro } = await supabase.from("registro_medicacao").upsert(
+      {
+        medicacao_id: d.medicacaoId,
+        data: hoje,
+        status: "dada",
+        motivo: null,
+        registrado_por: p.autorId,
+        origem_mensagem_id: p.mensagemId,
+      },
+      { onConflict: "medicacao_id,data" },
+    ));
   } else {
     // A pauta nao guarda autor; a fala de origem ja diz quem falou.
     ({ error: erro } = await supabase.from("item_pauta").insert({
