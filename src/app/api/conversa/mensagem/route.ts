@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
         .eq("usuario_id", user.id)
         .is("deleted_at", null)
         .maybeSingle(),
-      montarContexto(supabase, idoso.id),
+      montarContexto(supabase, idoso.id, conversaId as string),
     ]);
     const system = montarSystem({
       tipo,

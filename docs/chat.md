@@ -37,6 +37,17 @@ registros a partir do que foi dito e o check-in diário conversacional.
   continua no modelo mais forte, porque ali precisão pesa mais que rapidez. Modelo e
   raciocínio do chat se trocam por `GEMINI_CHAT_MODEL` e `GEMINI_CHAT_THINKING`.
 
+- **A IA conhece a pessoa e é proativa.** Antes de cada resposta o servidor monta o
+  contexto a partir do banco: cadastro (condições, alergias, idade, como prefere ser
+  chamado), medicação e doses não tomadas na semana, sintomas, humor e diário recentes,
+  consultas com o que ficou a fazer, pauta médica em aberto, alertas recentes,
+  preferências, memórias e o que foi dito nas conversas anteriores. O comando da IA manda
+  usar isso para dar seguimento ("ontem relatou dor no joelho, como está hoje?") em vez de
+  perguntar de forma genérica, sem diagnosticar.
+- **Gênero e interlocutor.** O cadastro tem o campo "como se referir" (ele ou ela); sem
+  ele, a IA usa só o nome. Quando quem escreve é o próprio idoso, a IA fala diretamente
+  com ele; quando é alguém da rede, fala com essa pessoa sobre ele.
+
 ## Onde cada regra é garantida
 
 | Regra | Garantida no |

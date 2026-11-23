@@ -10,6 +10,7 @@ type Idoso = {
   id: string;
   nome: string;
   como_chamar: string | null;
+  tratamento: string | null;
   data_nascimento: string | null;
   tipo_sanguineo: string | null;
   observacoes: string | null;
@@ -31,6 +32,7 @@ type Alergia = {
 const vazio = {
   nome: "",
   como_chamar: "",
+  tratamento: "",
   data_nascimento: "",
   tipo_sanguineo: "",
   observacoes: "",
@@ -67,6 +69,7 @@ export default function PerfilPage() {
       setForm({
         nome: i.nome ?? "",
         como_chamar: i.como_chamar ?? "",
+        tratamento: i.tratamento ?? "",
         data_nascimento: i.data_nascimento ?? "",
         tipo_sanguineo: i.tipo_sanguineo ?? "",
         observacoes: i.observacoes ?? "",
@@ -94,6 +97,7 @@ export default function PerfilPage() {
     const payload = {
       nome: form.nome,
       como_chamar: form.como_chamar || null,
+      tratamento: form.tratamento || null,
       data_nascimento: form.data_nascimento || null,
       tipo_sanguineo: form.tipo_sanguineo || null,
       observacoes: form.observacoes || null,
@@ -191,6 +195,17 @@ export default function PerfilPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Como prefere ser chamado">
               <Input value={form.como_chamar} onChange={(e) => setForm({ ...form, como_chamar: e.target.value })} placeholder="ex: Seu João" />
+            </Field>
+            <Field label="Como se referir (ele ou ela)">
+              <select
+                value={form.tratamento}
+                onChange={(e) => setForm({ ...form, tratamento: e.target.value })}
+                className="h-10 w-full rounded-lg border border-line bg-card px-2 text-sm text-ink"
+              >
+                <option value="">Não informar</option>
+                <option value="ele">Ele</option>
+                <option value="ela">Ela</option>
+              </select>
             </Field>
             <Field label="Data de nascimento">
               <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} />
