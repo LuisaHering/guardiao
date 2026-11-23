@@ -29,7 +29,12 @@ export function respostaErro(e: unknown) {
   if (e instanceof ErroIA) {
     return Response.json({ erro: e.message }, { status: e.status });
   }
-  return Response.json({ erro: "Erro inesperado." }, { status: 500 });
+  // Erro que nao e da IA: sem isto a causa some e fica so o "500".
+  console.error("[api] erro inesperado:", e);
+  return Response.json(
+    { erro: `Erro inesperado${e instanceof Error ? `: ${e.message}` : ""}` },
+    { status: 500 },
+  );
 }
 
 /** Limite do corpo de uma funcao na Vercel e ~4,5 MB; fico abaixo disso. */
