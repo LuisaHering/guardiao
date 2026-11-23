@@ -32,6 +32,11 @@ registros a partir do que foi dito e o check-in diário conversacional.
 - **Mensagens não se editam.** No banco, a mensagem não aceita alteração depois de enviada,
   e a mensagem de um usuário só pode ser escrita com o próprio id como autor.
 
+- **Velocidade.** O chat usa um modelo leve (`gemini-3.5-flash-lite`) com pouco raciocínio,
+  que começa a responder em menos de 1 segundo na medição feita. A extração de registros
+  continua no modelo mais forte, porque ali precisão pesa mais que rapidez. Modelo e
+  raciocínio do chat se trocam por `GEMINI_CHAT_MODEL` e `GEMINI_CHAT_THINKING`.
+
 ## Onde cada regra é garantida
 
 | Regra | Garantida no |

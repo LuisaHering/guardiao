@@ -8,8 +8,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
 import { ErroIA } from "@/lib/ai/comum";
 import { MODELO as MODELO_CLAUDE } from "@/lib/ai/claude";
-import { MODELO_GEMINI } from "@/lib/ai/gemini";
 import { provedorAtual } from "@/lib/ai/ia";
+
+// Chat pede resposta imediata: modelo leve e pouco "raciocinio". Medido com esta conta,
+// o gemini-3.5-flash-lite comeca a responder em menos de 1 s; o modelo de extracao
+// (gemini-3.6-flash) leva de 5 a 60 s e tem so 20 chamadas por dia no plano gratuito.
+const MODELO_CHAT = process.env.GEMINI_CHAT_MODEL ?? "gemini-3.5-flash-lite";
 
 export type TipoConversa = "livre" | "checkin_diario";
 export type Turno = { papel: "user" | "assistant"; texto: string };
@@ -190,7 +194,7 @@ async function* streamGemini(system: string, historico: Turno[]): AsyncGenerator
   const chave = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
   if (!chave) throw new ErroIA("A chave da IA (GEMINI_API_KEY) não está configurada no servidor.", 503);
   const client = new GoogleGenAI({ apiKey: chave });
-  const nivel = process.env.GEMINI_THINKING;
+  const nivel = process.env.GEMINI_CHAT_THINKING ?? "low";
 
   const input = comecaPorUsuario(historico).map((t) => ({
     type: t.papel === "user" ? ("user_input" as const) : ("model_output" as const),
@@ -200,7 +204,7 @@ async function* streamGemini(system: string, historico: Turno[]): AsyncGenerator
   let fluxo;
   try {
     fluxo = await client.interactions.create({
-      model: MODELO_GEMINI,
+      model: MODELO_CHAT,
       system_instruction: system,
       input,
       store: false,
