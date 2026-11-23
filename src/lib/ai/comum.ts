@@ -31,4 +31,6 @@ export type OpcoesExtracao<S> = {
   entrada?: Entrada;
   schema: S;
   maxTokens?: number;
+  /** Modelo do Gemini para esta chamada; sem isto vale o padrao do provedor. */
+  modelo?: string;
 };

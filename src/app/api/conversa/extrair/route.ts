@@ -66,12 +66,19 @@ export async function POST(req: NextRequest) {
       transcricao += `[${r}] ${m.papel_emissor === "user" ? "usuário" : "assistente"}: ${m.conteudo}\n`;
     });
 
+    if (!ExtracaoConversaSchema) {
+      throw new ErroIA("O formato de extração não carregou. Reinicie o servidor (npm run dev) e tente de novo.", 500);
+    }
+
     const bruto = await extrair({
       system: SYSTEM,
       instrucao: "Proponha os registros desta conversa.",
       entrada: { tipo: "texto", texto: transcricao },
       schema: ExtracaoConversaSchema,
       maxTokens: 4000,
+      // Modelo leve: separa a cota diaria do plano gratuito da dos recursos de documentos.
+      // A conferencia do trecho contra a fala (abaixo) segura erros de um modelo menor.
+      modelo: process.env.GEMINI_EXTRACAO_MODEL ?? "gemini-3.5-flash-lite",
     });
 
     // Autores (nome de quem falou).

@@ -49,7 +49,7 @@ export async function extrairGemini<S extends z.ZodType>(
   let texto: string | undefined;
   try {
     const resposta = await client.interactions.create({
-      model: MODELO_GEMINI,
+      model: opts.modelo ?? MODELO_GEMINI,
       system_instruction: opts.system,
       input,
       // Nao deixa o Google guardar a requisicao e a resposta para consulta depois.
