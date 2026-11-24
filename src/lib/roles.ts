@@ -50,6 +50,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/perfil", label: "Perfil do idoso", enabled: true, grupo: "Sobre a pessoa" },
     { href: "/identidade", label: "Preferências e história", enabled: true, grupo: "Sobre a pessoa" },
     { href: "/folha", label: "Folha de cuidado", enabled: true, grupo: "Sobre a pessoa" },
+    { href: "/documentos", label: "Documentos", enabled: true, grupo: "Sobre a pessoa" },
     { href: "/diretivas", label: "Diretivas", enabled: true, grupo: "Sobre a pessoa" },
     { href: "/emergencia", label: "Emergência", enabled: true, grupo: "Sobre a pessoa" },
   ],
@@ -70,6 +71,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/perfil", label: "Perfil do idoso", enabled: true, grupo: "Sobre a pessoa" },
     { href: "/identidade", label: "Preferências e história", enabled: true, grupo: "Sobre a pessoa" },
     { href: "/folha", label: "Folha de cuidado", enabled: true, grupo: "Sobre a pessoa" },
+    { href: "/documentos", label: "Documentos", enabled: true, grupo: "Sobre a pessoa" },
     { href: "/emergencia", label: "Emergência", enabled: true, grupo: "Sobre a pessoa" },
   ],
   idoso: [
@@ -78,6 +80,7 @@ const byRole: Record<Role, NavItem[]> = {
 
     { href: "/perfil", label: "Meu perfil", enabled: true, grupo: "Sobre mim" },
     { href: "/identidade", label: "Minhas preferências", enabled: true, grupo: "Sobre mim" },
+    { href: "/documentos", label: "Meus documentos", enabled: true, grupo: "Sobre mim" },
     { href: "/diretivas", label: "Diretivas", enabled: true, grupo: "Sobre mim" },
     { href: "/conversa", label: "Conversa", enabled: true, grupo: "Sobre mim" },
   ],

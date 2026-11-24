@@ -166,6 +166,7 @@ export default function RedePage() {
             >
               <option value="cuidador">Cuidador</option>
               <option value="familiar">Familiar</option>
+              <option value="idoso">A própria pessoa cuidada (titular)</option>
             </select>
           </Field>
           <div className="flex items-end">
