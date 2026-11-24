@@ -25,6 +25,7 @@ Papel e administração são eixos separados: um familiar administrador não é 
 | Visão 360 | não | sim | **não** |
 | Preferências e história, folha de cuidado | sim (preferências) | sim | sim |
 | Diretivas | sim | sim | **não** |
+| Documentos (pastas e arquivos) | sim | sim | só as pastas marcadas como visíveis |
 | Emergência | não | sim | sim |
 | Rede e acessos | não | só admin | não |
 
@@ -45,6 +46,8 @@ clínico (docs/modelagem.md, seção 3.12).
 | Registrar medicação, diário, sintomas, consultas, exames, preferências | qualquer membro | **banco** (RLS por vínculo) |
 | Ver ou mexer nos dados de outro idoso | ninguém | **banco** (RLS por vínculo) |
 | Cuidador ler exames, tendências, observações, visão 360 e diretivas | não | **banco** (leitura só para familiar e titular) |
+| Criar pasta e enviar documento | só o administrador | **banco** |
+| Cuidador ver pasta ou documento não marcado como visível | não | **banco** (inclui o arquivo no Storage) |
 | Cuidador ler alertas clínicos ou o texto de alerta de outra pessoa | não | **banco** |
 
 ## Verificação no banco
@@ -61,6 +64,17 @@ regras do banco: o alerta de alergia e o de medicação chegam à cuidadora, usu
 não cria nem reescreve alerta (só marca o próprio como lido), uma diretiva gerada não se
 altera e não é inserida por usuário, mensagem de chat não se edita nem se escreve em nome
 de outra pessoa, e quem é de fora não lê nem escreve no cuidado de um idoso alheio.
+
+## Documentos
+
+A tela de Documentos guarda certidões, carteirinha do plano e outros arquivos em pastas que o
+administrador cria. O cuidador só vê as pastas marcadas como "visíveis para quem cuida" (e cujas
+pastas-mãe também estejam); arquivo solto na raiz não é visível a ele. Os arquivos ficam em um
+bucket privado, abertos por link temporário de 5 minutos, e **nunca são enviados à IA**. Não há
+exclusão física: "remover" esconde o documento. As pastas automáticas (exames, receitas,
+consultas, diretivas e folha de cuidado) são montadas a partir do que já existe, sem copiar
+arquivo, e seguem a regra de cada origem (o cuidador não vê exames nem diretivas).
+A migração `20261124130000_documentos.sql` leva o seu próprio teste dessas regras.
 
 ## Limitações conhecidas
 
