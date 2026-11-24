@@ -15,7 +15,7 @@ ficam na timesheet do Notion; aqui guardo o texto de cada entrega.
 | 4 | 12/10 | 9-11 (P2) | 50h | 179h |
 | 5 | 02/11 | 12-14 (P2/P3) | 45h | 224h |
 | 6 | 23/11 | 15-16 (P3) | 30h | 254h |
-| Entrega | 11/12 | 17-18 (P4) | a fazer | - |
+| Entrega | 11/12 | 17-18 (P4) | 25h já feitas (chat, cards 37 a 39, em 23/11) + P4 | 254h reportadas + as da entrega |
 
 ## Check-in 1 — 10/08 (semanas 1-2, 14h)
 
@@ -157,6 +157,9 @@ Não.
 O professor autorizou entregar os dois check-ins no formulário de 23/11. Por isso este
 registro cobre o dobro do período: o check-in 5 (semanas 12 a 14, 45h) e o check-in 6
 (semanas 15 e 16, 30h).
+
+Formulário enviado em 23/11 com 75h. O chat e o check-in conversacional (cards 37 a 39,
+25h, feitos em 23/11) ficaram fora dele e entram no registro final de horas da entrega.
 
 **O que foi desenvolvido durante este período?**
 
