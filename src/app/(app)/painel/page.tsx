@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/data/membership";
 import { Dashboard } from "@/components/dashboard";
+import { PrimeirosPassos } from "@/components/primeiros-passos";
 
 export default async function PainelPage() {
   const membership = await getMembership();
@@ -32,6 +33,8 @@ export default async function PainelPage() {
             : `Você está cuidando de ${membership.idosoNome}.`}
         </p>
       </div>
+
+      <PrimeirosPassos />
 
       <Dashboard />
     </div>

@@ -8,6 +8,8 @@ import { useRole } from "@/lib/role-context";
 import { navFor, roleLabels, type NavItem } from "@/lib/roles";
 import { cn } from "@/lib/cn";
 import { SinoAlertas } from "@/components/sino-alertas";
+import { BoasVindas } from "@/components/boas-vindas";
+import { EVENTO_BOAS_VINDAS } from "@/lib/onboarding";
 
 function Shield() {
   return (
@@ -35,13 +37,10 @@ const semIdoso: NavItem[] = [
 /** A lista de navegação, com os títulos de grupo. Serve à barra lateral e ao menu do celular. */
 function NavLista({ items, aoNavegar }: { items: NavItem[]; aoNavegar?: () => void }) {
   const pathname = usePathname();
-  let grupoAnterior: string | undefined;
-
   return (
     <nav className="flex flex-col gap-1" aria-label="Navegação principal">
-      {items.map((item) => {
-        const novoGrupo = item.grupo !== grupoAnterior;
-        grupoAnterior = item.grupo;
+      {items.map((item, i) => {
+        const novoGrupo = item.grupo !== items[i - 1]?.grupo;
         const active = pathname === item.href;
         return (
           <div key={item.href} className="flex flex-col">
@@ -158,6 +157,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="text-sm font-medium text-ink md:hidden">Guardião</span>
           {membership && (
             <div className="ml-auto flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event(EVENTO_BOAS_VINDAS))}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-subtle hover:bg-panel hover:text-ink"
+                aria-label="Ajuda: rever as boas-vindas"
+                title="Ajuda"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5" />
+                  <path d="M12 17h.01" />
+                </svg>
+              </button>
               <SinoAlertas />
               <span className="hidden text-xs text-subtle sm:inline">
                 {roleLabels[membership.role]}
@@ -191,6 +203,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 p-4 sm:p-6">{children}</main>
       </div>
+      <BoasVindas />
     </div>
   );
 }
