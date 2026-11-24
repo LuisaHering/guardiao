@@ -269,7 +269,7 @@ export default function MedicacaoPage() {
             </Button>
           </div>
         ))}
-        <form onSubmit={addMed} className="grid gap-2 sm:grid-cols-4">
+        <form onSubmit={addMed} className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           <Input placeholder="Nome (ex: Losartana)" value={nova.nome} onChange={(e) => setNova({ ...nova, nome: e.target.value })} className="sm:col-span-2" />
           <Input placeholder="Dosagem (ex: 50mg)" value={nova.dosagem} onChange={(e) => setNova({ ...nova, dosagem: e.target.value })} />
           <Input placeholder="Instruções" value={nova.instrucoes} onChange={(e) => setNova({ ...nova, instrucoes: e.target.value })} />

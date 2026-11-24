@@ -183,7 +183,7 @@ export default function PerfilPage() {
       {idoso && (
         <ConsentimentoCard
           idosoId={idoso.id}
-          idosoNome={idoso.como_chamar || idoso.nome}
+          idosoNome={idoso.nome}
         />
       )}
 

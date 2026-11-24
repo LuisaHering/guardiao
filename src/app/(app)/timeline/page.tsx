@@ -76,7 +76,7 @@ export default function TimelinePage() {
           .limit(50),
         supabase
           .from("sintoma")
-          .select("id, data, descricao, gravidade")
+          .select("id, data, descricao, gravidade, resolvido_em")
           .eq("idoso_id", idosoId)
           .is("deleted_at", null)
           .order("data", { ascending: false })
@@ -120,7 +120,11 @@ export default function TimelinePage() {
         id: `sintoma-${s.id}`,
         tipo: "sintoma",
         data: s.data as string,
-        titulo: `Sintoma${s.gravidade ? ` (gravidade ${s.gravidade})` : ""}`,
+        titulo: `Sintoma${s.gravidade ? ` (gravidade ${s.gravidade})` : ""}${
+          s.resolvido_em
+            ? ` · resolvido em ${new Date(s.resolvido_em as string).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`
+            : ""
+        }`,
         detalhe: s.descricao as string,
       });
     }

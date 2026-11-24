@@ -123,7 +123,7 @@ export default function DiretivasPage() {
   const supabase = createClient();
   const membership = useRole();
   const idosoId = membership?.idosoId;
-  const nomeTitular = membership?.idosoNome ?? "o titular";
+  const nomeTitular = membership?.idosoNomeCompleto ?? membership?.idosoNome ?? "o titular";
   const ehTitular = membership?.role === "idoso";
   const podeGerar = ehTitular || !!membership?.admin;
 

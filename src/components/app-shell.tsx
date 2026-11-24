@@ -108,7 +108,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mt-auto flex flex-col gap-2 border-t border-line pt-4">
           {membership && (
             <div className="px-3 text-xs text-subtle">
-              <div className="text-ink">{membership.idosoNome}</div>
+              <div className="text-ink">{membership.idosoNomeCompleto ?? membership.idosoNome}</div>
               <div>
                 {roleLabels[membership.role]}
                 {membership.admin ? " · admin" : ""}
@@ -171,7 +171,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="fixed inset-x-0 bottom-0 top-14 z-40 flex flex-col gap-4 overflow-y-auto bg-card p-4 md:hidden">
             {membership && (
               <div className="px-3 text-xs text-subtle">
-                <div className="text-sm text-ink">{membership.idosoNome}</div>
+                <div className="text-sm text-ink">{membership.idosoNomeCompleto ?? membership.idosoNome}</div>
                 <div>
                   {roleLabels[membership.role]}
                   {membership.admin ? " · admin" : ""}

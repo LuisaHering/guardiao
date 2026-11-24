@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRole } from "@/lib/role-context";
 import { createClient } from "@/lib/supabase/client";
-import { Button, Card, Field, Input } from "@/components/ui";
+import { Badge, Button, Card, Field, Input } from "@/components/ui";
 import { roleLabels, type Role } from "@/lib/roles";
 
 type Convite = {
@@ -14,11 +14,21 @@ type Convite = {
   aceito_em: string | null;
 };
 
+type Membro = {
+  id: string;
+  usuario_id: string;
+  papel: string;
+  admin: boolean;
+  usuario: { nome: string | null; email: string | null } | null;
+};
+
 export default function RedePage() {
   const membership = useRole();
   const supabase = createClient();
 
   const [convites, setConvites] = useState<Convite[]>([]);
+  const [membros, setMembros] = useState<Membro[]>([]);
+  const [meuId, setMeuId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [papel, setPapel] = useState<Role>("cuidador");
   const [ocupado, setOcupado] = useState(false);
@@ -32,11 +42,32 @@ export default function RedePage() {
       .eq("idoso_id", membership.idosoId)
       .order("created_at", { ascending: false });
     setConvites((data ?? []) as Convite[]);
+    const { data: vs } = await supabase
+      .from("vinculo")
+      .select("id, usuario_id, papel, admin, usuario:usuario_id(nome, email)")
+      .eq("idoso_id", membership.idosoId)
+      .is("deleted_at", null)
+      .order("created_at");
+    setMembros((vs ?? []) as unknown as Membro[]);
+    const { data: eu } = await supabase.auth.getUser();
+    setMeuId(eu.user?.id ?? null);
   }, [supabase, membership?.idosoId]);
 
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  async function removerAcesso(m: Membro) {
+    const nome = m.usuario?.nome || m.usuario?.email || "esta pessoa";
+    if (!window.confirm(`Remover o acesso de ${nome}? Os registros que ela fez continuam no histórico.`)) return;
+    setErro(null);
+    const { error } = await supabase
+      .from("vinculo")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", m.id);
+    if (error) setErro("Não foi possível remover este acesso.");
+    await carregar();
+  }
 
   async function convidar(e: React.FormEvent) {
     e.preventDefault();
@@ -89,6 +120,31 @@ export default function RedePage() {
           Convide quem ajuda a cuidar de {membership.idosoNome}.
         </p>
       </div>
+
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-ink">Quem tem acesso agora</h2>
+        {membros.length === 0 && <p className="text-sm text-subtle">Carregando...</p>}
+        {membros.map((m) => (
+          <div key={m.id} className="flex items-center justify-between gap-3 border-b border-line pb-3 last:border-0 last:pb-0">
+            <div className="min-w-0">
+              <p className="truncate text-sm text-ink">
+                {m.usuario?.nome || m.usuario?.email || "Pessoa sem nome"}
+                {m.usuario_id === meuId ? " (você)" : ""}
+              </p>
+              <p className="truncate text-xs text-subtle">{m.usuario?.email}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Badge tone="neutral">{roleLabels[m.papel as Role] ?? m.papel}</Badge>
+              {m.admin && <Badge tone="primary">administrador</Badge>}
+              {m.usuario_id !== meuId && m.papel !== "idoso" && (
+                <Button variant="ghost" onClick={() => removerAcesso(m)} className="h-8 px-2 text-xs">
+                  Remover
+                </Button>
+              )}
+            </div>
+          </div>
+        ))}
+      </Card>
 
       <Card className="flex flex-col gap-4">
         <h2 className="text-sm font-medium text-ink">Novo convite</h2>

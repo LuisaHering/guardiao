@@ -7,18 +7,19 @@ export async function getMembership(): Promise<Membership | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("vinculo")
-    .select("papel, admin, idoso_id, idoso(nome)")
+    .select("papel, admin, idoso_id, idoso(nome, como_chamar)")
     .is("deleted_at", null)
     .limit(1)
     .maybeSingle();
 
   if (!data) return null;
 
-  const idoso = data.idoso as unknown as { nome: string } | null;
+  const idoso = data.idoso as unknown as { nome: string; como_chamar: string | null } | null;
   return {
     role: data.papel as Role,
     admin: data.admin as boolean,
     idosoId: data.idoso_id as string,
-    idosoNome: idoso?.nome ?? "",
+    idosoNome: idoso?.como_chamar?.trim() || idoso?.nome || "",
+    idosoNomeCompleto: idoso?.nome ?? "",
   };
 }

@@ -4,7 +4,10 @@ export type Membership = {
   role: Role;
   admin: boolean;
   idosoId?: string;
+  /** como a pessoa prefere ser chamada (ou o nome, se nao informado): para frases */
   idosoNome?: string;
+  /** nome completo: para documentos e identificacao formal */
+  idosoNomeCompleto?: string;
 };
 
 export type NavItem = {
@@ -49,7 +52,6 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/folha", label: "Folha de cuidado", enabled: true, grupo: "Sobre a pessoa" },
     { href: "/diretivas", label: "Diretivas", enabled: true, grupo: "Sobre a pessoa" },
     { href: "/emergencia", label: "Emergência", enabled: true, grupo: "Sobre a pessoa" },
-    { href: "/documentos", label: "Documentos", enabled: false, grupo: "Sobre a pessoa" },
   ],
   cuidador: [
     { href: "/painel", label: "Hoje", enabled: true },
