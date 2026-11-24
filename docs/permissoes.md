@@ -56,6 +56,12 @@ tudo, o cuidador não leia nenhum exame, veja só o alerta operacional e só o p
 texto, e quem é de fora não leia nada. Tudo é desfeito no fim, e se alguma conferência
 falhar a migração inteira é recusada.
 
+A migração `20261124100000_testes_regras_do_banco.sql` repete o método para as demais
+regras do banco: o alerta de alergia e o de medicação chegam à cuidadora, usuário logado
+não cria nem reescreve alerta (só marca o próprio como lido), uma diretiva gerada não se
+altera e não é inserida por usuário, mensagem de chat não se edita nem se escreve em nome
+de outra pessoa, e quem é de fora não lê nem escreve no cuidado de um idoso alheio.
+
 ## Limitações conhecidas
 
 - O interruptor de participação do idoso como contribuidor (`pode_contribuir` no
