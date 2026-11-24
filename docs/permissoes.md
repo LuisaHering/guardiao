@@ -44,17 +44,22 @@ clínico (docs/modelagem.md, seção 3.12).
 | Convidar ou gerenciar vínculos | administrador | **banco** (RLS) |
 | Registrar medicação, diário, sintomas, consultas, exames, preferências | qualquer membro | **banco** (RLS por vínculo) |
 | Ver ou mexer nos dados de outro idoso | ninguém | **banco** (RLS por vínculo) |
-| Cuidador acessar exames, tendências, observações e Visão 360 | não | **interface** |
-| Cuidador acessar diretivas | não | **interface** (a geração é do banco) |
+| Cuidador ler exames, tendências, observações, visão 360 e diretivas | não | **banco** (leitura só para familiar e titular) |
+| Cuidador ler alertas clínicos ou o texto de alerta de outra pessoa | não | **banco** |
 
-## Limitação conhecida
+## Verificação no banco
 
-As linhas marcadas como **interface** só escondem a tela: um membro com o papel de
-cuidador ainda conseguiria ler essas tabelas chamando a API diretamente, porque a
-regra de leitura do banco é "qualquer membro do idoso". Endurecer isso (políticas de
-leitura por papel) é trabalho do card de hardening, e não afeta a regra principal do
-sistema, que é nenhuma pessoa de fora do vínculo conseguir ler nada.
+A migração `20261124090000_hardening_leitura_por_papel.sql` leva um teste embutido: cria
+um idoso e três pessoas (familiar, cuidador e alguém de fora), simula cada uma chamando
+como usuário logado e confere o que o banco devolve. O esperado é que o familiar leia
+tudo, o cuidador não leia nenhum exame, veja só o alerta operacional e só o próprio
+texto, e quem é de fora não leia nada. Tudo é desfeito no fim, e se alguma conferência
+falhar a migração inteira é recusada.
 
-O interruptor de participação do idoso como contribuidor (`pode_contribuir` no
-vínculo) existe no modelo de dados, mas ainda não é aplicado nas políticas de
-escrita.
+## Limitações conhecidas
+
+- O interruptor de participação do idoso como contribuidor (`pode_contribuir` no
+  vínculo) existe no modelo de dados, mas ainda não é aplicado nas políticas de escrita.
+- Conversas e mensagens são visíveis a qualquer membro do vínculo; não há conversa
+  privada.
+- Não há limite de chamadas por pessoa nas rotas de IA, além do limite do provedor.
