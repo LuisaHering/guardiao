@@ -176,11 +176,18 @@ export const ExtracaoConversaSchema = z.object({
   ),
   humor: z.object({ valor: z.string(), ...Citacao }).nullable(),
   alimentacao: z.object({ texto: z.string(), ...Citacao }).nullable(),
+  sono: z.object({ texto: z.string(), ...Citacao }).nullable(),
   ocorrencias: z.object({ texto: z.string(), ...Citacao }).nullable(),
   sintomas: z.array(
     z.object({
       descricao: z.string(),
       gravidade: z.number().nullable().describe("1 a 5, só se a pessoa der a medida; senão null."),
+      ...Citacao,
+    }),
+  ),
+  sintomas_resolvidos: z.array(
+    z.object({
+      sintoma: z.string().describe("Rótulo do sintoma em aberto que passou (ex: S2)."),
       ...Citacao,
     }),
   ),

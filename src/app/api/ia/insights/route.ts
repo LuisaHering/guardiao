@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const [{ data: sint }, { data: diar }, { data: meds }] = await Promise.all([
       supabase
         .from("sintoma")
-        .select("data, descricao, gravidade, duracao_declarada")
+        .select("data, descricao, gravidade, duracao_declarada, resolvido_em")
         .eq("idoso_id", idosoId)
         .is("deleted_at", null)
         .gte("data", desde)
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
         .limit(200),
       supabase
         .from("entrada_diario")
-        .select("data, alimentacao, ocorrencias")
+        .select("data, alimentacao, ocorrencias, sono")
         .eq("idoso_id", idosoId)
         .is("deleted_at", null)
         .gte("data", desde)
@@ -79,14 +79,14 @@ export async function POST(req: NextRequest) {
       for (const s of sint ?? []) {
         datas.add(dia(s.data));
         linhas.push(
-          `${dia(s.data)} | gravidade ${s.gravidade ?? "?"}/5 | ${s.duracao_declarada ?? "duracao nao informada"} | ${s.descricao}`,
+          `${dia(s.data)} | gravidade ${s.gravidade ?? "?"}/5 | ${s.duracao_declarada ?? "duracao nao informada"} | ${s.descricao}${s.resolvido_em ? ` | RESOLVIDO em ${dia(s.resolvido_em)}` : ""}`,
         );
       }
       linhas.push("", "## Diario do cuidador");
       for (const d of diar ?? []) {
         datas.add(dia(d.data));
         linhas.push(
-          `${dia(d.data)} | alimentacao: ${d.alimentacao ?? "-"} | ocorrencias: ${d.ocorrencias ?? "-"}`,
+          `${dia(d.data)} | alimentacao: ${d.alimentacao ?? "-"} | sono: ${d.sono ?? "-"} | ocorrencias: ${d.ocorrencias ?? "-"}`,
         );
       }
       linhas.push("", "## Registro de medicacao (so existe linha quando alguem registrou)");

@@ -94,7 +94,7 @@ export async function montarContexto(
       .limit(15),
     supabase
       .from("entrada_diario")
-      .select("data, alimentacao, ocorrencias")
+      .select("data, alimentacao, ocorrencias, sono")
       .eq("idoso_id", idosoId)
       .is("deleted_at", null)
       .gte("data", desde14)
@@ -102,7 +102,7 @@ export async function montarContexto(
       .limit(6),
     supabase
       .from("sintoma")
-      .select("data, descricao, gravidade")
+      .select("data, descricao, gravidade, resolvido_em")
       .eq("idoso_id", idosoId)
       .is("deleted_at", null)
       .gte("data", desde14)
@@ -214,9 +214,12 @@ export async function montarContexto(
   }
   if (sintomas?.length) {
     linhas.push(
-      "Sintomas recentes:\n" +
+      "Sintomas recentes (os marcados como RESOLVIDO já passaram; não pergunte como estão, a menos que a pessoa fale deles):\n" +
         sintomas
-          .map((s) => `- ${dia(s.data as string)}: ${s.descricao}${s.gravidade ? ` (gravidade ${s.gravidade}/5)` : ""}`)
+          .map(
+            (s) =>
+              `- ${dia(s.data as string)}: ${s.descricao}${s.gravidade ? ` (gravidade ${s.gravidade}/5)` : ""}${s.resolvido_em ? ` [RESOLVIDO em ${dia(s.resolvido_em as string)}]` : " [em aberto]"}`,
+          )
           .join("\n"),
     );
   }
@@ -227,7 +230,7 @@ export async function montarContexto(
     linhas.push(
       "Diário recente:\n" +
         diario
-          .map((d) => `- ${dia(d.data as string)}: ${[d.alimentacao, d.ocorrencias].filter(Boolean).join(" | ")}`)
+          .map((d) => `- ${dia(d.data as string)}: ${[d.alimentacao, d.sono ? `sono: ${d.sono}` : null, d.ocorrencias].filter(Boolean).join(" | ")}`)
           .join("\n"),
     );
   }

@@ -10,6 +10,7 @@ type Entrada = {
   data: string;
   alimentacao: string | null;
   ocorrencias: string | null;
+  sono: string | null;
   foto_url: string | null;
   autor_id: string | null;
 };
@@ -35,6 +36,7 @@ export default function DiarioPage() {
 
   const [alimentacao, setAlimentacao] = useState("");
   const [ocorrencias, setOcorrencias] = useState("");
+  const [sono, setSono] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -47,7 +49,7 @@ export default function DiarioPage() {
     setCarregando(true);
     const { data } = await supabase
       .from("entrada_diario")
-      .select("id, data, alimentacao, ocorrencias, foto_url, autor_id")
+      .select("id, data, alimentacao, ocorrencias, sono, foto_url, autor_id")
       .eq("idoso_id", idosoId)
       .is("deleted_at", null)
       .order("data", { ascending: false })
@@ -81,7 +83,7 @@ export default function DiarioPage() {
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     if (!idosoId) return;
-    if (!alimentacao.trim() && !ocorrencias.trim() && !arquivo) {
+    if (!alimentacao.trim() && !ocorrencias.trim() && !sono.trim() && !arquivo) {
       setErro("Escreva algo ou anexe uma foto antes de salvar.");
       return;
     }
@@ -110,6 +112,7 @@ export default function DiarioPage() {
       autor_id: user!.id,
       alimentacao: alimentacao.trim() || null,
       ocorrencias: ocorrencias.trim() || null,
+      sono: sono.trim() || null,
       foto_url: caminho,
     });
     if (error) {
@@ -119,6 +122,7 @@ export default function DiarioPage() {
     }
     setAlimentacao("");
     setOcorrencias("");
+    setSono("");
     setArquivo(null);
     setSalvando(false);
     await carregar();
@@ -162,11 +166,20 @@ export default function DiarioPage() {
               className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             />
           </Field>
+          <Field label="Sono">
+            <textarea
+              value={sono}
+              onChange={(e) => setSono(e.target.value)}
+              placeholder="Como dormiu, se acordou à noite..."
+              rows={2}
+              className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            />
+          </Field>
           <Field label="Ocorrências">
             <textarea
               value={ocorrencias}
               onChange={(e) => setOcorrencias(e.target.value)}
-              placeholder="Humor, sono, quedas, visitas, qualquer coisa que valha registrar..."
+              placeholder="Quedas, visitas, qualquer coisa que valha registrar..."
               rows={3}
               className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             />
@@ -208,6 +221,12 @@ export default function DiarioPage() {
               <p className="text-sm text-ink">
                 <span className="text-subtle">Alimentação: </span>
                 {e.alimentacao}
+              </p>
+            )}
+            {e.sono && (
+              <p className="text-sm text-ink">
+                <span className="text-subtle">Sono: </span>
+                {e.sono}
               </p>
             )}
             {e.ocorrencias && (

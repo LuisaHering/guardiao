@@ -6,10 +6,11 @@ export type DadosProposta =
   | { tipo: "preferencia"; categoria: string; chave: string; valor: string }
   | { tipo: "memoria"; titulo: string; conteudo: string }
   | { tipo: "humor"; valor: string }
-  | { tipo: "diario"; alimentacao: string | null; ocorrencias: string | null }
+  | { tipo: "diario"; alimentacao: string | null; sono: string | null; ocorrencias: string | null }
   | { tipo: "sintoma"; descricao: string; gravidade: number | null }
   | { tipo: "pauta"; titulo: string; detalhe: string | null }
-  | { tipo: "medicacao"; medicacaoId: string; nome: string };
+  | { tipo: "medicacao"; medicacaoId: string; nome: string }
+  | { tipo: "sintoma_resolvido"; sintomaId: string; descricao: string };
 
 export type Proposta = {
   id: string;
@@ -32,4 +33,5 @@ export const ROTULO_TIPO: Record<DadosProposta["tipo"], string> = {
   sintoma: "Sintoma",
   pauta: "Pauta médica",
   medicacao: "Remédio tomado",
+  sintoma_resolvido: "Sintoma resolvido",
 };

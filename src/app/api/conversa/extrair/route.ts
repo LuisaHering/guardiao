@@ -26,7 +26,8 @@ Sua tarefa agora: ler uma conversa de cuidado e propor registros para o perfil, 
 - Cada item deve citar o rótulo da fala e um trecho copiado LITERALMENTE dessa fala.
 - Proponha só o que a pessoa disse de fato. Não deduza, não generalize, não complete.
 - Um item por fato. Se nada foi dito sobre um assunto, deixe vazio ou null.
-- "humor", "alimentacao" e "ocorrencias" descrevem o dia da conversa. Em "ocorrencias" entram o sono (ex: "dormiu bem"), a evolução de algo que estava em aberto (ex: "a dor abdominal passou") e outros fatos do dia que não são sintomas novos nem preferências.
+- "humor", "alimentacao", "sono" e "ocorrencias" descrevem o dia da conversa. "sono" é como dormiu (ex: "dormiu bem"). "ocorrencias" é só o que não cabe nos outros campos (quedas, visitas, fatos do dia) e não deve repetir sono, comida ou humor.
+- "sintomas_resolvidos": quando a pessoa disser que um sintoma que está na lista de SINTOMAS EM ABERTO passou ou melhorou por completo, cite o rótulo dele (S1, S2...). Só se a fala disser claramente que passou.
 - "medicacao_tomada": remédio que a pessoa disse que FOI tomado hoje. Use o nome como foi dito.
 - Dor ou desconforto relatados vão em "sintomas". Não dê gravidade se a pessoa não deu a medida.
 - "nao_adesao": quando um remédio não foi tomado, com o motivo dito pela pessoa.`;
@@ -77,6 +78,24 @@ export async function POST(req: NextRequest) {
       : { data: [] as { medicacao_id: string }[] };
     const jaTemRegistro = new Set((regsHoje ?? []).map((r) => r.medicacao_id as string));
 
+    // Sintomas ainda em aberto, para a IA poder dizer qual deles passou.
+    const { data: abertos } = await supabase
+      .from("sintoma")
+      .select("id, descricao, data")
+      .eq("idoso_id", idoso.id)
+      .is("resolvido_em", null)
+      .is("deleted_at", null)
+      .gte("data", new Date(Date.now() - 30 * 86_400_000).toISOString())
+      .order("data", { ascending: false })
+      .limit(15);
+    const sintomaPorRotulo = new Map<string, { id: string; descricao: string }>();
+    let blocoSintomas = "";
+    (abertos ?? []).forEach((s, i) => {
+      const r = `S${i + 1}`;
+      sintomaPorRotulo.set(r, { id: s.id as string, descricao: s.descricao as string });
+      blocoSintomas += `[${r}] ${s.descricao} (registrado em ${(s.data as string).slice(0, 10).split("-").reverse().join("/")})\n`;
+    });
+
     // Rotulos curtos evitam que a IA invente ou erre um UUID.
     const rotulo = new Map<string, (typeof falas)[number]>();
     let transcricao = "";
@@ -94,7 +113,10 @@ export async function POST(req: NextRequest) {
       extrair({
         system: SYSTEM,
         instrucao: "Proponha os registros desta conversa.",
-        entrada: { tipo: "texto", texto: transcricao },
+        entrada: {
+          tipo: "texto",
+          texto: `${blocoSintomas ? `SINTOMAS EM ABERTO:\n${blocoSintomas}\n` : "SINTOMAS EM ABERTO: nenhum\n\n"}CONVERSA:\n${transcricao}`,
+        },
         schema: ExtracaoConversaSchema,
         maxTokens: 4000,
         modelo,
@@ -148,20 +170,29 @@ export async function POST(req: NextRequest) {
     if (bruto.humor) add({ tipo: "humor", valor: bruto.humor.valor }, origem(bruto.humor.fala, bruto.humor.trecho));
 
     const oAli = bruto.alimentacao ? origem(bruto.alimentacao.fala, bruto.alimentacao.trecho) : null;
+    const oSono = bruto.sono ? origem(bruto.sono.fala, bruto.sono.trecho) : null;
     const oOco = bruto.ocorrencias ? origem(bruto.ocorrencias.fala, bruto.ocorrencias.trecho) : null;
-    if (oAli || oOco) {
-      // Alimentacao e ocorrencias do dia formam uma entrada de diario so; a origem e a
-      // primeira fala citada e o trecho mostra as duas.
-      const base = (oAli ?? oOco)!;
+    const partesDiario = [oAli, oSono, oOco].filter(Boolean).length;
+    if (partesDiario > 0) {
+      // Alimentacao, sono e ocorrencias do dia formam uma entrada de diario so; a origem e a
+      // primeira fala citada e o trecho mostra todas.
+      const base = (oAli ?? oSono ?? oOco)!;
       propostas.push({
         dados: {
           tipo: "diario",
           alimentacao: oAli ? bruto.alimentacao!.texto : null,
+          sono: oSono ? bruto.sono!.texto : null,
           ocorrencias: oOco ? bruto.ocorrencias!.texto : null,
         },
         ...base,
-        trecho: [oAli?.trecho, oOco?.trecho].filter(Boolean).join(" … "),
+        trecho: [oAli?.trecho, oSono?.trecho, oOco?.trecho].filter(Boolean).join(" … "),
       });
+    }
+
+    for (const r of bruto.sintomas_resolvidos) {
+      const alvo = sintomaPorRotulo.get(r.sintoma.trim().toUpperCase());
+      if (!alvo) continue;
+      add({ tipo: "sintoma_resolvido", sintomaId: alvo.id, descricao: alvo.descricao }, origem(r.fala, r.trecho));
     }
 
     for (const s of bruto.sintomas) {
@@ -204,10 +235,10 @@ export async function POST(req: NextRequest) {
     if (ids.length) {
       await Promise.all(
         tabelas.map(async ([tipo, tabela, coluna]) => {
-          const cols = tipo === "diario" ? "origem_mensagem_id, ocorrencias, alimentacao" : `origem_mensagem_id, ${coluna}`;
+          const cols = tipo === "diario" ? "origem_mensagem_id, ocorrencias, alimentacao, sono" : `origem_mensagem_id, ${coluna}`;
           const { data } = await supabase.from(tabela).select(cols).in("origem_mensagem_id", ids).is("deleted_at", null);
           for (const r of (data ?? []) as unknown as Record<string, string | null>[]) {
-            const texto = tipo === "diario" ? `${r.alimentacao ?? ""} ${r.ocorrencias ?? ""}` : r[coluna] ?? "";
+            const texto = tipo === "diario" ? `${r.alimentacao ?? ""} ${r.sono ?? ""} ${r.ocorrencias ?? ""}` : r[coluna] ?? "";
             existentes.add(`${tipo}|${r.origem_mensagem_id}|${norm(texto)}`);
           }
         }),
@@ -222,7 +253,8 @@ export async function POST(req: NextRequest) {
         : d.tipo === "sintoma" ? d.descricao
         : d.tipo === "pauta" ? d.titulo
         : d.tipo === "medicacao" ? d.medicacaoId
-        : `${d.alimentacao ?? ""} ${d.ocorrencias ?? ""}`;
+        : d.tipo === "sintoma_resolvido" ? d.sintomaId
+        : `${d.alimentacao ?? ""} ${d.sono ?? ""} ${d.ocorrencias ?? ""}`;
       return `${d.tipo}|${p.mensagemId}|${norm(texto)}`;
     };
 
@@ -239,12 +271,14 @@ export async function POST(req: NextRequest) {
         bruto.memorias.length +
         (bruto.humor ? 1 : 0) +
         (bruto.alimentacao ? 1 : 0) +
+        (bruto.sono ? 1 : 0) +
         (bruto.ocorrencias ? 1 : 0) +
+        bruto.sintomas_resolvidos.length +
         bruto.sintomas.length +
         bruto.medicacao_tomada.length +
         bruto.nao_adesao.length -
         propostas.length -
-        (oAli && oOco ? 1 : 0),
+        (partesDiario > 1 ? partesDiario - 1 : 0),
     });
   } catch (e) {
     return respostaErro(e);

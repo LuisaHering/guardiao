@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       supabase.from("medicacao").select("id, nome, dosagem, instrucoes").eq("idoso_id", id).eq("ativo", true).is("deleted_at", null),
       supabase
         .from("sintoma")
-        .select("data, descricao, gravidade, duracao_declarada, autor_id, origem")
+        .select("data, descricao, gravidade, duracao_declarada, autor_id, origem, resolvido_em")
         .eq("idoso_id", id)
         .is("deleted_at", null)
         .gte("data", desde(30))
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
         .limit(100),
       supabase
         .from("entrada_diario")
-        .select("data, alimentacao, ocorrencias, autor_id")
+        .select("data, alimentacao, ocorrencias, sono, autor_id")
         .eq("idoso_id", id)
         .is("deleted_at", null)
         .gte("data", desde(14))
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
     for (const s of sintomas ?? []) {
       datas.add(dia(s.data));
       linhas.push(
-        `${dia(s.data)} | registrado por ${quem(s.autor_id)} | gravidade ${s.gravidade ?? "?"}/5 | ${s.duracao_declarada ?? "duracao nao informada"} | ${s.descricao}`,
+        `${dia(s.data)} | registrado por ${quem(s.autor_id)} | gravidade ${s.gravidade ?? "?"}/5 | ${s.duracao_declarada ?? "duracao nao informada"} | ${s.descricao}${s.resolvido_em ? ` | RESOLVIDO em ${dia(s.resolvido_em)}` : ""}`,
       );
     }
     if (!(sintomas ?? []).length) linhas.push("(nenhum)");
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
     for (const d of diario ?? []) {
       datas.add(dia(d.data));
       linhas.push(
-        `${dia(d.data)} | registrado por ${quem(d.autor_id)} | alimentacao: ${d.alimentacao ?? "-"} | ocorrencias: ${d.ocorrencias ?? "-"}`,
+        `${dia(d.data)} | registrado por ${quem(d.autor_id)} | alimentacao: ${d.alimentacao ?? "-"} | sono: ${d.sono ?? "-"} | ocorrencias: ${d.ocorrencias ?? "-"}`,
       );
     }
     if (!(diario ?? []).length) linhas.push("(nenhuma entrada)");

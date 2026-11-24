@@ -56,6 +56,13 @@ registros a partir do que foi dito e o check-in diário conversacional.
   e cai para o leve (`GEMINI_EXTRACAO_MODEL`) se a cota gratuita acabar ou o modelo estiver
   sobrecarregado.
 
+- **Sintoma resolvido existe de verdade.** Um sintoma pode ser marcado como resolvido (na
+  tela de sintomas ou por uma conversa) sem apagar o histórico: o sistema guarda quando,
+  por quem e a fala de origem. A IA recebe a lista dos sintomas em aberto e só propõe
+  resolver um deles se a fala disser claramente que passou. O chat deixa de perguntar
+  por sintomas já resolvidos.
+- **Sono tem campo próprio no diário**, separado de alimentação e ocorrências.
+
 ## Onde cada regra é garantida
 
 | Regra | Garantida no |

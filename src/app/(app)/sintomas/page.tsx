@@ -11,6 +11,7 @@ type Sintoma = {
   gravidade: number | null;
   duracao_declarada: string | null;
   data: string;
+  resolvido_em: string | null;
 };
 
 const DURACOES: { valor: string; rotulo: string }[] = [
@@ -64,7 +65,7 @@ export default function SintomasPage() {
     setCarregando(true);
     const { data } = await supabase
       .from("sintoma")
-      .select("id, descricao, gravidade, duracao_declarada, data")
+      .select("id, descricao, gravidade, duracao_declarada, data, resolvido_em")
       .eq("idoso_id", idosoId)
       .is("deleted_at", null)
       .order("data", { ascending: false })
@@ -101,6 +102,21 @@ export default function SintomasPage() {
     setGravidade(3);
     setDuracao("hoje");
     setSalvando(false);
+    await carregar();
+  }
+
+  async function resolver(id: string, resolvido: boolean) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    await supabase
+      .from("sintoma")
+      .update(
+        resolvido
+          ? { resolvido_em: new Date().toISOString(), resolvido_por: user?.id ?? null }
+          : { resolvido_em: null, resolvido_por: null, resolvido_mensagem_id: null },
+      )
+      .eq("id", id);
     await carregar();
   }
 
@@ -206,15 +222,29 @@ export default function SintomasPage() {
                 </span>
                 <span className="text-xs text-subtle">{dataHora(s.data)}</span>
               </div>
-              <Button
-                variant="ghost"
-                onClick={() => remover(s.id)}
-                className="h-7 px-2 text-xs"
-              >
-                Remover
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  onClick={() => resolver(s.id, !s.resolvido_em)}
+                  className="h-7 px-2 text-xs"
+                >
+                  {s.resolvido_em ? "Reabrir" : "Marcar como resolvido"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => remover(s.id)}
+                  className="h-7 px-2 text-xs"
+                >
+                  Remover
+                </Button>
+              </div>
             </div>
-            <p className="text-sm text-ink">{s.descricao}</p>
+            {s.resolvido_em && (
+              <p className="text-xs font-medium text-success">
+                Resolvido em {dataHora(s.resolvido_em)}
+              </p>
+            )}
+            <p className={`text-sm ${s.resolvido_em ? "text-subtle" : "text-ink"}`}>{s.descricao}</p>
             {rotuloDuracao(s.duracao_declarada) && (
               <p className="text-xs text-subtle">
                 {rotuloDuracao(s.duracao_declarada)}

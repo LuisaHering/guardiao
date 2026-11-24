@@ -130,7 +130,7 @@ export function Dashboard() {
         .limit(4),
       supabase
         .from("entrada_diario")
-        .select("id, data, alimentacao, ocorrencias")
+        .select("id, data, alimentacao, ocorrencias, sono")
         .eq("idoso_id", idosoId)
         .is("deleted_at", null)
         .order("data", { ascending: false })
@@ -227,7 +227,7 @@ export function Dashboard() {
         id: `d-${d.id}`,
         tipo: "diario",
         titulo: "Entrada no diário",
-        detalhe: [d.alimentacao, d.ocorrencias].filter(Boolean).join(" · ") || null,
+        detalhe: [d.alimentacao, d.sono ? `Sono: ${d.sono}` : null, d.ocorrencias].filter(Boolean).join(" · ") || null,
         data: String(d.data),
       });
     }

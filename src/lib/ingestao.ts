@@ -59,6 +59,7 @@ export async function gravarProposta(
       idoso_id: idosoId,
       autor_id: p.autorId,
       alimentacao: t("alimentacao", d.alimentacao),
+      sono: t("sono", d.sono),
       ocorrencias: t("ocorrencias", d.ocorrencias),
       ...origem,
     }));
@@ -70,6 +71,16 @@ export async function gravarProposta(
       gravidade: d.gravidade,
       ...origem,
     }));
+  } else if (d.tipo === "sintoma_resolvido") {
+    // Nao apaga nada: marca o sintoma como resolvido e guarda quem disse e a fala.
+    ({ error: erro } = await supabase
+      .from("sintoma")
+      .update({
+        resolvido_em: new Date().toISOString(),
+        resolvido_por: p.autorId,
+        resolvido_mensagem_id: p.mensagemId,
+      })
+      .eq("id", d.sintomaId));
   } else if (d.tipo === "medicacao") {
     const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
     ({ error: erro } = await supabase.from("registro_medicacao").upsert(

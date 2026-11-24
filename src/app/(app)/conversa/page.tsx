@@ -53,11 +53,13 @@ function camposDe(d: DadosProposta): { campo: string; rotulo: string; valor: str
     case "diario":
       return [
         { campo: "alimentacao", rotulo: "Alimentação", valor: d.alimentacao ?? "" },
+        { campo: "sono", rotulo: "Sono", valor: d.sono ?? "" },
         { campo: "ocorrencias", rotulo: "Ocorrências", valor: d.ocorrencias ?? "" },
       ];
     case "sintoma":
       return [{ campo: "descricao", rotulo: "Sintoma", valor: d.descricao }];
     case "medicacao":
+    case "sintoma_resolvido":
       return [];
     case "pauta":
       return [
@@ -471,6 +473,11 @@ export default function ConversaPage() {
                       />
                     </label>
                   ))}
+                  {p.dados.tipo === "sintoma_resolvido" && (
+                    <p className="text-sm text-ink">
+                      Marcar como resolvido: <strong>{p.dados.descricao}</strong>
+                    </p>
+                  )}
                   {p.dados.tipo === "medicacao" && (
                     <p className="text-sm text-ink">
                       Registrar <strong>{p.dados.nome}</strong> como tomado hoje (adesão).
