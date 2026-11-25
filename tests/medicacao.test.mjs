@@ -217,10 +217,40 @@ test("receita: se a IA acha que é um da lista com outro nome, não entra sozinh
   assert.equal(classe({ nome: "Cozaar", medicacao_id: "m1" }).acao, "duvida");
 });
 
-test("receita: mensal, dose única e meses não entram sozinhos", () => {
-  for (const frequencia of ["1 vez ao mês", "dose única", "mensal", "por 3 meses"]) {
-    assert.equal(classe({ nome: "Metotrexato", frequencia }).acao, "duvida", frequencia);
+test("receita: mensal, a cada N meses e dose única entram, pedindo confirmação", () => {
+  const casos = [
+    ["1 vez ao mês", "mensal", null],
+    ["mensal", "mensal", null],
+    ["a cada 3 meses", "mensal", 3],
+    ["trimestral", "mensal", 3],
+    ["dose única", "unica", null],
+  ];
+  for (const [frequencia, esperada, cada] of casos) {
+    const c = classe({ nome: "Ibandronato", frequencia });
+    assert.equal(c.acao, "novo", frequencia);
+    assert.equal(c.agenda.frequencia, esperada, frequencia);
+    assert.equal(c.agenda.intervalo_dias, cada, frequencia);
+    assert.equal(c.recorrencia.tipo, esperada, frequencia);
   }
+});
+
+test("receita: tratamento em meses ganha o último dia pelo calendário", () => {
+  const c = classe({ frequencia: "1 comprimido à noite por 3 meses", duracao_dias: 90 });
+  assert.equal(c.agenda.frequencia, "diaria");
+  assert.equal(c.recorrencia, null);
+  assert.equal(c.agenda.fim, "2027-02-24");
+});
+
+test("receita: 'dose única diária' é todo dia, não uma dose só", () => {
+  for (const frequencia of ["em dose única diária", "dose única ao dia", "uma única tomada por dia"]) {
+    const c = classe({ frequencia });
+    assert.equal(c.agenda.frequencia, "diaria", frequencia);
+    assert.equal(c.recorrencia, null, frequencia);
+  }
+});
+
+test("receita: mais de uma vez por mês continua esperando a família", () => {
+  assert.equal(classe({ frequencia: "2 vezes ao mês" }).acao, "duvida");
 });
 
 test("receita: sem dose não entra, e 'suspender' nunca é aplicado sozinho", () => {
@@ -262,5 +292,46 @@ test("receita: 'por 2 semanas' é duração, não remédio semanal", () => {
 test("receita: 'segunda dose' não é segunda-feira, e 'segunda a sexta' não marca dias sozinho", () => {
   assert.equal(semanalDe("segunda dose após 12 horas").recorrencia, null);
   assert.deepEqual(semanalDe("de segunda-feira a sexta-feira").agenda.dias_semana, []);
+});
+
+const { aplicarInicio, somarMeses, emUso } = await import("../src/lib/medicacao.ts");
+
+const agendaDe = (extra) => ({
+  frequencia: "mensal", horarios: [], dias_semana: [], intervalo_dias: null, inicio: "2026-01-31", fim: null, ...extra,
+});
+
+test("mensal: mesmo dia do mês; dia 31 vira o último dia dos meses curtos", () => {
+  const r = agendaDe({});
+  assert.equal(valeNoDia(r, "2026-02-28"), true);
+  assert.equal(valeNoDia(r, "2026-03-31"), true);
+  assert.equal(valeNoDia(r, "2026-03-28"), false);
+  assert.equal(valeNoDia(r, "2025-12-31"), false);
+  assert.equal(descreverAgenda(r), "Todo mês, no dia 31, sem horário");
+});
+
+test("mensal: de 3 em 3 meses só vale nos meses certos", () => {
+  const r = agendaDe({ inicio: "2026-01-10", intervalo_dias: 3 });
+  assert.equal(valeNoDia(r, "2026-02-10"), false);
+  assert.equal(valeNoDia(r, "2026-04-10"), true);
+});
+
+test("dose única: fica pendente até ser dada e some depois", () => {
+  const pendente = agendaDe({ frequencia: "unica", inicio: "2026-11-25" });
+  assert.equal(valeNoDia(pendente, "2026-11-24"), false);
+  assert.equal(valeNoDia(pendente, "2026-11-28"), true);
+  const dada = { ...pendente, fim: "2026-11-28" };
+  assert.equal(valeNoDia(dada, "2026-11-28"), true);
+  assert.equal(valeNoDia(dada, "2026-11-29"), false);
+  assert.equal(descreverAgenda(dada), "Uma dose só, em 25/11, sem horário");
+});
+
+test("mensal com a próxima dose à frente já está em uso", () => {
+  assert.equal(emUso(agendaDe({ inicio: "2026-12-05" }), "2026-11-25"), true);
+});
+
+test("escolher o primeiro dia move o último junto", () => {
+  assert.equal(somarMeses("2026-11-30", 3), "2027-02-28");
+  assert.equal(aplicarInicio(agendaDe({}), "2026-12-05", { meses: 6 }).fim, "2027-06-04");
+  assert.equal(aplicarInicio(agendaDe({}), "2026-12-05", { dias: 7 }).fim, "2026-12-11");
 });
 

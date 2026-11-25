@@ -18,6 +18,8 @@ const FREQUENCIAS: { valor: Frequencia; rotulo: string }[] = [
   { valor: "diaria", rotulo: "Todo dia" },
   { valor: "semana", rotulo: "Alguns dias da semana" },
   { valor: "intervalo", rotulo: "A cada tantos dias" },
+  { valor: "mensal", rotulo: "Todo mês, ou a cada tantos meses" },
+  { valor: "unica", rotulo: "Uma dose só" },
   { valor: "quando_precisar", rotulo: "Só quando precisar" },
 ];
 
@@ -62,6 +64,16 @@ export function CamposAgenda({ valor, onChange }: { valor: Agenda; onChange: (a:
     muda({ horarios: modo === "hora" ? [""] : [] });
   }
 
+  // Dias e meses usam o mesmo campo: trocar de tipo limpa o número. Dose única não tem duração.
+  function trocarFrequencia(frequencia: Frequencia) {
+    if (frequencia === "unica") {
+      setDuracao("continuo");
+      muda({ frequencia, intervalo_dias: null, fim: null });
+    } else {
+      muda({ frequencia, intervalo_dias: null });
+    }
+  }
+
   const fimPorDias = (dias: string, inicio: string) => {
     const n = Number(dias);
     return Number.isInteger(n) && n >= 1 && n <= 3650 ? somarDias(inicio, n - 1) : "";
@@ -84,7 +96,7 @@ export function CamposAgenda({ valor, onChange }: { valor: Agenda; onChange: (a:
     <div className="flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm text-subtle">
         Frequência
-        <select value={valor.frequencia} onChange={(e) => muda({ frequencia: e.target.value as Frequencia })} className={caixa}>
+        <select value={valor.frequencia} onChange={(e) => trocarFrequencia(e.target.value as Frequencia)} className={caixa}>
           {FREQUENCIAS.map((f) => (
             <option key={f.valor} value={f.valor}>{f.rotulo}</option>
           ))}
@@ -124,6 +136,21 @@ export function CamposAgenda({ valor, onChange }: { valor: Agenda; onChange: (a:
             onChange={(e) => muda({ intervalo_dias: e.target.value ? Number(e.target.value) : null })}
             placeholder="2"
           />
+        </label>
+      )}
+
+      {valor.frequencia === "mensal" && (
+        <label className="flex flex-col gap-1 text-sm text-subtle">
+          De quantos em quantos meses (vazio é todo mês)
+          <Input
+            type="number"
+            min={1}
+            max={24}
+            value={valor.intervalo_dias ?? ""}
+            onChange={(e) => muda({ intervalo_dias: e.target.value ? Number(e.target.value) : null })}
+            placeholder="1"
+          />
+          <span className="text-xs">O dia do mês é o do primeiro dia, escolhido abaixo.</span>
         </label>
       )}
 
@@ -186,8 +213,8 @@ export function CamposAgenda({ valor, onChange }: { valor: Agenda; onChange: (a:
       )}
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm text-subtle">Por quanto tempo</legend>
-        <div className="grid grid-cols-1 gap-1 sm:grid-cols-3">
+        <legend className="mb-1 text-sm text-subtle">{valor.frequencia === "unica" ? "Dia para tomar" : "Por quanto tempo"}</legend>
+        <div className={valor.frequencia === "unica" ? "hidden" : "grid grid-cols-1 gap-1 sm:grid-cols-3"}>
           <Opcao marcada={duracao === "continuo"} onClick={() => escolherDuracao("continuo")}>Sem data para acabar</Opcao>
           <Opcao marcada={duracao === "dias"} onClick={() => escolherDuracao("dias")}>Por alguns dias</Opcao>
           <Opcao marcada={duracao === "data"} onClick={() => escolherDuracao("data")}>Até uma data</Opcao>

@@ -3,6 +3,7 @@
 // Resultados já conferidos, para quem cuida: valores e laudo, só para ver.
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui";
 import { abrirArquivo } from "@/lib/documentos";
@@ -50,6 +51,11 @@ export function ResultadosExame({ idosoId }: { idosoId: string }) {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold text-ink">Resultados</h2>
+      {!!exames?.length && (
+        <Link href="/tendencias" className="flex min-h-14 items-center justify-center rounded-2xl border-2 border-line bg-card text-lg font-semibold text-ink">
+          Ver como os valores mudaram
+        </Link>
+      )}
       {erro && <p className="text-base text-danger" role="alert">{erro}</p>}
       {!exames && <p className="text-base text-subtle">Carregando...</p>}
       {exames && !erro && exames.length === 0 && <p className="text-base text-subtle">Nenhum resultado conferido ainda.</p>}

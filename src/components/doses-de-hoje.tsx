@@ -273,6 +273,11 @@ export function DosesDeHoje({ idosoId, versao = 0 }: { idosoId: string; versao?:
                   <p className="text-sm text-subtle">
                     {[d.remedio.dosagem, d.remedio.instrucoes].filter(Boolean).join(" · ")}
                   </p>
+                  {d.remedio.frequencia === "unica" && (
+                    <p className="mt-1 text-sm font-medium text-warn">
+                      Dose única{d.remedio.inicio < hoje ? `: era para ${d.remedio.inicio.split("-").reverse().slice(0, 2).join("/")}` : ""}
+                    </p>
+                  )}
                   {daFoto.has(d.remedio.id) && (
                     <p className="mt-1 text-sm font-medium text-warn">Lido da foto, confira no papel</p>
                   )}

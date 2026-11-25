@@ -25,8 +25,8 @@ export const roleLabels: Record<Role, string> = {
   familiar: "Familiar",
 };
 
-// Quem enxerga o que decorre do papel. O cuidador vê os exames, os valores e os laudos,
-// mas não a leitura interpretada: tendências, observações e visão 360 ficam com o
+// Quem enxerga o que decorre do papel. O cuidador vê os exames, os valores, os laudos e
+// as tendências, mas não a leitura feita pela IA: observações e visão 360 ficam com o
 // familiar. As notificações seguem docs/modelagem.md, seção 3.12.
 const byRole: Record<Role, NavItem[]> = {
   familiar: [
@@ -70,6 +70,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/pauta", label: "Pauta médica", enabled: true, grupo: "Cuidado" },
     { href: "/receitas", label: "Receitas", enabled: true, grupo: "Cuidado" },
     { href: "/pedidos", label: "Exames", enabled: true, grupo: "Cuidado" },
+    { href: "/tendencias", label: "Tendências", enabled: true, grupo: "Cuidado" },
 
     { href: "/perfil", label: "Perfil do idoso", enabled: true, grupo: "Sobre a pessoa" },
     { href: "/identidade", label: "Preferências e história", enabled: true, grupo: "Sobre a pessoa" },

@@ -227,7 +227,7 @@ export async function carregarLeituras(supabase: SupabaseClient, idosoId: string
           desfaz.add("o remédio novo sai da lista");
         }
         const semHorario = m && m.frequencia !== "quando_precisar" && m.horarios.length === 0;
-        const naoDiario = !revisado && (m?.frequencia === "semana" || m?.frequencia === "intervalo");
+        const naoDiario = !revisado && !!m && ["semana", "intervalo", "mensal", "unica"].includes(m.frequencia);
         linhas.push({
           urgente: naoDiario,
           rotulo: naoDiario ? "URGENTE: não é de todo dia. Confira na foto" : revisado ? "Entrou (você já revisou)" : "Entrou na lista",

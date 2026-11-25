@@ -23,7 +23,8 @@ Papel e administração são eixos separados: um familiar administrador não é 
 | Consultas, pauta médica, receitas | não | sim | sim |
 | Exames: valores e laudos | não (menu) | sim | sim, **só para ver** |
 | Pedidos de exame | não (menu) | sim | sim |
-| Tendências, observações | não | sim | **não** |
+| Tendências | não | sim | sim |
+| Observações | não | sim | **não** |
 | Visão 360 | não | sim | **não** |
 | Preferências e história, folha de cuidado | sim (preferências) | sim | sim |
 | Diretivas | sim | sim | **não** |
@@ -31,8 +32,8 @@ Papel e administração são eixos separados: um familiar administrador não é 
 | Emergência | não | sim | sim |
 | Rede e acessos | não | só admin | não |
 
-Quem cuida vê os exames, os valores e os laudos (decisão de 25/11/2026, que substitui a
-restrição anterior). Continuam com a família a leitura interpretada (tendências, observações e
+Quem cuida vê os exames, os valores, os laudos e as tendências (decisão de 25/11/2026, que
+substitui a restrição anterior). Continuam com a família a leitura feita pela IA (observações e
 visão 360) e as diretivas. As **notificações** seguem a regra da modelagem (seção 3.12): quem
 cuida recebe o operacional, e não os alertas clínicos.
 
@@ -49,7 +50,6 @@ cuida recebe o operacional, e não os alertas clínicos.
 | Registrar medicação, diário, sintomas, consultas, exames, preferências | qualquer membro | **banco** (RLS por vínculo) |
 | Ver ou mexer nos dados de outro idoso | ninguém | **banco** (RLS por vínculo) |
 | Cuidador ler observações, visão 360 e diretivas | não | **banco** (leitura só para familiar e titular) |
-| Cuidador abrir a tela de tendências | não | **só na interface** (os valores que ela usa já são visíveis) |
 | Criar pasta e enviar documento | só o administrador | **banco** |
 | Quem cuida ver pasta, ou documento não marcado que não enviou | não | **banco** (inclui o arquivo no Storage) |
 | Cuidador ler alertas clínicos ou o texto de alerta de outra pessoa | não | **banco** |
@@ -115,8 +115,8 @@ ainda não foi guardado.
 
 ## Remédios: agenda e confirmação
 
-Cada remédio tem frequência (todo dia, dias da semana, a cada tantos dias ou só quando
-precisar), momento do dia (por período: manhã, tarde, noite; ou em horário específico) e
+Cada remédio tem frequência (todo dia, dias da semana, a cada tantos dias, todo mês ou a cada
+tantos meses, uma dose só ou só quando precisar), momento do dia (por período: manhã, tarde, noite; ou em horário específico) e
 duração (sem data para acabar, por alguns dias ou até uma data). Cada dose é um registro
 próprio. A dose por período aparece como atrasada quando o período acaba (manhã às 12:00,
 tarde às 18:00, noite às 23:00); a de horário específico, 30 minutos depois da hora.
@@ -147,6 +147,10 @@ aplicativo.
 
 Na lista de hoje, "Dei todos" marca apenas as doses cuja hora já chegou, depois de a pessoa
 conferir a lista, e não altera o que outra pessoa tenha marcado.
+
+No mensal, a dose cai no mesmo dia do mês do primeiro dia (ou no último dia, nos meses mais
+curtos). A dose única continua pendente até ser marcada como dada; "não dei" a mantém na lista,
+e desmarcar a reabre.
 
 Duas proteções contra erro de dose:
 
@@ -221,8 +225,10 @@ família ler a foto:
 | Já está na lista com a mesma dose e horário | não duplica |
 | Já está na lista com outra dose ou horário claro | muda, depois de quem enviou conferir |
 | Nome parecido ou outra fórmula (ex: associação, liberação prolongada) | não entra |
-| Semanal ou a cada tantos dias | entra, depois de um segundo "Você tem certeza?" (com a escolha do dia da semana), e o administrador recebe um aviso **urgente** |
-| Sem dose, mensal, dose única ou tratamento contado em meses | não entra |
+| Semanal, a cada tantos dias, mensal ou dose única | entra, depois de um segundo "Você tem certeza?" (com a escolha do dia), e o administrador recebe um aviso **urgente** |
+| Tratamento contado em dias, semanas ou meses | entra com o último dia calculado |
+| "Dose única diária" ou "ao dia" | é tratado como remédio de todo dia |
+| Sem dose, ou mais de uma vez por mês sem dizer os dias | não entra |
 | O papel manda parar um remédio | nada é suspenso; aviso para falar com a família |
 
 **O que não entra não some.** Fica "esperando a família" na tela de remédios de quem cuida, com

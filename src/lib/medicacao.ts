@@ -2,7 +2,8 @@
 // tela de medicação, painel, chat e extração usam estas funções.
 // Sem imports do projeto, para poder ser testado sozinho (npm test).
 
-export type Frequencia = "diaria" | "semana" | "intervalo" | "quando_precisar";
+/** "mensal": no mesmo dia do mês do início. "unica": uma dose só, pendente até ser dada. */
+export type Frequencia = "diaria" | "semana" | "intervalo" | "mensal" | "unica" | "quando_precisar";
 
 export type Agenda = {
   frequencia: Frequencia;
@@ -10,6 +11,7 @@ export type Agenda = {
   horarios: string[];
   /** 0 = domingo ... 6 = sábado */
   dias_semana: number[];
+  /** "intervalo": de quantos em quantos DIAS. "mensal": de quantos em quantos MESES (vazio = 1). */
   intervalo_dias: number | null;
   /** AAAA-MM-DD */
   inicio: string;
@@ -128,12 +130,33 @@ export function valeNoDia(r: Agenda & { ativo?: boolean }, dia: string): boolean
   if (r.frequencia === "intervalo") {
     return !!r.intervalo_dias && diasEntre(r.inicio, dia) % r.intervalo_dias === 0;
   }
-  return false;
+  if (r.frequencia === "mensal") {
+    // Quem começou no dia 31 toma no último dia dos meses mais curtos.
+    const doMes = Math.min(Number(r.inicio.slice(8, 10)), ultimoDiaDoMes(dia));
+    return Number(dia.slice(8, 10)) === doMes && mesesEntre(r.inicio, dia) % (r.intervalo_dias || 1) === 0;
+  }
+  // Dose única: fica pendente a partir do dia. Quando é dada, o banco grava o fim nesse dia.
+  return r.frequencia === "unica";
+}
+
+const ultimoDiaDoMes = (iso: string) =>
+  new Date(Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)), 0)).getUTCDate();
+
+const mesesEntre = (de: string, ate: string) =>
+  (Number(ate.slice(0, 4)) - Number(de.slice(0, 4))) * 12 + Number(ate.slice(5, 7)) - Number(de.slice(5, 7));
+
+/** O mesmo dia, N meses depois (ou o último dia do mês, se ele não existir). */
+export function somarMeses(iso: string, meses: number): string {
+  const total = Number(iso.slice(0, 4)) * 12 + Number(iso.slice(5, 7)) - 1 + meses;
+  const mes = `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`;
+  return `${mes}-${String(Math.min(Number(iso.slice(8, 10)), ultimoDiaDoMes(`${mes}-01`))).padStart(2, "0")}`;
 }
 
 /** Em uso hoje: ativo e dentro do período (inclui os "só quando precisar"). */
 export function emUso(r: Agenda & { ativo?: boolean }, dia: string): boolean {
-  return r.ativo !== false && dia >= r.inicio && (!r.fim || dia <= r.fim);
+  // Mensal ou "a cada N dias" com a próxima dose marcada para a frente já faz parte do uso.
+  const comecou = dia >= r.inicio || r.frequencia === "mensal" || r.frequencia === "intervalo";
+  return r.ativo !== false && comecou && (!r.fim || dia <= r.fim);
 }
 
 /**
@@ -237,12 +260,17 @@ export function descreverAgenda(r: Agenda): string {
     base = juntar([...r.dias_semana].sort().map((d) => DIAS_CURTOS[d]));
     base = base.charAt(0).toUpperCase() + base.slice(1);
   } else if (r.frequencia === "intervalo") base = `A cada ${r.intervalo_dias} dias`;
+  else if (r.frequencia === "mensal") {
+    const cada = (r.intervalo_dias || 1) > 1 ? `A cada ${r.intervalo_dias} meses` : "Todo mês";
+    base = `${cada}, no dia ${Number(r.inicio.slice(8, 10))}`;
+  } else if (r.frequencia === "unica") base = `Uma dose só, em ${diaMes(r.inicio)}`;
   else base = "Todo dia";
 
   if (r.frequencia !== "quando_precisar") {
     base += r.horarios.length ? `, ${listarHorarios(r.horarios)}` : ", sem horário";
   }
-  return r.fim ? `${base} · até ${diaMes(r.fim)}` : base;
+  // Na dose única o "fim" é só o dia em que ela foi dada.
+  return r.fim && r.frequencia !== "unica" ? `${base} · até ${diaMes(r.fim)}` : base;
 }
 
 /** Data somando dias (para "tomar por N dias": fim = início + N - 1). */
@@ -264,6 +292,9 @@ export function validarAgenda(a: Agenda): string | null {
   if (a.frequencia === "intervalo" && !(a.intervalo_dias && a.intervalo_dias >= 2 && a.intervalo_dias <= 365)) {
     return "Diga de quantos em quantos dias (2 ou mais).";
   }
+  if (a.frequencia === "mensal" && a.intervalo_dias !== null && !(a.intervalo_dias >= 1 && a.intervalo_dias <= 24)) {
+    return "Diga de quantos em quantos meses (de 1 a 24).";
+  }
   // "" = a pessoa disse que tem fim, mas ainda não disse quando: não pode virar "sem fim".
   if (a.fim === "") return "Diga por quantos dias ou até quando o remédio será tomado.";
   if (a.fim && a.fim < a.inicio) return "A data final não pode ser antes do início.";
@@ -276,7 +307,7 @@ export function agendaParaGravar(a: Agenda): Agenda {
     frequencia: a.frequencia,
     horarios: a.frequencia === "quando_precisar" ? [] : [...a.horarios].sort(compararHorarios),
     dias_semana: a.frequencia === "semana" ? [...a.dias_semana].sort() : [],
-    intervalo_dias: a.frequencia === "intervalo" ? a.intervalo_dias : null,
+    intervalo_dias: a.frequencia === "intervalo" || a.frequencia === "mensal" ? a.intervalo_dias : null,
     inicio: a.inicio,
     fim: a.fim || null,
   };
@@ -348,7 +379,13 @@ export type RemedioLido = {
 };
 
 /** `vezes`: quantos dias por semana o papel pede, quando diz. */
-export type Recorrencia = { tipo: "semana"; vezes: number | null } | { tipo: "intervalo" };
+export type Recorrencia =
+  | { tipo: "semana"; vezes: number | null }
+  | { tipo: "intervalo" }
+  | { tipo: "mensal" }
+  | { tipo: "unica" };
+
+export type DuracaoTratamento = { dias: number } | { meses: number } | null;
 
 export type Classificacao =
   | {
@@ -357,6 +394,8 @@ export type Classificacao =
       instrucoes: string | null;
       /** não é de todo dia: quem confere precisa confirmar de novo, com atenção */
       recorrencia: Recorrencia | null;
+      /** para recalcular o último dia quando a pessoa escolhe quando começa */
+      duracao: DuracaoTratamento;
     }
   | { acao: "ja_toma"; alvo: Remedio }
   | { acao: "mudar"; alvo: Remedio; dados: { dosagem?: string; horarios?: string[] }; mudancas: string[] }
@@ -384,21 +423,50 @@ function parentesco(a: string, b: string): "mesmo" | "talvez" | "outro" {
   return primeira.length >= 4 && primeira === y.split(" ")[0] ? "talvez" : "outro";
 }
 
-/** Posologias que a tela não sabe montar sozinha sem arriscar virar "todo dia, para sempre". */
-const NAO_E_DIARIO = /mensal|quinzen|(ao|por) m[eê]s|a cada \d+ (m[eê]s|meses)|dose [uú]nica|[uú]nica vez/;
-
 /** "por 2 semanas" é duração, não "toda semana": sai do texto antes de ler a frequência. */
 const DURACAO = /(?:por|durante)\s+(\d{1,3}|uma?|duas|dois|tr[eê]s)\s*(dias?|semanas?|m[eê]s(?:es)?)/g;
 
 const NUMEROS: Record<string, number> = { um: 1, uma: 1, dois: 2, duas: 2, "três": 3, tres: 3 };
 const numero = (t: string) => NUMEROS[t] ?? Number(t);
 
-/** Dias de tratamento escritos no texto; "meses" devolve -1 (não dá para converter com segurança). */
-function duracaoNoTexto(t: string): number | null {
+/** Por quanto tempo, quando o texto diz. */
+function duracaoNoTexto(t: string): DuracaoTratamento {
   const m = [...t.matchAll(DURACAO)][0];
   if (!m) return null;
-  if (m[2].startsWith("m")) return -1;
-  return numero(m[1]) * (m[2].startsWith("s") ? 7 : 1);
+  if (m[2].startsWith("m")) return { meses: numero(m[1]) };
+  return { dias: numero(m[1]) * (m[2].startsWith("s") ? 7 : 1) };
+}
+
+/** Coloca o primeiro dia escolhido e recalcula o último a partir dele. */
+export function aplicarInicio(agenda: Agenda, inicio: string, duracao: DuracaoTratamento): Agenda {
+  let fim: string | null = null;
+  if (duracao && agenda.frequencia !== "unica") {
+    fim = somarDias("dias" in duracao ? somarDias(inicio, duracao.dias) : somarMeses(inicio, duracao.meses), -1);
+  }
+  return { ...agenda, inicio, fim };
+}
+
+/** "Dose única diária" quer dizer uma vez por dia: não é uma dose só. */
+const UNICA_DIARIA = /(dose|tomada|vez) [uú]nica (di[aá]ria|ao dia|por dia)|[uú]nica (dose|tomada) (di[aá]ria|ao dia|por dia)/;
+const DOSE_UNICA = /dose [uú]nica|[uú]nica (vez|dose|tomada)|apenas uma vez|somente uma vez/;
+
+const TODO_MES =
+  /\bmensal|(?:ao|por|cada|todo)\s+m[eê]s\b|todos os meses|a cada \d{1,2} (?:m[eê]s|meses)|bimestral|trimestral|semestral|\banual/;
+
+/** De quantos em quantos meses. */
+function intervaloEmMeses(t: string): number {
+  const m = t.match(/a cada (\d{1,2}) (?:m[eê]s|meses)/);
+  if (m) return Number(m[1]);
+  if (/bimestral/.test(t)) return 2;
+  if (/trimestral/.test(t)) return 3;
+  if (/semestral/.test(t)) return 6;
+  return /\banual/.test(t) ? 12 : 1;
+}
+
+/** "2 vezes ao mês": são dias que o papel não diz quais. */
+function vezesPorMes(t: string): number {
+  const m = t.match(/(\d|uma?|duas|três|tres)\s*(?:vez|vezes|x)\s*(?:por|ao|no)\s+m[eê]s/);
+  return m ? numero(m[1]) : 1;
 }
 
 const TODA_SEMANA =
@@ -440,6 +508,9 @@ export function classificarRemedio(lido: RemedioLido, ativos: Remedio[], hoje: s
   const sugestao = sugerirAgenda(semDuracao);
   const diasCitados = DIAS_DA_SEMANA.filter(([, regra]) => regra.test(semDuracao)).map(([d]) => d);
   const semanal = TODA_SEMANA.test(semDuracao) || diasCitados.length > 0;
+  const mensal = TODO_MES.test(semDuracao);
+  const unica = DOSE_UNICA.test(semDuracao) && !UNICA_DIARIA.test(semDuracao);
+  const quinzenal = /quinzen/.test(semDuracao);
   // A leitura geral chama de "semana" qualquer texto com essa palavra; aqui vale a regra estrita.
   if (sugestao.frequencia === "semana") {
     delete sugestao.frequencia;
@@ -451,8 +522,8 @@ export function classificarRemedio(lido: RemedioLido, ativos: Remedio[], hoje: s
 
   if (mesmos.length === 1) {
     const alvo = mesmos[0];
-    const frequenciaLida = semanal ? "semana" : sugestao.frequencia;
-    if ((frequenciaLida && frequenciaLida !== alvo.frequencia) || NAO_E_DIARIO.test(baixo)) {
+    const frequenciaLida = unica ? "unica" : mensal ? "mensal" : semanal ? "semana" : quinzenal ? "intervalo" : sugestao.frequencia;
+    if (frequenciaLida && frequenciaLida !== alvo.frequencia) {
       return duvida("o papel parece mudar os dias de tomar");
     }
     const dados: { dosagem?: string; horarios?: string[] } = {};
@@ -472,27 +543,44 @@ export function classificarRemedio(lido: RemedioLido, ativos: Remedio[], hoje: s
 
   if (parecidos.length > 0) return duvida(`pode ser o mesmo que ${parecidos[0].nome}, que já está na lista`);
   if (!lido.dosagem?.trim()) return duvida("não deu para ler a dose");
-  if (NAO_E_DIARIO.test(baixo)) return duvida("não é um remédio de todo dia");
+  if (mensal && vezesPorMes(semDuracao) > 1) return duvida("é mais de uma vez por mês, e não sei os dias");
 
+  // Meses escritos no papel valem mais que a conta em dias feita pela IA.
   const escrita = duracaoNoTexto(baixo);
-  const dias = lido.duracao_dias ?? escrita;
-  if (escrita === -1 && !lido.duracao_dias) return duvida("o tratamento é contado em meses");
-  if (dias !== null && !(Number.isInteger(dias) && dias >= 1 && dias <= 365)) {
-    return duvida("não entendi por quanto tempo");
+  const duracao: DuracaoTratamento =
+    escrita && "meses" in escrita ? escrita : lido.duracao_dias !== null ? { dias: lido.duracao_dias } : escrita;
+  if (duracao) {
+    const n = "dias" in duracao ? duracao.dias : duracao.meses;
+    const maximo = "dias" in duracao ? 365 : 24;
+    if (!(Number.isInteger(n) && n >= 1 && n <= maximo)) return duvida("não entendi por quanto tempo");
   }
 
-  const base: Agenda = { ...agendaVazia(hoje), ...sugestao, fim: dias ? somarDias(hoje, dias - 1) : null };
+  const base: Agenda = { ...agendaVazia(hoje), ...sugestao };
   let recorrencia: Recorrencia | null = null;
-  if (semanal && base.frequencia !== "quando_precisar") {
-    base.frequencia = "semana";
-    base.intervalo_dias = null;
-    const vezes = vezesPorSemana(semDuracao);
-    // Só vem marcado quando o papel cita um dia (ou exatamente quantos pede): "segunda a sexta" não.
-    const claro = diasCitados.length === (vezes ?? 1) && !/ (?:a|até) (?:segunda|ter|quarta|quinta|sexta|s[aá]bado|domingo)/.test(semDuracao);
-    base.dias_semana = claro ? diasCitados : [];
-    recorrencia = { tipo: "semana", vezes };
-  } else if (base.frequencia === "intervalo") {
-    recorrencia = { tipo: "intervalo" };
+  if (base.frequencia !== "quando_precisar") {
+    if (unica) {
+      base.frequencia = "unica";
+      base.intervalo_dias = null;
+      recorrencia = { tipo: "unica" };
+    } else if (mensal) {
+      base.frequencia = "mensal";
+      const cada = intervaloEmMeses(semDuracao);
+      base.intervalo_dias = cada > 1 ? cada : null;
+      recorrencia = { tipo: "mensal" };
+    } else if (semanal) {
+      base.frequencia = "semana";
+      base.intervalo_dias = null;
+      const vezes = vezesPorSemana(semDuracao);
+      // Só vem marcado quando o papel cita um dia (ou exatamente quantos pede): "segunda a sexta" não.
+      const claro = diasCitados.length === (vezes ?? 1) && !/ (?:a|até) (?:segunda|ter|quarta|quinta|sexta|s[aá]bado|domingo)/.test(semDuracao);
+      base.dias_semana = claro ? diasCitados : [];
+      recorrencia = { tipo: "semana", vezes };
+    } else if (quinzenal || base.frequencia === "intervalo") {
+      base.frequencia = "intervalo";
+      base.intervalo_dias = base.intervalo_dias ?? 15;
+      recorrencia = { tipo: "intervalo" };
+    }
   }
-  return { acao: "novo", agenda: agendaParaGravar(base), instrucoes: texto || null, recorrencia };
+  const agenda = aplicarInicio(base, hoje, duracao);
+  return { acao: "novo", agenda: agendaParaGravar(agenda), instrucoes: texto || null, recorrencia, duracao };
 }

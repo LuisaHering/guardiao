@@ -7,8 +7,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui";
-import { descreverAgenda, type Agenda, type Recorrencia } from "@/lib/medicacao";
+import { Button, Input } from "@/components/ui";
+import { aplicarInicio, descreverAgenda, hojeBR, somarMeses, type Agenda, type DuracaoTratamento, type Recorrencia } from "@/lib/medicacao";
 import { gravarConferencia, lerPapel, SEM_PREPARO, type Leitura, type Resposta } from "@/lib/leituras";
 import { rotuloEnvio, type TipoEnvio } from "@/lib/documentos";
 
@@ -233,7 +233,14 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
         <div className="flex flex-col gap-3">
           {foto}
           <div ref={pergunta} className="flex scroll-mt-16 flex-col gap-3 rounded-2xl border-4 border-danger bg-card p-4">
-            <Certeza key={indice} item={item} agenda={item.classe.agenda} recorrencia={item.classe.recorrencia} onPronto={concluirCerteza} />
+            <Certeza
+              key={indice}
+              item={item}
+              agenda={item.classe.agenda}
+              recorrencia={item.classe.recorrencia}
+              duracao={item.classe.duracao}
+              onPronto={concluirCerteza}
+            />
           </div>
           <Button variant="ghost" onClick={() => setEtapa("itens")} className="h-12 text-base">← Voltar</Button>
         </div>
@@ -338,12 +345,20 @@ const NoPapel = ({ texto }: { texto: string }) =>
 
 function ComoEntra({ agenda }: { agenda: Agenda }) {
   const semHorario = agenda.frequencia !== "quando_precisar" && agenda.horarios.length === 0;
-  const faltaDia = agenda.frequencia === "semana" && agenda.dias_semana.length === 0;
+  const faltaDia =
+    (agenda.frequencia === "semana" && agenda.dias_semana.length === 0) ||
+    ["intervalo", "mensal", "unica"].includes(agenda.frequencia);
+  const naoDiario: Record<string, string> = {
+    semana: "Toda semana",
+    intervalo: `A cada ${agenda.intervalo_dias} dias`,
+    mensal: agenda.intervalo_dias ? `A cada ${agenda.intervalo_dias} meses` : "Todo mês",
+    unica: "Uma dose só",
+  };
   return (
     <div className="rounded-xl bg-panel p-3">
       <p className="text-base text-subtle">Na lista vai ficar:</p>
       <p className="text-lg font-medium text-ink">
-        {faltaDia ? "Toda semana (você escolhe o dia a seguir)" : descreverAgenda(agenda)}
+        {faltaDia ? `${naoDiario[agenda.frequencia]} (você escolhe o dia a seguir)` : descreverAgenda(agenda)}
       </p>
       {semHorario && (
         <p className="mt-1 text-base font-medium text-warn">
@@ -432,18 +447,43 @@ function Certeza({
   item,
   agenda,
   recorrencia,
+  duracao,
   onPronto,
 }: {
   item: Leitura["remedios"][number];
   agenda: Agenda;
   recorrencia: Recorrencia;
+  duracao: DuracaoTratamento;
   onPronto: (agenda: Agenda | null) => void;
 }) {
   const [dias, setDias] = useState<number[]>(agenda.dias_semana);
+  // Nos outros casos a pessoa escolhe a data; nada vem marcado, para ela olhar o papel.
+  const [quando, setQuando] = useState<"hoje" | "outro" | null>(null);
+  const [outroDia, setOutroDia] = useState("");
+  const hoje = hojeBR();
   const semana = recorrencia.tipo === "semana";
+  const unica = recorrencia.tipo === "unica";
   const pedidos = recorrencia.tipo === "semana" ? recorrencia.vezes : null;
-  const diasCertos = !semana || (pedidos ? dias.length === pedidos : dias.length > 0);
+
+  const inicio = quando === "hoje" ? hoje : quando === "outro" && outroDia >= hoje ? outroDia : "";
+  const pronto = semana ? (pedidos ? dias.length === pedidos : dias.length > 0) : !!inicio;
+  const final: Agenda = semana ? { ...agenda, dias_semana: dias } : aplicarInicio(agenda, inicio || hoje, duracao);
+
+  const frequencia = semana
+    ? "toda semana"
+    : recorrencia.tipo === "intervalo"
+      ? `a cada ${agenda.intervalo_dias} dias`
+      : unica
+        ? "uma dose só, uma única vez"
+        : agenda.intervalo_dias
+          ? `a cada ${agenda.intervalo_dias} meses`
+          : "uma vez por mês";
   const escolhidos = DIAS.filter(([d]) => dias.includes(d)).map(([, n]) => n.toLowerCase());
+  const diaEscolhido = inicio ? inicio.split("-").reverse().join("/") : "";
+  const complemento = semana ? escolhidos.join(" e ") : diaEscolhido ? `em ${diaEscolhido}` : "";
+
+  const opcao = (marcada: boolean) =>
+    `min-h-14 rounded-xl border-2 px-2 text-lg font-semibold ${marcada ? "border-primary bg-primary text-white" : "border-line bg-card text-ink"}`;
 
   return (
     <>
@@ -452,6 +492,13 @@ function Certeza({
         {item.nome} {item.dosagem}
       </p>
       <p className="rounded-xl bg-panel p-3 text-lg text-ink">No papel: {item.texto}</p>
+      {unica && (
+        <p className="rounded-xl bg-warn/10 p-3 text-lg font-medium text-warn">
+          Cuidado: às vezes “dose única” quer dizer uma vez por dia. Se for esse o caso, ou se tiver dúvida, toque em “Não
+          tenho certeza”.
+        </p>
+      )}
+
       {semana ? (
         <>
           <p className="text-lg font-semibold text-ink">
@@ -464,7 +511,7 @@ function Certeza({
                 type="button"
                 aria-pressed={dias.includes(d)}
                 onClick={() => setDias((l) => (l.includes(d) ? l.filter((x) => x !== d) : [...l, d].sort()))}
-                className={`min-h-14 rounded-xl border-2 text-lg font-semibold ${dias.includes(d) ? "border-primary bg-primary text-white" : "border-line bg-card text-ink"}`}
+                className={opcao(dias.includes(d))}
               >
                 {nome}
               </button>
@@ -472,16 +519,36 @@ function Certeza({
           </div>
         </>
       ) : (
-        <p className="text-lg font-semibold text-ink">
-          Na lista: a cada {agenda.intervalo_dias} dias, contando a partir de hoje.
-        </p>
+        <>
+          <p className="text-lg font-semibold text-ink">{unica ? "Que dia é para tomar?" : "Quando é a próxima dose?"}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" aria-pressed={quando === "hoje"} onClick={() => setQuando("hoje")} className={opcao(quando === "hoje")}>
+              Hoje
+            </button>
+            <button type="button" aria-pressed={quando === "outro"} onClick={() => setQuando("outro")} className={opcao(quando === "outro")}>
+              Outro dia
+            </button>
+          </div>
+          {quando === "outro" && (
+            <Input
+              type="date"
+              aria-label="Escolha o dia"
+              min={hoje}
+              max={somarMeses(hoje, 24)}
+              value={outroDia}
+              onChange={(e) => setOutroDia(e.target.value)}
+              className="h-14 text-lg"
+            />
+          )}
+          {pronto && <p className="rounded-xl bg-panel p-3 text-lg font-medium text-ink">Na lista: {descreverAgenda(final)}</p>}
+        </>
       )}
+
       <p className="text-xl font-bold text-ink">
-        Olhe o papel de novo. Você tem certeza de que é{" "}
-        {semana ? "toda semana" : `a cada ${agenda.intervalo_dias} dias`}
-        {semana && escolhidos.length ? `, ${escolhidos.join(" e ")}` : ""}?
+        Olhe o papel de novo. Você tem certeza de que é {frequencia}
+        {complemento ? `, ${complemento}` : ""}?
       </p>
-      <Button variant="primary" disabled={!diasCertos} onClick={() => onPronto({ ...agenda, dias_semana: dias })} className="h-16 text-xl">
+      <Button variant="primary" disabled={!pronto} onClick={() => onPronto(final)} className="h-16 text-xl">
         Sim, tenho certeza
       </Button>
       <Button onClick={() => onPronto(null)} className="h-14 text-lg">Não tenho certeza</Button>
