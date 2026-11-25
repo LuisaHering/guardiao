@@ -8,6 +8,7 @@ import { IACarregando } from "@/components/ia-carregando";
 import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
 import { MARCA_ERRO } from "@/lib/chat-marca";
 import { gravarProposta } from "@/lib/ingestao";
+import { rotuloHorario } from "@/lib/medicacao";
 import { ROTULO_TIPO, type DadosProposta, type Proposta } from "@/lib/propostas";
 
 type Conversa = {
@@ -480,7 +481,7 @@ export default function ConversaPage() {
                   )}
                   {p.dados.tipo === "medicacao" && (
                     <p className="text-sm text-ink">
-                      Registrar <strong>{p.dados.nome}</strong>{p.dados.horario ? ` (dose das ${p.dados.horario})` : ""} como tomado hoje.
+                      Registrar <strong>{p.dados.nome}</strong>{p.dados.horario ? ` (dose: ${rotuloHorario(p.dados.horario).toLowerCase()})` : ""} como tomado hoje.
                     </p>
                   )}
                   <p className="text-xs text-subtle">

@@ -29,6 +29,8 @@ export function FormRemedio({
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  // Muda a cada envio: faz os botões da agenda voltarem junto com os campos.
+  const [vez, setVez] = useState(0);
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -60,6 +62,7 @@ export function FormRemedio({
       setDosagem("");
       setInstrucoes("");
       setAgenda(agendaVazia());
+      setVez((v) => v + 1);
     }
   }
 
@@ -76,7 +79,7 @@ export function FormRemedio({
       <Field label="Instruções (opcional)">
         <Input value={instrucoes} onChange={(e) => setInstrucoes(e.target.value)} placeholder="ex: em jejum" />
       </Field>
-      <CamposAgenda valor={agenda} onChange={setAgenda} />
+      <CamposAgenda key={vez} valor={agenda} onChange={setAgenda} />
       {pedirMotivo && (
         <Field label="Por que mudar? (opcional)">
           <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="ex: o médico mudou na consulta" />

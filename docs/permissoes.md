@@ -78,8 +78,11 @@ A migração `20261124130000_documentos.sql` leva o seu próprio teste dessas re
 
 ## Remédios: agenda e confirmação
 
-Cada remédio tem horários, frequência (todo dia, dias da semana, a cada tantos dias ou só
-quando precisar) e período de uso. Cada dose é um registro próprio.
+Cada remédio tem frequência (todo dia, dias da semana, a cada tantos dias ou só quando
+precisar), momento do dia (por período: manhã, tarde, noite; ou em horário específico) e
+duração (sem data para acabar, por alguns dias ou até uma data). Cada dose é um registro
+próprio. A dose por período aparece como atrasada quando o período acaba (manhã às 12:00,
+tarde às 18:00, noite às 23:00); a de horário específico, 30 minutos depois da hora.
 
 | Ação | Administrador | Demais membros | Garantido no |
 |------|---------------|----------------|--------------|

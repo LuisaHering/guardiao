@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import {
   descreverAgenda,
   doseParaRegistrar,
+  jaChegou,
+  somarDias,
   dosesDoDia,
   resumoDoDia,
   sugerirAgenda,
@@ -119,6 +121,31 @@ test("resumo do dia: uma de duas doses não conta como feito", () => {
   assert.equal(resumoDoDia(remedio({ frequencia: "semana", dias_semana: [1] }), [], HOJE).situacao, "sem_dose");
 });
 
+test("períodos do dia: ordem, atraso e dose da conversa", () => {
+  const r = remedio({ horarios: ["noite", "manha"] });
+  const d = dosesDoDia([r], [], HOJE, agora("12:01"));
+  assert.deepEqual(d.map((x) => x.horario), ["manha", "noite"]);
+  assert.equal(d[0].atrasada, true);
+  assert.equal(d[1].atrasada, false);
+  assert.equal(dosesDoDia([r], [], HOJE, agora("12:00"))[0].atrasada, false);
+  assert.equal(doseParaRegistrar(d, "10:00")?.horario, "manha");
+  assert.equal(jaChegou("noite", "10:00"), false);
+  assert.equal(jaChegou("manha", "08:00"), true);
+  assert.equal(descreverAgenda(r), "Todo dia, manhã e noite");
+  assert.equal(validarAgenda(r), null);
+});
+
+test("SEGURANÇA: trocar de hora marcada para período não reabre a dose dada", () => {
+  const d = dosesDoDia([remedio({ horarios: ["manha", "noite"] })], [registro("08:00")], HOJE, agora("13:00"));
+  assert.equal(d[0].registro?.horario, "08:00");
+  assert.equal(d[1].registro, null);
+});
+
+test("duração: quem escolheu ter fim precisa dizer qual", () => {
+  assert.ok(validarAgenda(remedio({ fim: "" })));
+  assert.equal(somarDias("2026-11-24", 6), "2026-11-30");
+});
+
 test("sugestão da receita é conservadora com horários", () => {
   assert.equal(sugerirAgenda("tomar se necessário, em caso de dor").frequencia, "quando_precisar");
   assert.equal(sugerirAgenda("1 comprimido de 8/8h").horarios, undefined);
@@ -127,4 +154,7 @@ test("sugestão da receita é conservadora com horários", () => {
   assert.equal(sugerirAgenda("1 cp às 8h e 20h").horarios, undefined, "pegar só um seria pior que nenhum");
   assert.equal(sugerirAgenda("em dias alternados").intervalo_dias, 2);
   assert.deepEqual(sugerirAgenda("1x por semana").dias_semana, []);
+  assert.deepEqual(sugerirAgenda("1 cp pela manhã e à noite").horarios, ["manha", "noite"]);
+  assert.deepEqual(sugerirAgenda("tomar ao deitar").horarios, ["noite"]);
+  assert.equal(sugerirAgenda("começar amanhã").horarios, undefined);
 });

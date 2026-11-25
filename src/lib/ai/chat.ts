@@ -13,6 +13,8 @@ import {
   descreverAgenda,
   dosesDoDia,
   horaBR,
+  jaChegou,
+  rotuloHorario,
   type RegistroDose,
   type Remedio,
 } from "@/lib/medicacao";
@@ -170,13 +172,12 @@ export async function montarContexto(
     : { data: [] };
   const registros = (regs ?? []) as unknown as RegistroDose[];
   const doses = dosesDoDia(remedios, registros, hoje);
-  // Só entra como pendência o que já deveria ter sido dado (com 1 h de folga): não faz
-  // sentido perguntar de manhã pela dose da noite.
-  const limite = horaBR(new Date(Date.now() + 3_600_000));
-  const virouODia = limite < horaBR();
+  // Só entra como pendência a dose cuja hora já chegou: não faz sentido perguntar de
+  // manhã pela dose da noite.
+  const agoraHora = horaBR();
   const pendentes = doses
-    .filter((d) => !d.registro && (!d.horario || virouODia || d.horario <= limite))
-    .map((d) => (d.horario ? `${d.remedio.nome} das ${d.horario}` : d.remedio.nome));
+    .filter((d) => !d.registro && jaChegou(d.horario, agoraHora))
+    .map((d) => (d.horario ? `${d.remedio.nome} (${rotuloHorario(d.horario).toLowerCase()})` : d.remedio.nome));
   const naoDadas = registros.filter((r) => r.status === "nao_dada");
 
   // O que foi dito nas conversas anteriores: e o que permite a IA "lembrar" e dar seguimento.
@@ -213,7 +214,7 @@ export async function montarContexto(
               ? "hoje: " +
                 doDia
                   .map((d) => {
-                    const quando = d.horario ? `${d.horario} ` : "";
+                    const quando = d.horario ? `${rotuloHorario(d.horario)} ` : "";
                     if (!d.registro) return `${quando}sem registro`;
                     return d.registro.status === "dada"
                       ? `${quando}dada`
@@ -353,8 +354,8 @@ export function montarSystem(opts: {
 
   if (opts.tipo === "checkin_diario") {
     const pend = opts.contexto.pendentes.length
-      ? `Doses de hoje que já deveriam ter sido dadas e estão sem registro: ${opts.contexto.pendentes.join(", ")}.`
-      : "Não há dose atrasada sem registro; não pergunte sobre medicação, a não ser que a pessoa traga o assunto.";
+      ? `Doses de hoje cuja hora já chegou e estão sem registro: ${opts.contexto.pendentes.join(", ")}.`
+      : "Não há dose esperando registro agora; não pergunte sobre medicação, a não ser que a pessoa traga o assunto.";
     partes.push(`${ROTEIRO_CHECKIN}\n${pend}`);
   } else {
     partes.push(

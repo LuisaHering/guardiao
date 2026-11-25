@@ -12,6 +12,7 @@ import {
   horaBR,
   MOTIVOS,
   rotuloDoMotivo,
+  rotuloHorario,
   type Dose,
   type RegistroDose,
   type Remedio,
@@ -148,7 +149,7 @@ export function DosesDeHoje({ idosoId, versao = 0 }: { idosoId: string; versao?:
             >
               <div className="flex items-start gap-3">
                 {d.horario && (
-                  <span className="w-14 shrink-0 text-lg font-semibold tabular-nums text-ink">{d.horario}</span>
+                  <span className="w-16 shrink-0 text-lg font-semibold tabular-nums text-ink">{rotuloHorario(d.horario)}</span>
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-base font-medium text-ink">
@@ -171,7 +172,7 @@ export function DosesDeHoje({ idosoId, versao = 0 }: { idosoId: string; versao?:
                     <span className="font-normal text-subtle">
                       {reg.registrado_por && nomes[reg.registrado_por] ? ` · ${nomes[reg.registrado_por]}` : ""}
                       {reg.registrado_em ? ` · marcado às ${horaBR(new Date(reg.registrado_em))}` : ""}
-                      {d.horarioAntigo ? ` · no horário antigo (${reg.horario})` : ""}
+                      {d.horarioAntigo ? ` · no horário antigo (${rotuloHorario(reg.horario)})` : ""}
                     </span>
                   </p>
                   <Button variant="ghost" onClick={() => { setAberta(k); setPerguntandoMotivo(null); }} className="h-10 shrink-0 px-3 text-sm">

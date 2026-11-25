@@ -6,7 +6,7 @@ export type Frequencia = "diaria" | "semana" | "intervalo" | "quando_precisar";
 
 export type Agenda = {
   frequencia: Frequencia;
-  /** "HH:MM"; vazio = sem horário definido */
+  /** cada item é "HH:MM" ou um período ("manha", "tarde", "noite"); vazio = sem horário */
   horarios: string[];
   /** 0 = domingo ... 6 = sábado */
   dias_semana: number[];
@@ -85,6 +85,40 @@ export const diasEntre = (de: string, ate: string) => Math.round((meioDia(ate) -
 
 const minutos = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
 
+/**
+ * Períodos do dia, para quem não tem hora marcada. `meio` serve para ordenar a lista;
+ * `inicio` diz quando a dose "chegou"; passado o `fim`, ela aparece como atrasada.
+ */
+export const PERIODOS = [
+  { valor: "manha", rotulo: "Manhã", inicio: "05:00", meio: "09:00", fim: "12:00" },
+  { valor: "tarde", rotulo: "Tarde", inicio: "12:00", meio: "15:00", fim: "18:00" },
+  { valor: "noite", rotulo: "Noite", inicio: "18:00", meio: "21:00", fim: "23:00" },
+] as const;
+
+const periodoDe = (h: string) => PERIODOS.find((p) => p.valor === h);
+export const ehPeriodo = (h: string) => !!periodoDe(h);
+export const rotuloHorario = (h: string) => periodoDe(h)?.rotulo ?? h;
+
+/** Posição do horário no dia, em minutos (sem horário vai para o fim). */
+const posicao = (h: string) => (h ? minutos(periodoDe(h)?.meio ?? h) : 24 * 60);
+
+export const compararHorarios = (a: string, b: string) => posicao(a) - posicao(b) || a.localeCompare(b);
+
+/** A hora desta dose já chegou (com 1 h de folga)? Sem horário, vale o dia todo. */
+export function jaChegou(horario: string, hora: string): boolean {
+  if (!horario) return true;
+  return minutos(periodoDe(horario)?.inicio ?? horario) <= minutos(hora) + 60;
+}
+
+function passouDaHora(horario: string, hora: string): boolean {
+  const p = periodoDe(horario);
+  return p ? minutos(hora) > minutos(p.fim) : minutos(hora) > minutos(horario) + TOLERANCIA_MIN;
+}
+
+/** "manhã, noite" ou "08:00 e 20:00", na ordem do dia. */
+const listarHorarios = (hs: string[]) =>
+  juntar([...hs].sort(compararHorarios).map((h) => (ehPeriodo(h) ? rotuloHorario(h).toLowerCase() : h)));
+
 /** O remédio é esperado neste dia? "Só quando precisar" nunca é esperado. */
 export function valeNoDia(r: Agenda & { ativo?: boolean }, dia: string): boolean {
   if (r.ativo === false) return false;
@@ -119,7 +153,7 @@ export function dosesDoDia(
 
   for (const remedio of remedios) {
     if (!valeNoDia(remedio, dia)) continue;
-    const slots = remedio.horarios.length ? [...remedio.horarios].sort() : [""];
+    const slots = remedio.horarios.length ? [...remedio.horarios].sort(compararHorarios) : [""];
     const doDia = registros.filter((r) => r.medicacao_id === remedio.id && r.data === dia);
 
     const ocupados = new Map<number, { registro: RegistroDose; antigo: boolean }>();
@@ -129,12 +163,12 @@ export function dosesDoDia(
       if (i >= 0) ocupados.set(i, { registro: reg, antigo: false });
       else sobras.push(reg);
     }
-    for (const reg of sobras.sort((a, b) => a.horario.localeCompare(b.horario))) {
+    for (const reg of sobras.sort((a, b) => compararHorarios(a.horario, b.horario))) {
       let melhor = -1;
       let distancia = Number.POSITIVE_INFINITY;
       slots.forEach((s, j) => {
         if (ocupados.has(j)) return;
-        const d = s && reg.horario ? Math.abs(minutos(s) - minutos(reg.horario)) : j;
+        const d = s && reg.horario ? Math.abs(posicao(s) - posicao(reg.horario)) : j;
         if (d < distancia) {
           melhor = j;
           distancia = d;
@@ -152,14 +186,13 @@ export function dosesDoDia(
         horario,
         registro: o?.registro ?? null,
         horarioAntigo: o?.antigo ?? false,
-        atrasada:
-          !o && horario !== "" && dia === agora.dia && minutos(agora.hora) > minutos(horario) + TOLERANCIA_MIN,
+        atrasada: !o && horario !== "" && dia === agora.dia && passouDaHora(horario, agora.hora),
       });
     });
   }
 
   return doses.sort(
-    (a, b) => (a.horario || "99").localeCompare(b.horario || "99") || a.remedio.nome.localeCompare(b.remedio.nome),
+    (a, b) => compararHorarios(a.horario, b.horario) || a.remedio.nome.localeCompare(b.remedio.nome),
   );
 }
 
@@ -169,7 +202,7 @@ export function dosesDoDia(
  */
 export function doseParaRegistrar(doses: Dose[], hora: string): Dose | null {
   const pendentes = doses.filter((d) => !d.registro);
-  const chegaram = pendentes.filter((d) => !d.horario || minutos(d.horario) <= minutos(hora) + 60);
+  const chegaram = pendentes.filter((d) => jaChegou(d.horario, hora));
   return chegaram[chegaram.length - 1] ?? pendentes[0] ?? null;
 }
 
@@ -207,9 +240,14 @@ export function descreverAgenda(r: Agenda): string {
   else base = "Todo dia";
 
   if (r.frequencia !== "quando_precisar") {
-    base += r.horarios.length ? `, ${juntar([...r.horarios].sort())}` : ", sem horário";
+    base += r.horarios.length ? `, ${listarHorarios(r.horarios)}` : ", sem horário";
   }
   return r.fim ? `${base} · até ${diaMes(r.fim)}` : base;
+}
+
+/** Data somando dias (para "tomar por N dias": fim = início + N - 1). */
+export function somarDias(iso: string, dias: number): string {
+  return new Date(meioDia(iso) + dias * 86_400_000).toISOString().slice(0, 10);
 }
 
 export function agendaVazia(hoje: string = hojeBR()): Agenda {
@@ -218,12 +256,16 @@ export function agendaVazia(hoje: string = hojeBR()): Agenda {
 
 /** Mensagem do problema, ou null se a agenda está boa. */
 export function validarAgenda(a: Agenda): string | null {
-  if (a.horarios.some((h) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(h))) return "Preencha todos os horários ou apague o que estiver vazio.";
+  if (a.horarios.some((h) => !ehPeriodo(h) && !/^([01]\d|2[0-3]):[0-5]\d$/.test(h))) {
+    return "Preencha todos os horários ou apague o que estiver vazio.";
+  }
   if (new Set(a.horarios).size !== a.horarios.length) return "Há um horário repetido.";
   if (a.frequencia === "semana" && a.dias_semana.length === 0) return "Escolha os dias da semana.";
   if (a.frequencia === "intervalo" && !(a.intervalo_dias && a.intervalo_dias >= 2 && a.intervalo_dias <= 365)) {
     return "Diga de quantos em quantos dias (2 ou mais).";
   }
+  // "" = a pessoa disse que tem fim, mas ainda não disse quando: não pode virar "sem fim".
+  if (a.fim === "") return "Diga por quantos dias ou até quando o remédio será tomado.";
   if (a.fim && a.fim < a.inicio) return "A data final não pode ser antes do início.";
   return null;
 }
@@ -232,7 +274,7 @@ export function validarAgenda(a: Agenda): string | null {
 export function agendaParaGravar(a: Agenda): Agenda {
   return {
     frequencia: a.frequencia,
-    horarios: a.frequencia === "quando_precisar" ? [] : [...a.horarios].sort(),
+    horarios: a.frequencia === "quando_precisar" ? [] : [...a.horarios].sort(compararHorarios),
     dias_semana: a.frequencia === "semana" ? [...a.dias_semana].sort() : [],
     intervalo_dias: a.frequencia === "intervalo" ? a.intervalo_dias : null,
     inicio: a.inicio,
@@ -272,6 +314,15 @@ export function sugerirAgenda(texto: string): Partial<Agenda> {
   }
   const mencoes = t.match(/\d{1,2}\s*(?:h\b|:\d{2}|h\d{2})/g)?.length ?? 0;
   if (achados.size > 0 && achados.size === mencoes) sugestao.horarios = [...achados].sort();
+
+  // Sem hora escrita, vale o período ("pela manhã", "à noite"). "Amanhã" não conta.
+  if (mencoes === 0) {
+    const periodos: string[] = [];
+    if (/(?:pela|de|da|na|à|a)\s+manh[ãa]/.test(t)) periodos.push("manha");
+    if (/(?:pela|de|da|na|à|a)\s+tarde/.test(t)) periodos.push("tarde");
+    if (/(?:pela|de|da|na|à|a)\s+noite|ao deitar|antes de dormir/.test(t)) periodos.push("noite");
+    if (periodos.length) sugestao.horarios = periodos;
+  }
 
   return sugestao;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { rotuloHorario } from "@/lib/medicacao";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
@@ -161,7 +162,7 @@ export default function TimelinePage() {
         .order("registrado_em", { ascending: false })
         .limit(50);
       for (const r of (regs ?? []) as Record<string, unknown>[]) {
-        const nome = `${medMap.get(r.medicacao_id as string) ?? "Remédio"}${r.horario ? ` (${r.horario})` : ""}`;
+        const nome = `${medMap.get(r.medicacao_id as string) ?? "Remédio"}${r.horario ? ` (${rotuloHorario(r.horario as string)})` : ""}`;
         const deu = r.status === "dada";
         lista.push({
           id: `med-${r.id}`,
