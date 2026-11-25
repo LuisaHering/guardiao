@@ -19,6 +19,7 @@ import {
   type RegistroDose,
   type Remedio,
 } from "@/lib/medicacao";
+import { remediosLidosSemRevisao } from "@/lib/leituras";
 import { cn } from "@/lib/cn";
 
 const chaveDe = (d: Dose) => `${d.remedio.id}|${d.horario}`;
@@ -29,6 +30,7 @@ export function DosesDeHoje({ idosoId, versao = 0 }: { idosoId: string; versao?:
   const [remedios, setRemedios] = useState<Remedio[]>([]);
   const [registros, setRegistros] = useState<RegistroDose[]>([]);
   const [nomes, setNomes] = useState<Record<string, string>>({});
+  const [daFoto, setDaFoto] = useState<Set<string>>(new Set());
   const [carregando, setCarregando] = useState(true);
   const [recarga, setRecarga] = useState(0);
   const [aberta, setAberta] = useState<string | null>(null);
@@ -64,7 +66,9 @@ export function DosesDeHoje({ idosoId, versao = 0 }: { idosoId: string; versao?:
       const { data: us } = autores.length
         ? await supabase.from("usuario").select("id, nome").in("id", autores)
         : { data: [] };
+      const lidos = await remediosLidosSemRevisao(supabase, idosoId);
       if (cancelado) return;
+      setDaFoto(lidos);
       setRemedios(lista);
       setRegistros(regs);
       setNomes(Object.fromEntries((us ?? []).map((u) => [u.id as string, ((u.nome as string) ?? "").split(" ")[0]])));
@@ -269,6 +273,9 @@ export function DosesDeHoje({ idosoId, versao = 0 }: { idosoId: string; versao?:
                   <p className="text-sm text-subtle">
                     {[d.remedio.dosagem, d.remedio.instrucoes].filter(Boolean).join(" · ")}
                   </p>
+                  {daFoto.has(d.remedio.id) && (
+                    <p className="mt-1 text-sm font-medium text-warn">Lido da foto, confira no papel</p>
+                  )}
                 </div>
                 {(d.horario || d.atrasada) && (
                   <span

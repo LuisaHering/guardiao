@@ -287,7 +287,8 @@ export function agendaParaGravar(a: Agenda): Agenda {
  * horário (um horário a menos passaria despercebido), e uma pessoa sempre confere.
  */
 export function sugerirAgenda(texto: string): Partial<Agenda> {
-  const t = texto.toLowerCase();
+  // "à" pode vir como uma letra só ou como "a" + acento: sem padronizar, o período não é achado.
+  const t = texto.normalize("NFC").toLowerCase();
   if (/quando necess|se necess|se precisar|se houver dor|em caso de|\bsos\b/.test(t)) {
     return { frequencia: "quando_precisar", horarios: [] };
   }
@@ -325,4 +326,118 @@ export function sugerirAgenda(texto: string): Partial<Agenda> {
   }
 
   return sugestao;
+}
+
+// ---------------------------------------------------------------------------
+// Receita lida da foto
+// ---------------------------------------------------------------------------
+// O que a IA leu e a pessoa confirmar passa a valer na hora. Por isso, em qualquer dúvida,
+// o item NÃO entra sozinho: vai para a família olhar a foto.
+
+export type RemedioLido = {
+  nome: string;
+  dosagem: string | null;
+  frequencia: string | null;
+  observacoes: string | null;
+  /** o papel manda parar este remédio */
+  parar: boolean;
+  /** só quando o papel diz por quanto tempo, em dias */
+  duracao_dias: number | null;
+  /** palpite da IA sobre qual remédio da lista é este */
+  medicacao_id: string | null;
+};
+
+export type Classificacao =
+  | { acao: "novo"; agenda: Agenda; instrucoes: string | null }
+  | { acao: "ja_toma"; alvo: Remedio }
+  | { acao: "mudar"; alvo: Remedio; dados: { dosagem?: string; horarios?: string[] }; mudancas: string[] }
+  | { acao: "duvida"; alvo: Remedio | null; motivo: string }
+  | { acao: "parar"; alvo: Remedio | null };
+
+const simples = (t: string) =>
+  t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+
+const mesmaDose = (a: string, b: string) => {
+  const limpa = (t: string) => simples(t).replace(/\s/g, "").replace(/,/g, ".");
+  return limpa(a) === limpa(b);
+};
+
+/** Palavras que, sobrando num nome, indicam outra fórmula ("Losartana HCT", "X XR"). */
+const OUTRA_FORMULA = /[+/]|(^| )(e|hct|hctz|hidroclorotiazida|anlodipino|plus|composto|d|xr|sr|cr|od|retard)( |$)/;
+
+function parentesco(a: string, b: string): "mesmo" | "talvez" | "outro" {
+  const x = simples(a);
+  const y = simples(b);
+  if (x === y) return "mesmo";
+  const [curto, longo] = x.length < y.length ? [x, y] : [y, x];
+  if (longo.startsWith(`${curto} `)) return OUTRA_FORMULA.test(longo.slice(curto.length + 1)) ? "talvez" : "mesmo";
+  const primeira = x.split(" ")[0];
+  return primeira.length >= 4 && primeira === y.split(" ")[0] ? "talvez" : "outro";
+}
+
+/** Posologias que a tela não sabe montar sozinha sem arriscar virar "todo dia, para sempre". */
+const NAO_E_DIARIO =
+  /mensal|quinzen|(ao|por) m[eê]s|a cada \d+ (m[eê]s|meses)|dose [uú]nica|[uú]nica vez|\b(segundas?|ter[cç]as?|quartas?|quintas?|sextas?)\b|s[aá]bado|domingo/;
+
+/** Dias de tratamento escritos no texto; "meses" devolve -1 (não dá para converter com segurança). */
+function duracaoNoTexto(t: string): number | null {
+  const m = t.match(/(?:por|durante)\s+(\d{1,3})\s*(dias?|semanas?|m[eê]s(?:es)?)/);
+  if (!m) return null;
+  if (m[2].startsWith("m")) return -1;
+  return Number(m[1]) * (m[2].startsWith("s") ? 7 : 1);
+}
+
+const mesmosHorarios = (a: string[], b: string[]) =>
+  [...a].sort(compararHorarios).join() === [...b].sort(compararHorarios).join();
+
+export function classificarRemedio(lido: RemedioLido, ativos: Remedio[], hoje: string = hojeBR()): Classificacao {
+  const mesmos = ativos.filter((r) => parentesco(r.nome, lido.nome) === "mesmo");
+  const parecidos = ativos.filter(
+    (r) => !mesmos.includes(r) && (parentesco(r.nome, lido.nome) === "talvez" || r.id === lido.medicacao_id),
+  );
+  const alvoProvavel = mesmos[0] ?? parecidos[0] ?? null;
+
+  if (lido.parar) return { acao: "parar", alvo: alvoProvavel };
+
+  const texto = [lido.frequencia, lido.observacoes].filter(Boolean).join(" · ").normalize("NFC");
+  const baixo = texto.toLowerCase();
+  const sugestao = sugerirAgenda(texto);
+  const duvida = (motivo: string): Classificacao => ({ acao: "duvida", alvo: alvoProvavel, motivo });
+
+  if (mesmos.length > 1) return duvida("há mais de um remédio com esse nome na lista");
+
+  if (mesmos.length === 1) {
+    const alvo = mesmos[0];
+    if ((sugestao.frequencia && sugestao.frequencia !== alvo.frequencia) || NAO_E_DIARIO.test(baixo)) {
+      return duvida("o papel parece mudar os dias de tomar");
+    }
+    const dados: { dosagem?: string; horarios?: string[] } = {};
+    const mudancas: string[] = [];
+    if (lido.dosagem && alvo.dosagem && !mesmaDose(lido.dosagem, alvo.dosagem)) {
+      dados.dosagem = lido.dosagem.trim();
+      mudancas.push(`Dose: ${alvo.dosagem} → ${lido.dosagem.trim()}`);
+    }
+    if (sugestao.horarios?.length && !mesmosHorarios(sugestao.horarios, alvo.horarios)) {
+      dados.horarios = [...sugestao.horarios].sort(compararHorarios);
+      mudancas.push(
+        `Quando: ${descreverAgenda(alvo)} → ${descreverAgenda({ ...alvo, horarios: dados.horarios })}`,
+      );
+    }
+    return mudancas.length ? { acao: "mudar", alvo, dados, mudancas } : { acao: "ja_toma", alvo };
+  }
+
+  if (parecidos.length > 0) return duvida(`pode ser o mesmo que ${parecidos[0].nome}, que já está na lista`);
+  if (!lido.dosagem?.trim()) return duvida("não deu para ler a dose");
+  if (sugestao.frequencia === "semana") return duvida("é de alguns dias da semana, e não sei quais");
+  if (NAO_E_DIARIO.test(baixo)) return duvida("não é um remédio de todo dia");
+
+  const escrita = duracaoNoTexto(baixo);
+  const dias = lido.duracao_dias ?? escrita;
+  if (escrita === -1 && !lido.duracao_dias) return duvida("o tratamento é contado em meses");
+  if (dias !== null && !(Number.isInteger(dias) && dias >= 1 && dias <= 365)) {
+    return duvida("não entendi por quanto tempo");
+  }
+
+  const agenda: Agenda = { ...agendaVazia(hoje), ...sugestao, fim: dias ? somarDias(hoje, dias - 1) : null };
+  return { acao: "novo", agenda: agendaParaGravar(agenda), instrucoes: texto || null };
 }

@@ -161,3 +161,74 @@ test("sugestão da receita é conservadora com horários", () => {
   assert.deepEqual(sugerirAgenda("tomar ao deitar").horarios, ["noite"]);
   assert.equal(sugerirAgenda("começar amanhã").horarios, undefined);
 });
+
+// Receita lida da foto -------------------------------------------------------
+
+const { classificarRemedio } = await import("../src/lib/medicacao.ts");
+
+const DIA = "2026-11-25";
+const naLista = (extra = {}) => ({
+  id: "m1", nome: "Losartana", dosagem: "50 mg", instrucoes: null, ativo: true, confirmado: true, autor_id: null,
+  frequencia: "diaria", horarios: ["manha"], dias_semana: [], intervalo_dias: null, inicio: "2026-01-01", fim: null,
+  ...extra,
+});
+const lido = (extra = {}) => ({
+  nome: "Atorvastatina", dosagem: "20 mg", frequencia: "1 comprimido à noite", observacoes: null,
+  parar: false, duracao_dias: null, medicacao_id: null, ...extra,
+});
+const classe = (l, lista = [naLista()]) => classificarRemedio(lido(l), lista, DIA);
+
+test("receita: remédio novo com dose entra, com o período escrito", () => {
+  const c = classe({});
+  assert.equal(c.acao, "novo");
+  assert.deepEqual(c.agenda.horarios, ["noite"]);
+  assert.equal(c.agenda.fim, null);
+});
+
+test("receita: 'por 7 dias' vira data para acabar", () => {
+  const c = classe({ frequencia: "de 8 em 8 horas por 7 dias" });
+  assert.equal(c.agenda.fim, "2026-12-01");
+  assert.deepEqual(c.agenda.horarios, []);
+});
+
+test("receita: o mesmo remédio com a mesma dose não duplica", () => {
+  assert.equal(classe({ nome: "losartana potássica", dosagem: "50mg", frequencia: "1 pela manhã" }).acao, "ja_toma");
+});
+
+test("receita: dose diferente vira mudança", () => {
+  const c = classe({ nome: "Losartana", dosagem: "100 mg", frequencia: "pela manhã" });
+  assert.equal(c.acao, "mudar");
+  assert.deepEqual(c.dados, { dosagem: "100 mg" });
+});
+
+test("receita: horário claro e diferente vira mudança", () => {
+  const c = classe({ nome: "Losartana", dosagem: "50 mg", frequencia: "pela manhã e à noite" });
+  assert.deepEqual(c.dados, { horarios: ["manha", "noite"] });
+});
+
+test("receita: outra fórmula não é tratada como o mesmo remédio", () => {
+  for (const nome of ["Losartana + Hidroclorotiazida", "Losartana HCT"]) {
+    assert.equal(classe({ nome, dosagem: "50 mg" }).acao, "duvida", nome);
+  }
+  assert.equal(classe({ nome: "Vitamina D" }, [naLista({ nome: "Vitamina B12" })]).acao, "duvida");
+});
+
+test("receita: se a IA acha que é um da lista com outro nome, não entra sozinho", () => {
+  assert.equal(classe({ nome: "Cozaar", medicacao_id: "m1" }).acao, "duvida");
+});
+
+test("receita: semanal, mensal, dose única e meses não entram sozinhos", () => {
+  for (const frequencia of ["1 vez por semana", "1 vez ao mês", "dose única", "às segundas", "por 3 meses"]) {
+    assert.equal(classe({ nome: "Metotrexato", frequencia }).acao, "duvida", frequencia);
+  }
+});
+
+test("receita: sem dose não entra, e 'suspender' nunca é aplicado sozinho", () => {
+  assert.equal(classe({ dosagem: null }).acao, "duvida");
+  assert.equal(classe({ nome: "Losartana", parar: true }).acao, "parar");
+});
+
+test("receita: acento escrito em duas partes não esconde o período", () => {
+  const c = classe({ frequencia: "1 comprimido a\u0300 noite" });
+  assert.deepEqual(c.agenda.horarios, ["noite"]);
+});

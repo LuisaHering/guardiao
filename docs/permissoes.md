@@ -79,8 +79,8 @@ exame, atestado ou outro papel. Ela chega ao administrador numa caixa própria, 
 enviou não consegue marcar o próprio envio para consultas nem colocá-lo em uma pasta. Um
 registro nunca pode apontar para o arquivo de outro (caminho único e imutável): sem isso, criar
 um registro apontando para um arquivo escondido daria acesso a ele. Os documentos não são
-enviados à IA, a não ser quando a família escolhe "Ler como receita" e confirma na tela de
-receitas.
+enviados à IA, com duas exceções: a foto de receita ou de pedido de exame enviada por esse
+caminho (seção abaixo) e o "Ler como receita", quando a família escolhe.
 
 Regras testadas nas migrações `20261124130000_documentos.sql` e
 `20261125100000_consulta_e_documentos.sql`.
@@ -197,6 +197,42 @@ regras de quem vê são as do diário: os membros do vínculo.
 
 Em "Quando precisar", o atalho "Exame ou receita nova" leva ao envio da foto de uma receita ou de um
 pedido de exame, o mesmo envio descrito em Documentos.
+
+## Receita e pedido de exame lidos da foto
+
+Quem envia a foto de uma receita ou de um pedido de exame **confere o que a IA leu**, um item
+por vez, com "Está igual" ou "Não está igual", sem digitar. O confirmado **vale na hora** e o
+administrador recebe um pop-up **com a foto usada** para aceitar ou negar o conjunto. Negar
+desfaz: o remédio novo sai, a dose ou o horário voltam, o pedido de exame é cancelado, e quem
+cuida é avisado. Até a revisão, o remédio aparece na lista de hoje com "Lido da foto, confira
+no papel".
+
+Como o confirmado vale na hora, em qualquer dúvida o item **não entra sozinho** e vai para a
+família ler a foto:
+
+| Situação | O que acontece |
+|----------|----------------|
+| Remédio novo com dose legível | entra (horário só quando o papel diz; "por N dias" vira data final) |
+| Já está na lista com a mesma dose e horário | não duplica |
+| Já está na lista com outra dose ou horário claro | muda, depois de quem enviou conferir |
+| Nome parecido ou outra fórmula (ex: associação, liberação prolongada) | não entra |
+| Sem dose, semanal, mensal, dose única ou tratamento contado em meses | não entra |
+| O papel manda parar um remédio | nada é suspenso; aviso para falar com a família |
+
+Essas regras são código, não decisão da IA (`classificarRemedio` em `src/lib/medicacao.ts`,
+com testes). A gravação e a decisão do administrador são funções do banco, testadas na
+migração `20261125120000_conferencia_de_papel.sql`: só quem enviou confere, cada foto é
+conferida uma vez, e ninguém escreve direto nas tabelas.
+
+**Privacidade:** nesse caminho a foto vai automaticamente para o provedor de IA, junto com os
+nomes e doses dos remédios em uso, para a comparação. A foto de uma receita costuma trazer o
+nome da pessoa e do médico. No plano gratuito do Google o conteúdo pode ser usado pelo
+provedor: para uso real, o caminho é um plano pago. Se a IA falhar ou a cota acabar, a foto
+chega à família como documento e nada é mudado.
+
+**Limite:** a leitura pode errar (letra de médico, dose trocada). As proteções são a
+conferência de quem enviou, o aviso na lista e a revisão com a foto; nenhuma delas garante
+que um erro seja percebido.
 
 ## Limitações conhecidas
 

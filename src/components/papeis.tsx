@@ -5,6 +5,8 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui";
+import { ConferirPapel } from "@/components/conferir-papel";
+import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
 import { abrirArquivo, enviarPapel, rotuloEnvio, TIPOS_ENVIO, type TipoEnvio } from "@/lib/documentos";
 
 const botao = "flex min-h-[64px] w-full items-center rounded-2xl border-2 border-line bg-card px-4 text-left text-lg font-semibold text-ink hover:bg-panel";
@@ -59,16 +61,39 @@ export function DocumentosParaLevar({ idosoId }: { idosoId: string }) {
 export function EnviarFoto({ idosoId, tipos, onEnviado }: { idosoId: string; tipos?: TipoEnvio[]; onEnviado?: () => void }) {
   const [enviando, setEnviando] = useState<TipoEnvio | null>(null);
   const [mensagem, setMensagem] = useState<{ ok: boolean; texto: string } | null>(null);
+  const [conferindo, setConferindo] = useState<{ id: string; arquivo: File; tipo: TipoEnvio } | null>(null);
 
   async function escolher(tipo: TipoEnvio, arquivo: File) {
     setEnviando(tipo);
     setMensagem(null);
-    const falha = await enviarPapel(createClient(), idosoId, arquivo, tipo);
+    const r = await enviarPapel(createClient(), idosoId, arquivo, tipo);
     setEnviando(null);
-    setMensagem(
-      falha ? { ok: false, texto: falha } : { ok: true, texto: `${rotuloEnvio(tipo)} enviado. A família já pode ver.` },
+    if ("erro" in r) {
+      setMensagem({ ok: false, texto: r.erro });
+      return;
+    }
+    onEnviado?.();
+    if (tipo === "receita" || tipo === "pedido_exame") {
+      setConferindo({ id: r.id, arquivo, tipo });
+    } else {
+      setMensagem({ ok: true, texto: `${rotuloEnvio(tipo)} enviado. A família já pode ver.` });
+    }
+  }
+
+  if (conferindo) {
+    return (
+      <ConferirPapel
+        key={conferindo.id}
+        idosoId={idosoId}
+        documentoId={conferindo.id}
+        arquivo={conferindo.arquivo}
+        envio={conferindo.tipo}
+        onFim={() => {
+          setConferindo(null);
+          onEnviado?.();
+        }}
+      />
     );
-    if (!falha) onEnviado?.();
   }
 
   return (
@@ -92,6 +117,9 @@ export function EnviarFoto({ idosoId, tipos, onEnviado }: { idosoId: string; tip
           />
         </label>
       ))}
+      <p className="text-sm text-subtle">
+        A foto de receita ou de pedido de exame é lida pela {NOME_PROVEDOR}, e você confere antes de valer.{AVISO_PLANO_GRATIS}
+      </p>
       {mensagem && (
         <p className={`rounded-2xl p-3 text-center text-base font-medium ${mensagem.ok ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`} role="status">
           {mensagem.ok ? "✓ " : ""}

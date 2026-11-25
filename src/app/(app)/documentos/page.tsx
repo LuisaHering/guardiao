@@ -83,6 +83,8 @@ function DocumentosFamilia() {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [contagemAuto, setContagemAuto] = useState<Record<string, number>>({});
   const [nomes, setNomes] = useState<Record<string, string>>({});
+  // fotos que quem enviou já conferiu com a leitura da IA
+  const [conferidos, setConferidos] = useState<Set<string>>(new Set());
   const [carregando, setCarregando] = useState(true);
 
   // null = raiz; "auto:exames" etc. = pasta automática; senão, o id de uma pasta
@@ -138,7 +140,9 @@ function DocumentosFamilia() {
         ? await supabase.from("usuario").select("id, nome").in("id", autores)
         : { data: [] as { id: string; nome: string | null }[] };
 
+      const { data: ls } = await supabase.from("leitura_papel").select("documento_id").eq("idoso_id", idosoId);
       if (cancelado) return;
+      setConferidos(new Set((ls ?? []).map((l) => l.documento_id as string)));
       setPastas((ps ?? []) as Pasta[]);
       setDocs((ds ?? []) as Doc[]);
       setContagemAuto({ exames: ex, receitas: re, consultas: co, diretivas: di });
@@ -478,7 +482,10 @@ function DocumentosFamilia() {
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button onClick={() => abrir("documentos", d.arquivo_url)} className="h-9 px-3 text-xs">Abrir</Button>
-                    {d.envio === "receita" && (
+                    {conferidos.has(d.id) && (
+                      <span className="rounded-lg bg-success/10 px-3 py-2 text-xs font-medium text-success">Já lida e conferida</span>
+                    )}
+                    {d.envio === "receita" && !conferidos.has(d.id) && (
                       <Link href={`/receitas?documento=${d.id}`} className="inline-flex h-9 items-center rounded-lg border border-line px-3 text-xs font-medium text-ink hover:bg-panel">
                         Ler como receita
                       </Link>

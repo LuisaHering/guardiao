@@ -37,16 +37,16 @@ async function prepararFoto(arquivo: File): Promise<{ conteudo: Blob; tipo: stri
   return { conteudo: arquivo, tipo: arquivo.type, nome: arquivo.name };
 }
 
-/** Envia a foto de um papel para a família. Devolve a mensagem de erro, ou null. */
+/** Envia a foto de um papel para a família. Devolve o documento criado, ou a mensagem de erro. */
 export async function enviarPapel(
   supabase: SupabaseClient,
   idosoId: string,
   arquivo: File,
   envio: TipoEnvio,
-): Promise<string | null> {
-  if (!TIPOS_ACEITOS.includes(arquivo.type)) return "Esse tipo de arquivo não é aceito. Use uma foto ou um PDF.";
+): Promise<{ id: string } | { erro: string }> {
+  if (!TIPOS_ACEITOS.includes(arquivo.type)) return { erro: "Esse tipo de arquivo não é aceito. Use uma foto ou um PDF." };
   const { conteudo, tipo, nome } = await prepararFoto(arquivo);
-  if (conteudo.size > LIMITE_DOCUMENTO) return "A foto ficou grande demais. Tire de novo, mais de perto.";
+  if (conteudo.size > LIMITE_DOCUMENTO) return { erro: "A foto ficou grande demais. Tire de novo, mais de perto." };
   const { data: auth } = await supabase.auth.getUser();
   const caminho = `${idosoId}/${crypto.randomUUID()}-${nomeSeguro(nome || "foto.jpg")}`;
   const diaMes = hojeBR().split("-").reverse().slice(0, 2).join("/");
@@ -65,14 +65,14 @@ export async function enviarPapel(
     })
     .select("id")
     .single();
-  if (error || !linha) return "Não consegui enviar. Confira a internet e tente de novo.";
+  if (error || !linha) return { erro: "Não consegui enviar. Confira a internet e tente de novo." };
 
   const subida = await supabase.storage.from("documentos").upload(caminho, conteudo, { contentType: tipo, upsert: false });
   if (subida.error) {
     await supabase.from("documento").update({ deleted_at: new Date().toISOString() }).eq("id", linha.id);
-    return "O envio falhou. Confira a internet e tente de novo.";
+    return { erro: "O envio falhou. Confira a internet e tente de novo." };
   }
-  return null;
+  return { id: linha.id as string };
 }
 
 /** Abre um arquivo privado por link temporário. Devolve a mensagem de erro, ou null. */

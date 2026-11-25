@@ -46,6 +46,37 @@ export const ReceitaSchema = z.object({
 });
 export type ReceitaExtraida = z.infer<typeof ReceitaSchema>;
 
+/** Foto enviada por quem cuida: pode ser receita, pedido de exame ou os dois no mesmo papel. */
+export const PapelSchema = z.object({
+  tipo_documento: z.enum(["receita", "pedido_exame", "ambos", "outro"]),
+  legivel: z.boolean().describe("false se alguma parte importante nao pode ser lida com seguranca."),
+  medico: z.string().nullable(),
+  data: z.string().nullable().describe("Data do papel no formato AAAA-MM-DD."),
+  medicamentos: z.array(
+    z.object({
+      nome: z.string(),
+      dosagem: z.string().nullable(),
+      frequencia: z.string().nullable().describe("Posologia como esta escrita."),
+      observacoes: z.string().nullable(),
+      parar: z.boolean().describe("true somente se o papel manda suspender ou parar este remedio."),
+      duracao_dias: z
+        .number()
+        .nullable()
+        .describe("Dias de tratamento, somente se estiver escrito por quantos dias ou semanas."),
+      medicacao_id: z
+        .string()
+        .nullable()
+        .describe("ID do remedio da lista atual quando for o mesmo principio ativo ou marca; senao null."),
+    }),
+  ),
+  exames: z.array(z.string()).describe("Nome de cada exame pedido, como esta escrito."),
+  preparo: z
+    .string()
+    .nullable()
+    .describe("Preparo para os exames copiado do papel (jejum, horario). null se o papel nao falar."),
+});
+export type PapelExtraido = z.infer<typeof PapelSchema>;
+
 export const ExameSchema = z.object({
   legivel: z.boolean(),
   tipo: z.string().nullable().describe("Tipo do exame, ex: hemograma, perfil lipidico."),
