@@ -117,7 +117,7 @@ const cuidador: Conteudo = {
     {
       icone: "sino",
       titulo: "Quando precisar",
-      texto: "Logo abaixo há botões grandes: Algo não está bem, Vamos ao médico e Emergência. Em Avisos ficam os recados, e em Mais está todo o resto.",
+      texto: "Logo abaixo há botões grandes: Sintoma novo, Vamos ao médico e Emergência. Em Avisos ficam os recados, e em Mais está todo o resto.",
     },
   ],
   // Sem cartão de primeiros passos: a lista do dia já mostra o que fazer.
