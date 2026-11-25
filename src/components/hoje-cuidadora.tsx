@@ -23,6 +23,8 @@ import {
   type Tarefa,
 } from "@/lib/tarefas";
 import { cn } from "@/lib/cn";
+import { FILTRO_RELATO } from "@/lib/diario";
+import { FotoDoDia } from "@/components/foto-do-dia";
 
 type DiaContado = { quando: string; quemId: string | null } | null;
 
@@ -105,7 +107,7 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
         await Promise.all([
           supabase.from("medicacao").select(COLUNAS_REMEDIO).eq("idoso_id", idosoId).eq("ativo", true).is("deleted_at", null),
           supabase.from("tarefa").select(COLUNAS_TAREFA).eq("idoso_id", idosoId).is("deleted_at", null),
-          supabase.from("entrada_diario").select("autor_id, data").eq("idoso_id", idosoId).is("deleted_at", null).gte("data", inicioDoDia).order("data").limit(1),
+          supabase.from("entrada_diario").select("autor_id, data").eq("idoso_id", idosoId).is("deleted_at", null).or(FILTRO_RELATO).gte("data", inicioDoDia).order("data").limit(1),
           supabase.from("humor").select("autor_id, data").eq("idoso_id", idosoId).is("deleted_at", null).gte("data", inicioDoDia).order("data").limit(1),
           supabase.from("conversa").select("iniciada_por, updated_at").eq("idoso_id", idosoId).eq("tipo", "checkin_diario").eq("data_referencia", hoje).eq("status", "concluida").limit(1),
           supabase.auth.getUser(),
@@ -367,6 +369,10 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
           </>
         )}
       </section>
+
+      {idosoId && <FotoDoDia idosoId={idosoId} nome={membership.idosoNome ?? "quem você cuida"} recarga={recarga} />}
+
+      {atalho("/hoje/papel", "Exame ou receita nova", ["M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", "M14 2v6h6", "M12 18v-6", "M9 15h6"])}
 
       <section className="flex flex-col gap-3" aria-label="Quando precisar">
         <h2 className="text-lg font-semibold text-ink">Quando precisar</h2>

@@ -20,6 +20,7 @@ import {
 } from "@/lib/medicacao";
 import { MODELO as MODELO_CLAUDE } from "@/lib/ai/claude";
 import { provedorAtual } from "@/lib/ai/ia";
+import { FILTRO_RELATO } from "@/lib/diario";
 
 // Chat pede resposta imediata: modelo leve e pouco "raciocinio". Medido com esta conta,
 // o gemini-3.5-flash-lite comeca a responder em menos de 1 s; o modelo de extracao
@@ -108,6 +109,7 @@ export async function montarContexto(
       .select("data, alimentacao, ocorrencias, sono")
       .eq("idoso_id", idosoId)
       .is("deleted_at", null)
+      .or(FILTRO_RELATO)
       .gte("data", desde14)
       .order("data", { ascending: false })
       .limit(6),

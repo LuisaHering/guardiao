@@ -5,6 +5,7 @@ import { extrair } from "@/lib/ai/ia";
 import { Visao360Schema } from "@/lib/ai/schemas";
 import { fmt, posicaoNaFaixa, rotuloPosicao } from "@/lib/tendencia";
 import { COLUNAS_REMEDIO, descreverAgenda, type Remedio } from "@/lib/medicacao";
+import { FILTRO_RELATO } from "@/lib/diario";
 
 // A IA pode levar quase um minuto; sem isso a Vercel corta a funcao em 10 s.
 export const maxDuration = 60;
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
         .select("data, alimentacao, ocorrencias, sono, autor_id")
         .eq("idoso_id", id)
         .is("deleted_at", null)
+        .or(FILTRO_RELATO)
         .gte("data", desde(14))
         .order("data")
         .limit(100),

@@ -173,6 +173,25 @@ atrasada até ser respondida. "Não consegui" avisa o administrador.
 As regras do dia ficam em `src/lib/tarefas.ts`, com testes (`npm test`); as do banco são
 testadas na migração `20261125090000_tarefas.sql`.
 
+## Foto do dia
+
+Quem cuida tem na tela Hoje o botão "Tirar foto de ‹nome›". Ele fica fora do checklist, porque
+foto não é obrigação. A foto entra no diário com uma legenda opcional e aparece no painel da
+família, sem aviso a cada uma. O armazenamento é privado, com acesso por link temporário, e as
+regras de quem vê são as do diário: os membros do vínculo.
+
+- Uma entrada só com foto **não conta** como "Contar como foi o dia".
+- As fotos e legendas **não são enviadas à IA**; as telas de IA leem só entradas com texto
+  sobre alimentação, sono ou ocorrências.
+- Antes de subir, o navegador redesenha a foto em um JPEG menor, o que descarta os metadados
+  do arquivo da câmera, como o local onde foi tirada.
+- Se uma preferência em "O que incomoda" mencionar foto, ela aparece como lembrete acima do
+  botão.
+- "Remover" no diário esconde a foto no aplicativo; o arquivo não é apagado do armazenamento.
+
+Logo abaixo, o atalho "Exame ou receita nova" leva ao envio da foto de uma receita ou de um
+pedido de exame, o mesmo envio descrito em Documentos.
+
 ## Limitações conhecidas
 
 - O interruptor de participação do idoso como contribuidor (`pode_contribuir` no

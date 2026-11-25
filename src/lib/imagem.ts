@@ -1,6 +1,6 @@
 // Roda no navegador. Foto de celular passa facil de 4,5 MB, que e o limite do corpo
-// de uma funcao na Vercel. Reduzo so a copia enviada para a IA; o original continua
-// sendo o que vai para o Storage.
+// de uma funcao na Vercel. Nos documentos, reduzo a copia enviada para a IA. A mesma
+// funcao tambem prepara fotos antes do Storage (lib/documentos e lib/diario).
 
 export async function reduzirParaIA(
   arquivo: File,

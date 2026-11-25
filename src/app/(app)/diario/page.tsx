@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Button, Card, Field } from "@/components/ui";
+import { prepararFotoDoDia, subirFotoDoDia } from "@/lib/diario";
 
 type Entrada = {
   id: string;
@@ -12,6 +13,7 @@ type Entrada = {
   ocorrencias: string | null;
   sono: string | null;
   foto_url: string | null;
+  legenda: string | null;
   autor_id: string | null;
 };
 
@@ -49,7 +51,7 @@ export default function DiarioPage() {
     setCarregando(true);
     const { data } = await supabase
       .from("entrada_diario")
-      .select("id, data, alimentacao, ocorrencias, sono, foto_url, autor_id")
+      .select("id, data, alimentacao, ocorrencias, sono, foto_url, legenda, autor_id")
       .eq("idoso_id", idosoId)
       .is("deleted_at", null)
       .order("data", { ascending: false })
@@ -95,13 +97,10 @@ export default function DiarioPage() {
 
     let caminho: string | null = null;
     if (arquivo) {
-      const ext = arquivo.name.split(".").pop() || "jpg";
-      caminho = `${idosoId}/${crypto.randomUUID()}.${ext}`;
-      const { error: upErro } = await supabase.storage
-        .from("diario")
-        .upload(caminho, arquivo, { upsert: false });
-      if (upErro) {
-        setErro(`Não consegui subir a foto: ${upErro.message}`);
+      const foto = await prepararFotoDoDia(arquivo);
+      caminho = foto ? await subirFotoDoDia(supabase, idosoId, foto) : null;
+      if (!caminho) {
+        setErro(foto ? "Não consegui subir a foto. Tente de novo." : "Não consegui abrir essa foto. Escolha outra.");
         setSalvando(false);
         return;
       }
@@ -239,10 +238,11 @@ export default function DiarioPage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={fotos[e.id]}
-                alt="Foto do dia"
+                alt={e.legenda || "Foto do dia"}
                 className="mt-1 max-h-64 w-fit rounded-lg border border-line object-cover"
               />
             )}
+            {e.legenda && <p className="text-sm text-ink">{e.legenda}</p>}
           </Card>
         ))}
       </div>

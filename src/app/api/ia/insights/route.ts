@@ -3,6 +3,7 @@ import { exigirMembro, respostaErro } from "@/lib/ai/acesso";
 import { ErroIA, REGRAS_BASE } from "@/lib/ai/comum";
 import { extrair } from "@/lib/ai/ia";
 import { InsightsSchema } from "@/lib/ai/schemas";
+import { FILTRO_RELATO } from "@/lib/diario";
 
 const PERIODOS = [30, 60, 90];
 // Com menos registros que isso, qualquer "padrao" seria ruido: nem chamo a IA.
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
         .select("data, alimentacao, ocorrencias, sono")
         .eq("idoso_id", idosoId)
         .is("deleted_at", null)
+        .or(FILTRO_RELATO)
         .gte("data", desde)
         .order("data")
         .limit(200),

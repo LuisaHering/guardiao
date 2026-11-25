@@ -70,7 +70,7 @@ export default function TimelinePage() {
     ] = await Promise.all([
         supabase
           .from("entrada_diario")
-          .select("id, data, alimentacao, ocorrencias, sono")
+          .select("id, data, alimentacao, ocorrencias, sono, legenda, foto_url")
           .eq("idoso_id", idosoId)
           .is("deleted_at", null)
           .order("data", { ascending: false })
@@ -106,12 +106,12 @@ export default function TimelinePage() {
     const lista: Item[] = [];
 
     for (const d of (diario ?? []) as Record<string, unknown>[]) {
-      const partes = [d.alimentacao, d.sono ? `Sono: ${d.sono}` : null, d.ocorrencias].filter(Boolean) as string[];
+      const partes = [d.legenda, d.alimentacao, d.sono ? `Sono: ${d.sono}` : null, d.ocorrencias].filter(Boolean) as string[];
       lista.push({
         id: `diario-${d.id}`,
         tipo: "diario",
         data: d.data as string,
-        titulo: "Entrada no diário",
+        titulo: d.foto_url ? "Foto do dia" : "Entrada no diário",
         detalhe: partes.join(" · ") || null,
       });
     }

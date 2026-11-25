@@ -7,6 +7,7 @@ import { useRole } from "@/lib/role-context";
 import { Badge, Card } from "@/components/ui";
 import { CompletudePerfil } from "@/components/completude-perfil";
 import { ResumoTarefas } from "@/components/resumo-tarefas";
+import { FotosRecentes } from "@/components/fotos-recentes";
 import { dataCurta, fmt, posicaoNaFaixa, rotuloPosicao } from "@/lib/tendencia";
 import {
   COLUNAS_DOSE,
@@ -145,7 +146,7 @@ export function Dashboard() {
         .limit(4),
       supabase
         .from("entrada_diario")
-        .select("id, data, alimentacao, ocorrencias, sono")
+        .select("id, data, alimentacao, ocorrencias, sono, legenda, foto_url")
         .eq("idoso_id", idosoId)
         .is("deleted_at", null)
         .order("data", { ascending: false })
@@ -237,8 +238,8 @@ export function Dashboard() {
       todos.push({
         id: `d-${d.id}`,
         tipo: "diario",
-        titulo: "Entrada no diário",
-        detalhe: [d.alimentacao, d.sono ? `Sono: ${d.sono}` : null, d.ocorrencias].filter(Boolean).join(" · ") || null,
+        titulo: d.foto_url ? "Foto do dia" : "Entrada no diário",
+        detalhe: [d.legenda, d.alimentacao, d.sono ? `Sono: ${d.sono}` : null, d.ocorrencias].filter(Boolean).join(" · ") || null,
         data: String(d.data),
       });
     }
@@ -420,6 +421,8 @@ export function Dashboard() {
       </Card>}
 
       {idosoId && membership.role === "familiar" && <ResumoTarefas idosoId={idosoId} />}
+
+      {idosoId && <FotosRecentes idosoId={idosoId} />}
 
       <CompletudePerfil />
 

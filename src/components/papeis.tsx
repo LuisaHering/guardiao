@@ -56,7 +56,7 @@ export function DocumentosParaLevar({ idosoId }: { idosoId: string }) {
 }
 
 /** Escolhe o que é o papel e tira a foto. */
-export function EnviarFoto({ idosoId, onEnviado }: { idosoId: string; onEnviado?: () => void }) {
+export function EnviarFoto({ idosoId, tipos, onEnviado }: { idosoId: string; tipos?: TipoEnvio[]; onEnviado?: () => void }) {
   const [enviando, setEnviando] = useState<TipoEnvio | null>(null);
   const [mensagem, setMensagem] = useState<{ ok: boolean; texto: string } | null>(null);
 
@@ -74,7 +74,7 @@ export function EnviarFoto({ idosoId, onEnviado }: { idosoId: string; onEnviado?
   return (
     <div className="flex flex-col gap-2">
       <p className="text-base text-subtle">O que é o papel? Toque e tire a foto.</p>
-      {TIPOS_ENVIO.map((t) => (
+      {TIPOS_ENVIO.filter((t) => !tipos || tipos.includes(t.valor)).map((t) => (
         <label key={t.valor} className={`${botao} cursor-pointer justify-between ${enviando ? "pointer-events-none opacity-60" : ""}`}>
           {t.rotulo}
           <span className="text-sm font-normal text-subtle">{enviando === t.valor ? "Enviando..." : "tirar foto"}</span>
