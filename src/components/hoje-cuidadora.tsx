@@ -372,13 +372,12 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
 
       {idosoId && <FotoDoDia idosoId={idosoId} nome={membership.idosoNome ?? "quem você cuida"} recarga={recarga} />}
 
-      {atalho("/hoje/papel", "Exame ou receita nova", ["M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", "M14 2v6h6", "M12 18v-6", "M9 15h6"])}
-
       <section className="flex flex-col gap-3" aria-label="Quando precisar">
         <h2 className="text-lg font-semibold text-ink">Quando precisar</h2>
         {doses.length === 0 && atalho("/hoje/remedios", "Remédios", ["m10.5 20.5 10-10a4.95 4.95 0 0 0-7-7l-10 10a4.95 4.95 0 0 0 7 7Z", "m8.5 8.5 7 7"])}
         {atalho("/sintomas", "Sintoma novo", ["M12 9v4", "M12 17h.01", "M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"])}
         {atalho("/consultas", "Vamos ao médico", ["M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 12 0V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3", "M8 15v1a6 6 0 0 0 12 0v-4", "M20 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"])}
+        {atalho("/hoje/papel", "Exame ou receita nova", ["M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", "M14 2v6h6", "M12 18v-6", "M9 15h6"])}
         {atalho("/hoje/emergencia", "Emergência", ["M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2.1Z"], true)}
       </section>
     </div>

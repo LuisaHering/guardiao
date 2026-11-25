@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Button, Card, Field } from "@/components/ui";
 import { prepararFotoDoDia, subirFotoDoDia } from "@/lib/diario";
+import { hojeBR, horaBR } from "@/lib/medicacao";
 
 type Entrada = {
   id: string;
@@ -40,6 +41,7 @@ export default function DiarioPage() {
   const [ocorrencias, setOcorrencias] = useState("");
   const [sono, setSono] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [enviadas, setEnviadas] = useState(0);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -123,6 +125,7 @@ export default function DiarioPage() {
     setOcorrencias("");
     setSono("");
     setArquivo(null);
+    setEnviadas((n) => n + 1);
     setSalvando(false);
     await carregar();
   }
@@ -142,6 +145,8 @@ export default function DiarioPage() {
       </p>
     );
   }
+
+  const fotosDeHoje = entradas.filter((e) => e.foto_url && hojeBR(new Date(e.data)) === hojeBR());
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -183,8 +188,27 @@ export default function DiarioPage() {
               className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             />
           </Field>
-          <Field label="Foto do dia (opcional)">
+          {fotosDeHoje.length > 0 && (
+            <div className="flex flex-col gap-2 rounded-lg bg-success/10 p-3">
+              <p className="text-sm font-medium text-success">
+                ✓ {fotosDeHoje.length === 1 ? "A foto de hoje já foi guardada" : `${fotosDeHoje.length} fotos de hoje já foram guardadas`}
+              </p>
+              <ul className="flex flex-wrap gap-2">
+                {fotosDeHoje.map((e) => (
+                  <li key={e.id} className="flex w-24 flex-col gap-1">
+                    {fotos[e.id] && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={fotos[e.id]} alt={e.legenda || "Foto de hoje"} className="h-24 w-24 rounded-lg border border-line object-cover" />
+                    )}
+                    <span className="text-xs text-subtle">às {horaBR(new Date(e.data))}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <Field label={fotosDeHoje.length > 0 ? "Outra foto (opcional)" : "Foto (opcional)"}>
             <input
+              key={enviadas}
               type="file"
               accept="image/*"
               onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}

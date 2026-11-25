@@ -96,6 +96,10 @@ transformado em texto** e não é enviado à IA. Se a volta for marcada, o banco
 O aplicativo **não pede nem registra autorização para gravar** (decisão de produto): essa
 responsabilidade fica com quem grava.
 
+Entre os apoios da tela, "Mostrar ao médico" reúne alergias, doenças, remédios em uso e as
+queixas dos últimos 60 dias, e "O que perguntar" fica em vermelho enquanto houver pergunta em
+aberto.
+
 Proteções da gravação: a tela é mantida acesa quando o navegador permite; há o aviso "Não
 feche nem bloqueie o celular"; o áudio é guardado em pedaços; interrupções (microfone
 desligado, tela bloqueada, erro) são anunciadas e o que foi gravado até ali é salvo; se o envio
@@ -187,9 +191,11 @@ regras de quem vê são as do diário: os membros do vínculo.
   do arquivo da câmera, como o local onde foi tirada.
 - Se uma preferência em "O que incomoda" mencionar foto, ela aparece como lembrete acima do
   botão.
+- No diário, as fotos já guardadas no dia aparecem junto do campo de foto, para ninguém enviar
+  a mesma de novo.
 - "Remover" no diário esconde a foto no aplicativo; o arquivo não é apagado do armazenamento.
 
-Logo abaixo, o atalho "Exame ou receita nova" leva ao envio da foto de uma receita ou de um
+Em "Quando precisar", o atalho "Exame ou receita nova" leva ao envio da foto de uma receita ou de um
 pedido de exame, o mesmo envio descrito em Documentos.
 
 ## Limitações conhecidas

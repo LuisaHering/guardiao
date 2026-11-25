@@ -228,12 +228,16 @@ export function ConsultaCuidadora() {
             ["perguntas", `O que perguntar${perguntasAbertas ? ` (${perguntasAbertas})` : ""}`, I.pergunta],
             ["foto", "Foto de um papel", I.camera],
           ] as [Tela, string, string[]][]
-        ).map(([t, rotulo, icone]) => (
-          <button key={t} type="button" onClick={() => ir(t)} className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-line bg-card px-2 text-center text-base font-semibold text-ink hover:bg-panel">
-            <Icone caminhos={icone} tamanho={28} />
-            {rotulo}
-          </button>
-        ))}
+        ).map(([t, rotulo, icone]) => {
+          // Pergunta anotada não pode passar batida na consulta.
+          const chama = t === "perguntas" && perguntasAbertas > 0;
+          return (
+            <button key={t} type="button" onClick={() => ir(t)} className={cn("flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-2xl border-2 px-2 text-center text-base", chama ? "border-danger bg-danger/10 font-bold text-danger" : "border-line bg-card font-semibold text-ink hover:bg-panel")}>
+              <Icone caminhos={icone} tamanho={28} />
+              {rotulo}
+            </button>
+          );
+        })}
       </div>
 
       {anteriores.length > 0 && (
@@ -419,6 +423,8 @@ function Quem({ idosoId, anteriores, onPronto }: { idosoId: string; anteriores: 
   );
 }
 
+const DIAS_DE_QUEIXAS = 60;
+
 function Mostrar({ idosoId, nome }: { idosoId: string; nome: string }) {
   const [blocos, setBlocos] = useState<[string, string[]][] | null>(null);
   const [falhou, setFalhou] = useState(false);
@@ -436,9 +442,9 @@ function Mostrar({ idosoId, nome }: { idosoId: string; nome: string }) {
           .select("data, descricao")
           .eq("idoso_id", idosoId)
           .is("deleted_at", null)
-          .gte("data", new Date(Date.now() - 14 * 86_400_000).toISOString())
+          .gte("data", new Date(Date.now() - DIAS_DE_QUEIXAS * 86_400_000).toISOString())
           .order("data", { ascending: false })
-          .limit(10),
+          .limit(200),
       ]);
       if (cancelado) return;
       if (a.error || c.error || m.error || s.error) {
@@ -454,7 +460,7 @@ function Mostrar({ idosoId, nome }: { idosoId: string; nome: string }) {
             .filter((r) => emUso(r, hojeBR()))
             .map((r) => `${[r.nome, r.dosagem].filter(Boolean).join(" ")} · ${descreverAgenda(r)}`),
         ],
-        ["Queixas dos últimos 14 dias", (s.data ?? []).map((x) => `${dataCurta((x.data as string).slice(0, 10))}: ${x.descricao}`)],
+        [`Queixas dos últimos ${DIAS_DE_QUEIXAS} dias`, (s.data ?? []).map((x) => `${dataCurta((x.data as string).slice(0, 10))}: ${x.descricao}`)],
       ]);
     })();
     return () => {
@@ -481,8 +487,8 @@ function Mostrar({ idosoId, nome }: { idosoId: string; nome: string }) {
             <p className="text-lg text-ink">Nada registrado</p>
           ) : (
             <ul className="flex flex-col gap-1">
-              {itens.map((i) => (
-                <li key={i} className="text-lg text-ink">{i}</li>
+              {itens.map((i, n) => (
+                <li key={`${n}-${i}`} className="text-lg text-ink">{i}</li>
               ))}
             </ul>
           )}
