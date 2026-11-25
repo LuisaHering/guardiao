@@ -3,7 +3,7 @@
 // Os pedidos de exame, para quem cuida e para a família: o que falta marcar fica em
 // vermelho; cada pedido mostra só os botões que fazem sentido na situação dele.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -323,6 +323,8 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
             pedido={pedido}
             ocupado={ocupado}
             onCancelar={() => setMarcando(false)}
+            // Quem está marcando agora pode não saber o dia; depois, o que falta é justamente ele.
+            podeSemDia={pedido.status === "falta_marcar"}
             onGuardar={async (dia, hora, lab) => {
               if (await fazer(() => marcarExame(supabase, pedido.id, dia, hora, lab))) setMarcando(false);
             }}
@@ -335,10 +337,7 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
         ) : pedido.status === "falta_marcar" ? (
           <>
             <p className={pergunta}>Já marcou este exame?</p>
-            <Button variant="primary" disabled={ocupado} onClick={() => setMarcando(true)} className={principal}>Sim, vou dizer o dia</Button>
-            <Button disabled={ocupado} onClick={() => fazer(() => marcarExame(supabase, pedido.id, null))} className={segundo}>
-              Já está marcado, não sei o dia
-            </Button>
+            <Button variant="primary" disabled={ocupado} onClick={() => setMarcando(true)} className={principal}>Sim, já marquei</Button>
           </>
         ) : pedido.status === "marcado" ? (
           <>
@@ -395,7 +394,14 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
       )}
 
       {!marcando && !mandando && antesDeFazer && (
-        <button type="button" disabled={ocupado} onClick={() => setMandando(true)} className={discreto}>Já tenho o resultado</button>
+        <Button disabled={ocupado} onClick={() => setMandando(true)} className="h-16 gap-3 border-2 border-primary! text-xl">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M12 15V3" />
+            <path d="m7 8 5-5 5 5" />
+            <path d="M5 21h14" />
+          </svg>
+          Já tenho o resultado
+        </Button>
       )}
 
       {admin && pedido.status !== "concluido" && !cancelando && !marcando && (
@@ -425,12 +431,15 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
 function Marcar({
   pedido,
   ocupado,
+  podeSemDia,
   onGuardar,
   onCancelar,
 }: {
   pedido: PedidoExame;
   ocupado: boolean;
-  onGuardar: (dia: string, hora: string, lab: string) => void;
+  podeSemDia: boolean;
+  /** dia null = marcado, sem saber o dia */
+  onGuardar: (dia: string | null, hora: string, lab: string) => void;
   onCancelar: () => void;
 }) {
   const [dia, setDia] = useState(pedido.dia ?? "");
@@ -438,10 +447,19 @@ function Marcar({
   const [lab, setLab] = useState(pedido.laboratorio ?? "");
   const hoje = hojeBR();
   const amanha = somarDias(hoje, 1);
-  const valido = !!dia && dia >= hoje;
+  const formulario = useRef<HTMLDivElement>(null);
+  // A tela vai até o formulário, para o botão de guardar não ficar escondido.
+  useEffect(() => {
+    formulario.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+  const passado = !!dia && dia < hoje;
+  // A hora sozinha se perderia: sem o dia não há tarefa nem lembrete.
+  const horaSemDia = !dia && !!hora;
+  const valido = !passado && !horaSemDia && (!!dia || podeSemDia);
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-xl font-bold text-ink">Que dia é o exame?</p>
+    <div ref={formulario} className="flex scroll-mt-16 flex-col gap-3">
+      <p className="text-xl font-bold text-ink">Quando é o exame?</p>
+      {podeSemDia && <p className="text-base text-subtle">Se você não souber, pode guardar sem preencher.</p>}
       <button
         type="button"
         aria-pressed={dia === amanha}
@@ -451,7 +469,7 @@ function Marcar({
         Amanhã, {amanha.split("-").reverse().slice(0, 2).join("/")}
       </button>
       <label className="flex flex-col gap-1 text-base text-subtle">
-        Ou escolha o dia
+        {podeSemDia ? "Ou escolha o dia (se souber)" : "Ou escolha o dia"}
         <Input type="date" min={hoje} value={dia} onChange={(e) => setDia(e.target.value)} className="h-14 text-lg" />
       </label>
       <label className="flex flex-col gap-1 text-base text-subtle">
@@ -462,8 +480,10 @@ function Marcar({
         Laboratório (se souber)
         <Input value={lab} maxLength={120} onChange={(e) => setLab(e.target.value)} className="h-14 text-lg" />
       </label>
-      <Button variant="primary" disabled={ocupado || !valido} onClick={() => onGuardar(dia, hora, lab.trim())} className="h-16 text-xl">
-        Guardar
+      {passado && <p className="text-base text-danger" role="alert">Esse dia já passou. Escolha outro.</p>}
+      {horaSemDia && <p className="text-base text-warn" role="alert">Para guardar a hora, escolha também o dia.</p>}
+      <Button variant="primary" disabled={ocupado || !valido} onClick={() => onGuardar(dia || null, hora, lab.trim())} className="h-16 text-xl">
+        {!dia && podeSemDia ? "Guardar sem o dia" : "Guardar"}
       </Button>
       <button type="button" onClick={onCancelar} className={discreto}>Voltar sem guardar</button>
     </div>

@@ -275,8 +275,8 @@ os valores nesse passo.
 | Passo | Como funciona |
 |-------|----------------|
 | Falta marcar | aparece com há quantos dias está assim; depois de uma semana fica em vermelho e o administrador recebe um aviso |
-| Já está marcado | sem preencher nada; sem o dia não há tarefa nem lembrete, e o administrador é avisado para completar |
-| Dizer o dia | hora e laboratório são opcionais; vira tarefa na tela Hoje com o que levar e o preparo |
+| Já marquei | um botão só; depois, dia, hora e laboratório são opcionais (a hora só é guardada junto com o dia). Sem o dia não há tarefa nem lembrete, e o administrador é avisado para completar |
+| Com o dia | vira tarefa na tela Hoje com o que levar e o preparo |
 | Véspera | aviso dentro do aplicativo, com o preparo |
 | No dia | "Fiz" marca o exame como feito; "Não consegui" volta para falta marcar |
 | Resultado | foto ou PDF, em qualquer situação do pedido ou sem pedido; o arquivo já pode ser aberto, e os valores aparecem depois que a família os confere na tela de Exames |
