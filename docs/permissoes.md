@@ -125,6 +125,26 @@ As regras de agenda e dose ficam em `src/lib/medicacao.ts`, com testes (`npm tes
 regras do banco são testadas dentro da migração
 `20261124150000_remedios_agenda_e_confirmacao.sql` `20261124170000_remedio_vale_na_hora.sql` e `20261124180000_mudanca_vale_na_hora.sql`.
 
+## Tela Hoje de quem cuida e tarefas
+
+Quem cuida não vê o painel do familiar: vê uma tela pensada para o celular, com a lista do dia
+(remédios, contar como foi o dia e as tarefas) e botões grandes para quando precisar. No
+celular, três botões fixos (Hoje, Avisos, Mais) substituem o menu longo.
+
+| Ação | Quem pode | Garantido no |
+|------|-----------|--------------|
+| Criar, editar e remover tarefa | só o administrador | **banco** |
+| Responder "fiz" ou "não consegui" | membros, sempre em nome próprio | **banco** |
+| Ver tarefas e respostas | membros do vínculo | **banco** (RLS) |
+
+Na lista, "feito" quer dizer **registrado**: um remédio não dado ou um "não consegui" conta
+como respondido, mas aparece em amarelo, para ninguém marcar o que não fez só para completar.
+Dia sem resposta é "sem registro", não "não feito". Uma tarefa de uma vez só continua como
+atrasada até ser respondida. "Não consegui" avisa o administrador.
+
+As regras do dia ficam em `src/lib/tarefas.ts`, com testes (`npm test`); as do banco são
+testadas na migração `20261125090000_tarefas.sql`.
+
 ## Limitações conhecidas
 
 - O interruptor de participação do idoso como contribuidor (`pode_contribuir` no

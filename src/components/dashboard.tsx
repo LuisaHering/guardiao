@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Badge, Card } from "@/components/ui";
 import { CompletudePerfil } from "@/components/completude-perfil";
+import { ResumoTarefas } from "@/components/resumo-tarefas";
 import { dataCurta, fmt, posicaoNaFaixa, rotuloPosicao } from "@/lib/tendencia";
 import {
   COLUNAS_DOSE,
@@ -417,6 +418,8 @@ export function Dashboard() {
           </p>
         )}
       </Card>}
+
+      {idosoId && membership.role === "familiar" && <ResumoTarefas idosoId={idosoId} />}
 
       <CompletudePerfil />
 

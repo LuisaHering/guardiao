@@ -108,7 +108,7 @@ export default function AlertasPage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Alertas</h1>
+        <h1 className="text-2xl font-semibold text-ink">{membership.role === "cuidador" ? "Avisos" : "Alertas"}</h1>
         <p className="text-sm text-subtle">
           Avisos sobre {membership.idosoNome} que pedem a sua atenção. Cada pessoa
           recebe o texto adequado ao seu papel, e marcar como lido vale só para você.

@@ -102,38 +102,26 @@ const familiar: Conteudo = {
 };
 
 const cuidador: Conteudo = {
-  grande: false,
+  grande: true,
   slides: [
     {
       icone: "coracao",
       titulo: "Boas-vindas! O seu papel é o dia a dia",
-      texto:
-        "Você é quem está perto. No Guardião, você registra o que aconteceu com {nome}, para a família acompanhar com tranquilidade.",
+      texto: "Você é quem está perto. Aqui você marca o que fez com {nome}, e a família acompanha com tranquilidade.",
     },
     {
       icone: "prancheta",
-      titulo: "Leva poucos minutos por dia",
-      texto:
-        "Marque o remédio que foi dado (não precisa ser na hora, pode preencher depois), escreva como foi o dia e, se quiser, ponha uma foto. Se algo preocupar, registre o sintoma.",
+      titulo: "A sua lista de hoje",
+      texto: "Na primeira tela está o que fazer hoje: os remédios, contar como foi o dia e o que a família pedir. É só tocar. O que você fez fica cinza e desce.",
     },
     {
       icone: "sino",
-      titulo: "Avisos que ajudam",
-      texto:
-        "Se faltar registro, o Guardião avisa com jeitinho. Você vê só o que ajuda no dia a dia: exames e análises ficam com a família, e isso é de propósito.",
-    },
-    {
-      icone: "conversa",
-      titulo: "Também dá para conversar",
-      texto:
-        "Em Conversa e check-in, o Guardião puxa uma conversa curta sobre o dia. Você só conta, e ele organiza. Nada é registrado sem a sua confirmação.",
+      titulo: "Quando precisar",
+      texto: "Logo abaixo há botões grandes: Algo não está bem, Vamos ao médico e Emergência. Em Avisos ficam os recados, e em Mais está todo o resto.",
     },
   ],
-  passos: [
-    { id: "medicacao", titulo: "Marque a medicação de hoje", dica: "O que foi dado, e o que não foi.", href: "/medicacao" },
-    { id: "diario", titulo: "Escreva como foi o dia", dica: "Alimentação, sono e o que valer registrar.", href: "/diario" },
-    { id: "checkin", titulo: "Faça um check-in", dica: "Conte o dia numa conversa curta.", href: "/conversa" },
-  ],
+  // Sem cartão de primeiros passos: a lista do dia já mostra o que fazer.
+  passos: [],
 };
 
 const idoso: Conteudo = {

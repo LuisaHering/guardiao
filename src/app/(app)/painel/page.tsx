@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/data/membership";
 import { Dashboard } from "@/components/dashboard";
 import { PrimeirosPassos } from "@/components/primeiros-passos";
+import { HojeCuidadora } from "@/components/hoje-cuidadora";
 
 export default async function PainelPage() {
   const membership = await getMembership();
@@ -20,6 +21,11 @@ export default async function PainelPage() {
     ? await supabase.from("usuario").select("nome").eq("id", user.id).maybeSingle()
     : { data: null };
   const primeiro = ((eu?.nome as string | null) ?? "").trim().split(/\s+/)[0];
+
+  // Quem cuida tem uma tela própria: o checklist do dia e botões grandes.
+  if (membership.role === "cuidador") {
+    return <HojeCuidadora primeiroNome={primeiro} />;
+  }
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">

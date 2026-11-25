@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -9,44 +9,53 @@ import { useRole } from "@/lib/role-context";
 /** Avisa o sino de que o estado de leitura mudou (ex: ao marcar como lido na tela). */
 export const EVENTO_ALERTAS = "guardiao:alertas";
 
+/** Quantos avisos meus estão sem ler. Reconta ao trocar de tela e quando um aviso muda. */
+export function useNaoLidos() {
+  const pathname = usePathname();
+  const [naoLidos, setNaoLidos] = useState(0);
+  const [versao, setVersao] = useState(0);
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { count } = await supabase
+        .from("alerta_destinatario")
+        .select("id", { count: "exact", head: true })
+        .eq("usuario_id", user.id)
+        .is("lido_em", null);
+      if (!cancelado) setNaoLidos(count ?? 0);
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [pathname, versao]);
+
+  useEffect(() => {
+    const recontar = () => setVersao((v) => v + 1);
+    window.addEventListener(EVENTO_ALERTAS, recontar);
+    return () => window.removeEventListener(EVENTO_ALERTAS, recontar);
+  }, []);
+
+  return naoLidos;
+}
+
 export function SinoAlertas() {
   const membership = useRole();
   const idosoId = membership?.idosoId;
-  const pathname = usePathname();
-  const [naoLidos, setNaoLidos] = useState(0);
-
-  const contar = useCallback(async () => {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    const { count } = await supabase
-      .from("alerta_destinatario")
-      .select("id", { count: "exact", head: true })
-      .eq("usuario_id", user.id)
-      .is("lido_em", null);
-    setNaoLidos(count ?? 0);
-  }, []);
+  const naoLidos = useNaoLidos();
 
   // O silêncio de registro não tem agendador: é verificado quando alguém abre o app.
   useEffect(() => {
     if (!idosoId) return;
-    const supabase = createClient();
-    supabase
+    createClient()
       .rpc("gerar_alertas_silencio", { p_idoso: idosoId })
-      .then(() => contar());
-  }, [idosoId, contar]);
-
-  // Recontar a cada troca de tela e quando a tela de alertas avisar.
-  useEffect(() => {
-    contar();
-  }, [pathname, contar]);
-
-  useEffect(() => {
-    window.addEventListener(EVENTO_ALERTAS, contar);
-    return () => window.removeEventListener(EVENTO_ALERTAS, contar);
-  }, [contar]);
+      .then(() => window.dispatchEvent(new Event(EVENTO_ALERTAS)));
+  }, [idosoId]);
 
   return (
     <Link

@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { SinoAlertas } from "@/components/sino-alertas";
 import { BoasVindas } from "@/components/boas-vindas";
 import { PopupRevisao } from "@/components/popup-revisao";
+import { BarraCuidadora } from "@/components/barra-cuidadora";
 import { EVENTO_BOAS_VINDAS } from "@/lib/onboarding";
 
 function Shield() {
@@ -87,6 +88,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const items = membership ? navFor(membership) : semIdoso;
   const [menuAberto, setMenuAberto] = useState(false);
+  // Quem cuida tem a barra de baixo no celular; o menu completo fica no botão "Mais".
+  const comBarra = membership?.role === "cuidador";
 
   async function sair() {
     const supabase = createClient();
@@ -131,7 +134,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => setMenuAberto(!menuAberto)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-subtle hover:bg-panel hover:text-ink md:hidden"
+            className={cn(
+              "h-9 w-9 items-center justify-center rounded-lg text-subtle hover:bg-panel hover:text-ink md:hidden",
+              comBarra ? "hidden" : "flex",
+            )}
             aria-label={menuAberto ? "Fechar menu" : "Abrir menu"}
             aria-expanded={menuAberto}
           >
@@ -181,7 +187,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {menuAberto && (
-          <div className="fixed inset-x-0 bottom-0 top-14 z-40 flex flex-col gap-4 overflow-y-auto bg-card p-4 md:hidden">
+          <div
+            className={cn(
+              "fixed inset-x-0 top-14 z-30 flex flex-col gap-4 overflow-y-auto bg-card p-4 md:hidden",
+              comBarra ? "bottom-16" : "bottom-0",
+            )}
+          >
             {membership && (
               <div className="px-3 text-xs text-subtle">
                 <div className="text-sm text-ink">{membership.idosoNomeCompleto ?? membership.idosoNome}</div>
@@ -202,8 +213,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <main className={cn("flex-1 p-4 sm:p-6", comBarra && "pb-24 md:pb-6")}>{children}</main>
       </div>
+      {comBarra && <BarraCuidadora menuAberto={menuAberto} onMais={setMenuAberto} />}
       <PopupRevisao />
       <BoasVindas />
     </div>

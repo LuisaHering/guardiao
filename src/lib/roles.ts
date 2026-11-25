@@ -37,6 +37,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/medicacao", label: "Medicação", enabled: true, grupo: "Dia a dia" },
     { href: "/diario", label: "Diário", enabled: true, grupo: "Dia a dia" },
     { href: "/sintomas", label: "Sintomas", enabled: true, grupo: "Dia a dia" },
+    { href: "/tarefas", label: "Tarefas de quem cuida", enabled: true, grupo: "Dia a dia" },
     { href: "/conversa", label: "Conversa e check-in", enabled: true, grupo: "Dia a dia" },
     { href: "/timeline", label: "Timeline", enabled: true, grupo: "Dia a dia" },
 
@@ -56,7 +57,7 @@ const byRole: Record<Role, NavItem[]> = {
   ],
   cuidador: [
     { href: "/painel", label: "Hoje", enabled: true },
-    { href: "/alertas", label: "Alertas", enabled: true },
+    { href: "/alertas", label: "Avisos", enabled: true },
 
     { href: "/medicacao", label: "Medicação", enabled: true, grupo: "Dia a dia" },
     { href: "/diario", label: "Diário", enabled: true, grupo: "Dia a dia" },
