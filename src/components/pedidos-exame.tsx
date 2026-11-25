@@ -354,6 +354,17 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
           enviarArquivo
         ) : null}
 
+        {!marcando && !mandando && antesDeFazer && (
+          <Button disabled={ocupado} onClick={() => setMandando(true)} className="h-16 gap-3 border-2 border-primary! text-xl">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 15V3" />
+              <path d="m7 8 5-5 5 5" />
+              <path d="M5 21h14" />
+            </svg>
+            Já tenho o resultado
+          </Button>
+        )}
+
         {soCuida && pedido.status === "resultado_enviado" &&
           (chamado ? (
             <p className="rounded-2xl bg-panel p-4 text-lg text-ink">Você pediu para {chamado} conferir os valores.</p>
@@ -395,7 +406,6 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
           key={`apagar-${pedido.resultado_documento_id}`}
           documentoId={pedido.resultado_documento_id}
           rotulo="Apagar o resultado"
-          onApagado={(apagou) => apagou && onVoltar()}
         />
       )}
       {!marcando && pedido.documento_id && (
@@ -406,19 +416,7 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
           key={`apagar-${pedido.documento_id}`}
           documentoId={pedido.documento_id}
           rotulo="Apagar este pedido"
-          onApagado={(apagou) => apagou && onVoltar()}
         />
-      )}
-
-      {!marcando && !mandando && antesDeFazer && (
-        <Button disabled={ocupado} onClick={() => setMandando(true)} className="h-16 gap-3 border-2 border-primary! text-xl">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M12 15V3" />
-            <path d="m7 8 5-5 5 5" />
-            <path d="M5 21h14" />
-          </svg>
-          Já tenho o resultado
-        </Button>
       )}
 
       {admin && pedido.status !== "concluido" && !cancelando && !marcando && (
