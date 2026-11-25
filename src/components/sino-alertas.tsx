@@ -52,9 +52,11 @@ export function SinoAlertas() {
   // O silêncio de registro não tem agendador: é verificado quando alguém abre o app.
   useEffect(() => {
     if (!idosoId) return;
-    createClient()
-      .rpc("gerar_alertas_silencio", { p_idoso: idosoId })
-      .then(() => window.dispatchEvent(new Event(EVENTO_ALERTAS)));
+    const cliente = createClient();
+    Promise.all([
+      cliente.rpc("gerar_alertas_silencio", { p_idoso: idosoId }),
+      cliente.rpc("gerar_alertas_exames", { p_idoso: idosoId }),
+    ]).then(() => window.dispatchEvent(new Event(EVENTO_ALERTAS)));
   }, [idosoId]);
 
   return (

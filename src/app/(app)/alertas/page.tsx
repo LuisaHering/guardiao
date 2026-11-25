@@ -57,6 +57,7 @@ export default function AlertasPage() {
 
     // O silêncio de registro não tem agendador: é verificado quando alguém abre o app.
     await supabase.rpc("gerar_alertas_silencio", { p_idoso: idosoId });
+    await supabase.rpc("gerar_alertas_exames", { p_idoso: idosoId });
 
     const { data } = await supabase
       .from("alerta_destinatario")

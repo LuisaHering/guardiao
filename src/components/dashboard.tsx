@@ -96,6 +96,7 @@ export function Dashboard() {
   const [recentes, setRecentes] = useState<Recente[]>([]);
   const [fora, setFora] = useState<ForaDaFaixa[]>([]);
   const [pauta, setPauta] = useState(0);
+  const [semMarcar, setSemMarcar] = useState<string[]>([]);
 
   const carregar = useCallback(async () => {
     if (!idosoId) {
@@ -269,6 +270,13 @@ export function Dashboard() {
 
     setPauta(nPauta ?? 0);
 
+    const { data: paraMarcar } = await supabase
+      .from("pedido_exame")
+      .select("exames")
+      .eq("idoso_id", idosoId)
+      .eq("status", "falta_marcar");
+    setSemMarcar((paraMarcar ?? []).map((p) => (p.exames as string[]).join(", ")));
+
     // Resultados mais recentes que estão fora da faixa do próprio laudo (só para quem vê o clínico).
     if (clinico) {
       type Res = {
@@ -324,6 +332,15 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col gap-4">
+      {semMarcar.length > 0 && (
+        <Link href="/pedidos" className="rounded-xl border-2 border-danger bg-danger/10 p-4">
+          <p className="text-sm font-semibold text-danger">
+            {semMarcar.length === 1 ? "1 exame falta marcar" : `${semMarcar.length} pedidos de exame faltam marcar`}
+          </p>
+          <p className="text-sm text-ink">{semMarcar.join(" · ")}</p>
+        </Link>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         {/* Adesão */}
         <Card>

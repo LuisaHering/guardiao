@@ -4,7 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { reduzirParaIA } from "@/lib/imagem";
 import { hojeBR } from "@/lib/medicacao";
 
-export type TipoEnvio = "receita" | "pedido_exame" | "atestado" | "outro";
+/** "resultado_exame" não é um botão da lista: sai da tela do pedido. */
+export type TipoEnvio = "receita" | "pedido_exame" | "atestado" | "outro" | "resultado_exame";
 
 export const TIPOS_ENVIO: { valor: TipoEnvio; rotulo: string }[] = [
   { valor: "receita", rotulo: "Receita" },
@@ -13,7 +14,8 @@ export const TIPOS_ENVIO: { valor: TipoEnvio; rotulo: string }[] = [
   { valor: "outro", rotulo: "Outro papel" },
 ];
 
-export const rotuloEnvio = (v: string | null) => TIPOS_ENVIO.find((t) => t.valor === v)?.rotulo ?? "Documento";
+export const rotuloEnvio = (v: string | null) =>
+  v === "resultado_exame" ? "Resultado de exame" : TIPOS_ENVIO.find((t) => t.valor === v)?.rotulo ?? "Documento";
 
 export const TIPOS_ACEITOS = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 export const LIMITE_DOCUMENTO = 15 * 1024 * 1024;

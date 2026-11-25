@@ -81,6 +81,7 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
   const idosoId = membership?.idosoId;
   const [dados, setDados] = useState<Dados | null>(null);
   const [esperando, setEsperando] = useState(0);
+  const [semMarcar, setSemMarcar] = useState(0);
   const [recarga, setRecarga] = useState(0);
   const [aberta, setAberta] = useState<string | null>(null);
   const [nota, setNota] = useState("");
@@ -118,6 +119,11 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
         .select("id", { count: "exact", head: true })
         .eq("idoso_id", idosoId)
         .eq("status", "esperando");
+      const { count: nSemMarcar } = await supabase
+        .from("pedido_exame")
+        .select("id", { count: "exact", head: true })
+        .eq("idoso_id", idosoId)
+        .eq("status", "falta_marcar");
       const remedios = (ms ?? []) as unknown as Remedio[];
       const tarefas = (ts ?? []) as unknown as Tarefa[];
       const [{ data: ds }, { data: rs }] = await Promise.all([
@@ -141,6 +147,7 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
       const { data: us } = ids.length ? await supabase.from("usuario").select("id, nome").in("id", ids) : { data: [] };
       if (cancelado) return;
       setEsperando(nEsperando ?? 0);
+      setSemMarcar(nSemMarcar ?? 0);
       setDados({
         remedios,
         doses: (ds ?? []) as unknown as RegistroDose[],
@@ -397,6 +404,12 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
         {atalho("/sintomas", "Sintoma novo", ["M12 9v4", "M12 17h.01", "M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"])}
         {atalho("/consultas", "Vamos ao médico", ["M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 12 0V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3", "M8 15v1a6 6 0 0 0 12 0v-4", "M20 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"])}
         {atalho("/hoje/papel", "Exame ou receita nova", ["M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", "M14 2v6h6", "M12 18v-6", "M9 15h6"])}
+        {atalho(
+          "/pedidos",
+          semMarcar > 0 ? `Exames: ${semMarcar} ${semMarcar === 1 ? "falta" : "faltam"} marcar` : "Exames",
+          ["M9 3h6", "M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3", "M7 15h10"],
+          semMarcar > 0,
+        )}
         {atalho("/hoje/emergencia", "Emergência", ["M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2.1Z"], true)}
       </section>
     </div>

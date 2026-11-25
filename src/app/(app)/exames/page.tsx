@@ -1,7 +1,7 @@
 "use client";
 
-import { SemAcesso } from "@/components/sem-acesso";
-import { useCallback, useEffect, useState } from "react";
+import { ResultadosExame } from "@/components/resultados-exame";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Badge, Button, Card, Field, Input } from "@/components/ui";
@@ -10,6 +10,7 @@ import { converter, normalizar, normalizarUnidade } from "@/lib/analitos";
 import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
 import { IACarregando } from "@/components/ia-carregando";
 import type { ExameExtraido } from "@/lib/ai/schemas";
+import { encerrarExame } from "@/lib/pedidos-exame";
 
 type Analito = {
   id: string;
@@ -217,6 +218,32 @@ export default function ExamesPage() {
     carregar();
   }, [carregar]);
 
+  // Vindo de um pedido: carrega o resultado enviado. A leitura só começa no botão desta tela.
+  const pedidoDeOrigem = useRef<string | null>(null);
+  useEffect(() => {
+    const parametros = new URLSearchParams(window.location.search);
+    const id = parametros.get("documento");
+    pedidoDeOrigem.current = parametros.get("pedido");
+    if (!id) return;
+    let cancelado = false;
+    (async () => {
+      const cliente = createClient();
+      const { data: d } = await cliente.from("documento").select("nome, arquivo_url, tipo").eq("id", id).maybeSingle();
+      if (!d) return;
+      const { data: conteudo, error } = await cliente.storage.from("documentos").download(d.arquivo_url as string);
+      if (cancelado) return;
+      if (error || !conteudo) {
+        setErro("Não consegui abrir o resultado enviado.");
+        return;
+      }
+      const extensao = (d.arquivo_url as string).split(".").pop() ?? "jpg";
+      setArquivo(new File([conteudo], `${d.nome}.${extensao}`, { type: (d.tipo as string) || conteudo.type }));
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
   async function ler() {
     if (!arquivo || !idosoId) return;
     setErro(null);
@@ -366,6 +393,12 @@ export default function ExamesPage() {
       return;
     }
 
+    if (pedidoDeOrigem.current) {
+      const falha = await encerrarExame(supabase, pedidoDeOrigem.current);
+      if (falha) setErro("Os valores foram salvos, mas o pedido continua aberto. Conclua em Pedidos de exame.");
+      pedidoDeOrigem.current = null;
+    }
+
     setRevisao(null);
     setArquivo(null);
     setSalvando(false);
@@ -373,7 +406,12 @@ export default function ExamesPage() {
   }
 
   if (membership?.role === "cuidador") {
-    return <SemAcesso area="Exames" />;
+    return membership.idosoId ? (
+      <div className="mx-auto flex max-w-md flex-col gap-4">
+        <h1 className="text-2xl font-semibold text-ink">Exames</h1>
+        <ResultadosExame idosoId={membership.idosoId} />
+      </div>
+    ) : null;
   }
 
   if (!membership) {
@@ -415,6 +453,7 @@ export default function ExamesPage() {
           }}
           className="text-sm text-subtle file:mr-3 file:rounded-lg file:border file:border-line file:bg-panel file:px-3 file:py-2 file:text-sm file:text-ink"
         />
+        {arquivo && <p className="text-sm text-ink">Arquivo escolhido: {arquivo.name}</p>}
         {erro && !revisao && <p className="text-sm text-danger">{erro}</p>}
         <Button variant="primary" onClick={ler} disabled={!arquivo || lendo} className="self-start">
           {lendo ? "Lendo o exame..." : "Ler exame"}

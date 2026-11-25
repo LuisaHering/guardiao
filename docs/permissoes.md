@@ -21,7 +21,9 @@ Papel e administração são eixos separados: um familiar administrador não é 
 | Painel, alertas, perfil | sim | sim | sim |
 | Medicação, diário, sintomas, timeline | não | sim | sim |
 | Consultas, pauta médica, receitas | não | sim | sim |
-| Exames, tendências, observações | não | sim | **não** |
+| Exames: valores e laudos | não (menu) | sim | sim, **só para ver** |
+| Pedidos de exame | não (menu) | sim | sim |
+| Tendências, observações | não | sim | **não** |
 | Visão 360 | não | sim | **não** |
 | Preferências e história, folha de cuidado | sim (preferências) | sim | sim |
 | Diretivas | sim | sim | **não** |
@@ -29,9 +31,10 @@ Papel e administração são eixos separados: um familiar administrador não é 
 | Emergência | não | sim | sim |
 | Rede e acessos | não | só admin | não |
 
-O cuidador não vê a leitura clínica interpretada porque a regra de notificação do
-projeto é que ele recebe o que muda o que a pessoa faz amanhã (operacional), e não o
-clínico (docs/modelagem.md, seção 3.12).
+Quem cuida vê os exames, os valores e os laudos (decisão de 25/11/2026, que substitui a
+restrição anterior). Continuam com a família a leitura interpretada (tendências, observações e
+visão 360) e as diretivas. As **notificações** seguem a regra da modelagem (seção 3.12): quem
+cuida recebe o operacional, e não os alertas clínicos.
 
 ## Quem pode escrever, e onde a regra é garantida
 
@@ -45,7 +48,8 @@ clínico (docs/modelagem.md, seção 3.12).
 | Convidar ou gerenciar vínculos | administrador | **banco** (RLS) |
 | Registrar medicação, diário, sintomas, consultas, exames, preferências | qualquer membro | **banco** (RLS por vínculo) |
 | Ver ou mexer nos dados de outro idoso | ninguém | **banco** (RLS por vínculo) |
-| Cuidador ler exames, tendências, observações, visão 360 e diretivas | não | **banco** (leitura só para familiar e titular) |
+| Cuidador ler observações, visão 360 e diretivas | não | **banco** (leitura só para familiar e titular) |
+| Cuidador abrir a tela de tendências | não | **só na interface** (os valores que ela usa já são visíveis) |
 | Criar pasta e enviar documento | só o administrador | **banco** |
 | Quem cuida ver pasta, ou documento não marcado que não enviou | não | **banco** (inclui o arquivo no Storage) |
 | Cuidador ler alertas clínicos ou o texto de alerta de outra pessoa | não | **banco** |
@@ -55,8 +59,9 @@ clínico (docs/modelagem.md, seção 3.12).
 A migração `20261124090000_hardening_leitura_por_papel.sql` leva um teste embutido: cria
 um idoso e três pessoas (familiar, cuidador e alguém de fora), simula cada uma chamando
 como usuário logado e confere o que o banco devolve. O esperado é que o familiar leia
-tudo, o cuidador não leia nenhum exame, veja só o alerta operacional e só o próprio
-texto, e quem é de fora não leia nada. Tudo é desfeito no fim, e se alguma conferência
+tudo, o cuidador veja só o alerta operacional e só o próprio texto, e quem é de fora não
+leia nada. A leitura de exames por quem cuida foi aberta depois, e é conferida (junto com o
+bloqueio a quem é de fora) em `20261125140000_exames_visiveis_e_remedios_esperando.sql`. Tudo é desfeito no fim, e se alguma conferência
 falhar a migração inteira é recusada.
 
 A migração `20261124100000_testes_regras_do_banco.sql` repete o método para as demais
@@ -239,6 +244,28 @@ chega à família como documento e nada é mudado.
 **Limite:** a leitura pode errar (letra de médico, dose trocada). As proteções são a
 conferência de quem enviou, o aviso na lista e a revisão com a foto; nenhuma delas garante
 que um erro seja percebido.
+
+## Pedido de exame
+
+O pedido nasce da foto conferida (ou anotado à mão pelo administrador) e passa por: falta
+marcar, marcado, feito, resultado enviado e concluído.
+
+| Passo | Como funciona |
+|-------|----------------|
+| Falta marcar | fica em vermelho no painel da família, na tela Hoje e na aba Exames; não há lembrete com prazo |
+| Já está marcado | sem preencher nada; sem o dia não há tarefa nem lembrete, e o administrador é avisado para completar |
+| Dizer o dia | hora e laboratório são opcionais; vira tarefa na tela Hoje com o que levar e o preparo |
+| Véspera | aviso dentro do aplicativo, com o preparo |
+| No dia | "Fiz" marca o exame como feito; "Não consegui" volta para falta marcar |
+| Resultado | foto ou PDF, enviado por quem cuida ou pela família; a família lê os valores na tela de Exames, e o pedido é concluído |
+| Cancelar | só o administrador; a tarefa e o aviso da véspera saem |
+
+O preparo é só o que está escrito no papel. Sem isso, a tela pede para confirmar com o
+laboratório. As mudanças de situação são funções do banco (ninguém escreve direto na tabela),
+testadas nas migrações `20261125130000` a `20261125160000`.
+
+**Limite:** o aviso da véspera é gerado quando alguém abre o aplicativo naquele dia e não chega
+como notificação com o celular fechado.
 
 ## Limitações conhecidas
 
