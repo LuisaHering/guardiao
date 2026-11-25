@@ -15,9 +15,12 @@ type Consentimento = {
 export function ConsentimentoCard({
   idosoId,
   idosoNome,
+  podeAlterar,
 }: {
   idosoId: string;
   idosoNome: string;
+  /** só a administração registra ou revoga o consentimento */
+  podeAlterar: boolean;
 }) {
   const supabase = createClient();
   const [carregando, setCarregando] = useState(true);
@@ -82,9 +85,11 @@ export function ConsentimentoCard({
             {ativo.versao_termo}).
           </p>
         </div>
-        <Button variant="ghost" onClick={revogar} disabled={ocupado} className="h-8 px-3 text-xs">
-          Revogar
-        </Button>
+        {podeAlterar && (
+          <Button variant="ghost" onClick={revogar} disabled={ocupado} className="h-8 px-3 text-xs">
+            Revogar
+          </Button>
+        )}
       </Card>
     );
   }
@@ -101,9 +106,13 @@ export function ConsentimentoCard({
         </p>
       </div>
       <div>
-        <Button variant="primary" onClick={registrar} disabled={ocupado}>
-          {ocupado ? "Registrando..." : "Registrar consentimento do titular"}
-        </Button>
+        {podeAlterar ? (
+          <Button variant="primary" onClick={registrar} disabled={ocupado}>
+            {ocupado ? "Registrando..." : "Registrar consentimento do titular"}
+          </Button>
+        ) : (
+          <p className="text-xs text-subtle">Quem administra o perfil ainda não registrou o consentimento.</p>
+        )}
       </div>
     </Card>
   );

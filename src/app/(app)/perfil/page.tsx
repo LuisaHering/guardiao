@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useRole } from "@/lib/role-context";
 import { Button, Card, Field, Input } from "@/components/ui";
 import { ConsentimentoCard } from "@/components/consentimento-card";
 
@@ -40,6 +41,7 @@ const vazio = {
 
 export default function PerfilPage() {
   const supabase = createClient();
+  const membership = useRole();
   const router = useRouter();
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -57,10 +59,15 @@ export default function PerfilPage() {
 
   const carregar = useCallback(async () => {
     setCarregando(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     const { data } = await supabase
       .from("vinculo")
       .select("idoso(*)")
+      .eq("usuario_id", user?.id ?? "")
       .is("deleted_at", null)
+      .order("created_at")
       .limit(1)
       .maybeSingle();
     const i = (data?.idoso ?? null) as Idoso | null;
@@ -89,6 +96,10 @@ export default function PerfilPage() {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  // Criar o primeiro perfil é livre; alterar um perfil existente é da administração (o banco
+  // também recusa, mas sem erro: sem esta trava a pessoa acharia que salvou).
+  const podeEditar = !idoso || !!membership?.admin;
 
   async function salvarIdoso(e: React.FormEvent) {
     e.preventDefault();
@@ -176,7 +187,7 @@ export default function PerfilPage() {
         <p className="text-sm text-subtle">
           {idoso
             ? "Dados básicos, condições e contatos de emergência."
-            : "Cadastre a pessoa que será cuidada. Você fica como administradora."}
+            : "Cadastre a pessoa que será cuidada. Você fica na administração do perfil."}
         </p>
       </div>
 
@@ -184,11 +195,18 @@ export default function PerfilPage() {
         <ConsentimentoCard
           idosoId={idoso.id}
           idosoNome={idoso.nome}
+          podeAlterar={podeEditar}
         />
       )}
 
       <Card>
         <form onSubmit={salvarIdoso} className="flex flex-col gap-4">
+          {!podeEditar && (
+            <p className="text-xs text-subtle">
+              Só quem administra altera estes dados. Aqui você pode consultá-los.
+            </p>
+          )}
+          <fieldset disabled={!podeEditar} className="contents">
           <Field label="Nome">
             <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
           </Field>
@@ -222,12 +240,15 @@ export default function PerfilPage() {
               className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             />
           </Field>
+          </fieldset>
           {erro && <p className="text-sm text-danger">{erro}</p>}
-          <div>
-            <Button variant="primary" type="submit" disabled={salvando}>
-              {salvando ? "Salvando..." : idoso ? "Salvar" : "Criar perfil"}
-            </Button>
-          </div>
+          {podeEditar && (
+            <div>
+              <Button variant="primary" type="submit" disabled={salvando}>
+                {salvando ? "Salvando..." : idoso ? "Salvar" : "Criar perfil"}
+              </Button>
+            </div>
+          )}
         </form>
       </Card>
 
