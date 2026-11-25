@@ -1,6 +1,13 @@
 import { cn } from "@/lib/cn";
 
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+/**
+ * A letra pequena padrão só entra quando a tela não pede outro tamanho. Juntar as duas
+ * classes não funciona: quem vence é a ordem no CSS, e "text-sm" vencia "text-lg".
+ */
+const letraPadrao = (className?: string) =>
+  /(^|\s)text-(xs|sm|base|lg|xl|[2-9]xl)(\s|$)/.test(className ?? "") ? "" : "text-sm";
+
+type ButtonProps =React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "ghost";
 };
 
@@ -9,8 +16,10 @@ export function Button({
   className,
   ...props
 }: ButtonProps) {
-  const base =
-    "inline-flex items-center justify-center gap-2 rounded-lg px-4 h-10 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+  const base = cn(
+    "inline-flex items-center justify-center gap-2 rounded-lg px-4 h-10 font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+    letraPadrao(className),
+  );
   const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
     primary: "bg-primary text-white hover:opacity-90",
     secondary: "border border-line bg-card text-ink hover:bg-panel",
@@ -26,7 +35,8 @@ export function Input({
   return (
     <input
       className={cn(
-        "h-10 w-full rounded-lg border border-line bg-card px-3 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "h-10 w-full rounded-lg border border-line bg-card px-3 text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        letraPadrao(className),
         className,
       )}
       {...props}
