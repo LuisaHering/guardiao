@@ -2,6 +2,7 @@
 
 import { ResultadosExame } from "@/components/resultados-exame";
 import { useCallback, useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Badge, Button, Card, Field, Input } from "@/components/ui";
@@ -518,6 +519,11 @@ export default function ExamesPage() {
                 <a href={docs[e.id]} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
                   Ver documento
                 </a>
+              )}
+              {membership.admin && (
+                <Link href={`/revisar?exame=${e.id}`} className="text-xs text-primary hover:underline">
+                  Corrigir
+                </Link>
               )}
               <Button
                 variant="ghost"

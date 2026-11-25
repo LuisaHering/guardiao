@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/medicacao.test.mjs tests/tarefas.test.mjs tests/analitos.test.mjs"
+    "test": "node --test tests/medicacao.test.mjs tests/tarefas.test.mjs tests/analitos.test.mjs tests/correcoes.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

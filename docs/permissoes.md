@@ -215,8 +215,9 @@ cada remédio, o nome e a dose, o texto sobre como tomar, quantas vezes, o dia (
 todo dia), a hora e até quando. No exame: os nomes e o preparo. Um "Não, ou não sei" tira só
 aquele item, e o motivo registrado diz o que não foi confirmado. Se o médico ou a data não
 conferirem, eles não são guardados. O confirmado **vale na hora** e o
-administrador recebe um pop-up **com a foto usada** para aceitar ou negar o conjunto. Negar
-desfaz: o remédio novo sai, a dose ou o horário voltam, o pedido de exame é cancelado, e quem
+administrador recebe um pop-up **com a foto usada**, com "Está tudo certo" ou "Corrigir" (ver
+"Revisão do administrador", abaixo). Há ainda a opção discreta de apagar tudo o que veio da
+foto: o remédio novo sai, a dose ou o horário voltam, o pedido de exame é cancelado, e quem
 cuida é avisado. Até a revisão, o remédio aparece na lista de hoje com "Lido da foto, confira
 no papel".
 
@@ -290,8 +291,9 @@ IA e ela confere o exame, o laboratório e o dia, depois **um valor por tela, co
 papel**, e por fim se faltou algum. **Só é guardado se tudo conferir**: um "não, ou não sei",
 uma leitura sem certeza ou uma unidade que o aplicativo não sabe comparar mandam o exame inteiro
 para a família, sem guardar nada. O que é guardado vale na hora, e o administrador recebe o
-pop-up com o arquivo e os valores. Negar tira os valores de Resultados e das tendências e
-devolve o resultado para a família ler.
+pop-up com o arquivo e os valores, para marcar que está tudo certo ou corrigir. Apagar (para um
+arquivo errado) tira os valores de Resultados e das tendências e devolve o resultado para a
+família ler.
 
 A conversão de unidade segue a mesma regra da tela da família (`resolver` em
 `src/lib/analitos.ts`, com testes). A gravação é uma função do banco, testada em
@@ -301,6 +303,23 @@ A conversão de unidade segue a mesma regra da tela da família (`resolver` em
 **Limite:** conferir número por número é cansativo e erros podem passar, principalmente em
 exames longos; por isso há sempre a opção de pedir a um familiar. Quando quem cuida confere, o
 aplicativo não junta nomes diferentes do mesmo item (isso continua com a família).
+
+### Revisão do administrador: corrigir
+
+Só o administrador corrige (a tela e as funções do banco conferem).
+
+| O que | Como a correção funciona |
+|-------|--------------------------|
+| Remédio que veio da foto | edição normal: muda, tira da lista, desfaz a mudança ou adiciona o que faltou; quem cuida é avisado pelas regras de mudança de remédio |
+| O que não entrou | colocar na lista ou não colocar, como em "Esperando a família" |
+| Médico e data da receita | editados na própria receita |
+| Pedido de exame | nomes e preparo; a tarefa do dia acompanha e quem cuida é avisado |
+| Valores de exame | valor, unidade, referência, dia e laboratório; dá para tirar ou adicionar linha. Não há nova leitura pela IA. Quem cuida é avisado do que mudou |
+
+Valores corrigidos viram uma **versão nova** do exame; a anterior fica escondida no histórico, e
+as linhas alteradas ficam marcadas como corrigidas. Um exame já salvo também tem "Corrigir" na
+tela de Exames. Regras testadas em `20261125210000_admin_corrige.sql` e
+`tests/correcoes.test.mjs`.
 
 ## Pedidos para os familiares
 

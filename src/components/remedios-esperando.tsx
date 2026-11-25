@@ -24,7 +24,7 @@ type Pendente = {
 
 const UMA_HORA = 3_600_000;
 
-export function RemediosEsperando({ idosoId }: { idosoId: string }) {
+export function RemediosEsperando({ idosoId, leituraId }: { idosoId: string; leituraId?: string }) {
   const supabase = createClient();
   const membership = useRole();
   const admin = !!membership?.admin;
@@ -47,12 +47,13 @@ export function RemediosEsperando({ idosoId }: { idosoId: string }) {
   useEffect(() => {
     let cancelado = false;
     (async () => {
-      const { data } = await supabase
+      let consulta = supabase
         .from("remedio_pendente")
         .select("id, documento_id, nome, texto, motivo, tipo, pedido_em")
         .eq("idoso_id", idosoId)
-        .eq("status", "esperando")
-        .order("created_at");
+        .eq("status", "esperando");
+      if (leituraId) consulta = consulta.eq("leitura_id", leituraId);
+      const { data } = await consulta.order("created_at");
       const agora = Date.now();
       if (!cancelado) {
         setItens(
@@ -66,7 +67,7 @@ export function RemediosEsperando({ idosoId }: { idosoId: string }) {
     return () => {
       cancelado = true;
     };
-  }, [supabase, idosoId, versao]);
+  }, [supabase, idosoId, leituraId, versao]);
 
   if (itens.length === 0) return null;
 

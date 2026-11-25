@@ -378,7 +378,7 @@ function Marcar({
   );
 }
 
-function Anotar({ idosoId, onFim }: { idosoId: string; onFim: () => void }) {
+export function Anotar({ idosoId, onFim }: { idosoId: string; onFim: () => void }) {
   const [exames, setExames] = useState("");
   const [preparo, setPreparo] = useState("");
   const [ocupado, setOcupado] = useState(false);

@@ -86,7 +86,7 @@ export function PopupRevisao() {
   ];
   const naFila = fila.filter((i) => !adiadas.includes(i.assinatura));
   const atual = naFila[0];
-  if (!admin || !atual) return null;
+  if (!admin || !atual || pathname === "/revisar") return null;
 
   function adiar() {
     const todas = [...new Set([...adiadas, ...naFila.map((i) => i.assinatura)])];
@@ -120,10 +120,6 @@ export function PopupRevisao() {
   }
 
   const confirmandoNegar = negando === atual.chave;
-  const destino =
-    atual.leitura && atual.leitura.tipo !== "receita"
-      ? { href: "/pedidos", rotulo: "Abrir Pedidos e resultados" }
-      : { href: "/medicacao", rotulo: "Abrir a Medicação" };
   const podeNegar = atual.leitura ? atual.leitura.podeNegar : true;
 
   return (
@@ -175,35 +171,56 @@ export function PopupRevisao() {
             <p className="text-sm text-ink">{atual.leitura ? atual.leitura.efeitoDeNegar : efeitoDeNegar(atual.revisao)}</p>
             <div className="grid grid-cols-2 gap-2">
               <Button disabled={ocupado} onClick={() => decidir(atual, false)} className="h-12 border-danger text-danger">
-                {ocupado ? "Negando..." : "Sim, negar"}
+                {ocupado ? "Salvando..." : atual.leitura ? "Sim, apagar" : "Sim, negar"}
               </Button>
               <Button disabled={ocupado} onClick={() => setNegando(null)} className="h-12">Voltar</Button>
             </div>
           </div>
-        ) : !podeNegar ? (
-          <Button variant="primary" disabled={ocupado} onClick={() => decidir(atual, true)} className="h-12 text-base">
-            {ocupado ? "Salvando..." : "Já conferi"}
-          </Button>
+        ) : atual.leitura ? (
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="primary" disabled={ocupado} onClick={() => decidir(atual, true)} className="h-12 text-base">
+                {ocupado ? "Salvando..." : "Está tudo certo"}
+              </Button>
+              <Button disabled={ocupado} onClick={() => router.push(`/revisar?leitura=${atual.leitura.id}`)} className="h-12 text-base">
+                Corrigir
+              </Button>
+            </div>
+            {podeNegar && (
+              <button
+                type="button"
+                disabled={ocupado}
+                onClick={() => setNegando(atual.chave)}
+                className="self-center py-1 text-xs text-subtle hover:text-danger hover:underline"
+              >
+                Apagar tudo o que veio desta foto
+              </button>
+            )}
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
             <Button variant="primary" disabled={ocupado} onClick={() => decidir(atual, true)} className="h-12 text-base">
-              {ocupado ? "Salvando..." : atual.leitura ? "Aceitar" : "Aprovar"}
+              {ocupado ? "Salvando..." : "Aprovar"}
             </Button>
             <Button disabled={ocupado} onClick={() => setNegando(atual.chave)} className="h-12 text-base">Negar</Button>
           </div>
         )}
 
         <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              adiar();
-              router.push(destino.href);
-            }}
-            className="text-sm text-primary hover:underline"
-          >
-            {destino.rotulo}
-          </button>
+          {atual.revisao ? (
+            <button
+              type="button"
+              onClick={() => {
+                adiar();
+                router.push("/medicacao");
+              }}
+              className="text-sm text-primary hover:underline"
+            >
+              Abrir a Medicação
+            </button>
+          ) : (
+            <span />
+          )}
           <button type="button" onClick={adiar} className="text-sm text-subtle hover:text-ink hover:underline">
             Ver depois
           </button>
