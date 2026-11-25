@@ -5,7 +5,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 import type { z } from "zod";
-import { ErroIA, type OpcoesExtracao } from "@/lib/ai/comum";
+import { ErroIA, type OpcoesExtracao, iaIndisponivel } from "@/lib/ai/comum";
 import { schemaParaGemini } from "@/lib/ai/schema-gemini";
 
 // gemini-3.6-flash: no teste com esta conta, o 3.8 estourou a cota logo na primeira
@@ -21,10 +21,7 @@ export async function extrairGemini<S extends z.ZodType>(
 ): Promise<z.infer<S>> {
   const chave = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
   if (!chave) {
-    throw new ErroIA(
-      "A chave da IA (GEMINI_API_KEY) não está configurada no servidor.",
-      503,
-    );
+    throw iaIndisponivel("GEMINI_API_KEY não está configurada no servidor.");
   }
   const client = new GoogleGenAI({ apiKey: chave });
 
@@ -78,7 +75,7 @@ export async function extrairGemini<S extends z.ZodType>(
       );
     }
     if (status === 401 || status === 403) {
-      throw new ErroIA("A chave da IA configurada no servidor é inválida.", 503);
+      throw iaIndisponivel("A chave da IA configurada no servidor foi recusada.");
     }
     if (status === 404) {
       throw new ErroIA(

@@ -6,7 +6,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
-import { ErroIA } from "@/lib/ai/comum";
+import { ErroIA, iaIndisponivel } from "@/lib/ai/comum";
 import {
   COLUNAS_DOSE,
   COLUNAS_REMEDIO,
@@ -370,7 +370,7 @@ export function montarSystem(opts: {
 function erroDoProvedor(err: unknown): ErroIA {
   const status = (err as { status?: number } | null)?.status;
   if (status === 429) return new ErroIA("Limite gratuito da IA atingido. Espere um minuto e tente de novo.", 429);
-  if (status === 401 || status === 403) return new ErroIA("A chave da IA configurada no servidor é inválida.", 503);
+  if (status === 401 || status === 403) return iaIndisponivel("A chave da IA configurada no servidor foi recusada.");
   if (status === 404) return new ErroIA("O modelo de IA configurado não está disponível para esta conta.", 503);
   if (status === 503) return new ErroIA("A IA está sobrecarregada agora. Tente de novo em instantes.", 503);
   return new ErroIA("Não consegui falar com a IA agora. Tente de novo.");
@@ -386,7 +386,7 @@ function comecaPorUsuario(historico: Turno[]): Turno[] {
 
 async function* streamGemini(system: string, historico: Turno[]): AsyncGenerator<string> {
   const chave = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
-  if (!chave) throw new ErroIA("A chave da IA (GEMINI_API_KEY) não está configurada no servidor.", 503);
+  if (!chave) throw iaIndisponivel("GEMINI_API_KEY não está configurada no servidor.");
   const client = new GoogleGenAI({ apiKey: chave });
   const nivel = process.env.GEMINI_CHAT_THINKING ?? "low";
 
@@ -427,7 +427,7 @@ async function* streamGemini(system: string, historico: Turno[]): AsyncGenerator
 
 async function* streamClaude(system: string, historico: Turno[]): AsyncGenerator<string> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    throw new ErroIA("A chave da IA (ANTHROPIC_API_KEY) não está configurada no servidor.", 503);
+    throw iaIndisponivel("ANTHROPIC_API_KEY não está configurada no servidor.");
   }
   const client = new Anthropic();
   try {

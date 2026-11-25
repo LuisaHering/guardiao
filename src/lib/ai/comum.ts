@@ -9,6 +9,15 @@ export class ErroIA extends Error {
   }
 }
 
+/**
+ * IA sem configuracao ou com chave recusada. Quem usa o app nao precisa saber o nome da
+ * variavel: o detalhe tecnico fica so no registro do servidor.
+ */
+export function iaIndisponivel(detalheTecnico: string): ErroIA {
+  console.error(`[ia] ${detalheTecnico}`);
+  return new ErroIA("A inteligência artificial não está disponível neste site agora. Avise quem administra o aplicativo.", 503);
+}
+
 /** Regras comuns a todas as extracoes: a IA organiza, nao decide, e nao inventa. */
 export const REGRAS_BASE = `Voce e um assistente de organizacao de informacoes de saude de uma pessoa idosa, usado por familiares e cuidadores.
 - Voce organiza e resume. Nao diagnostica, nao prescreve e nao orienta tratamento.

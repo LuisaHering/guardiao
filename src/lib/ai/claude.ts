@@ -5,7 +5,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
-import { ErroIA, type OpcoesExtracao } from "@/lib/ai/comum";
+import { ErroIA, type OpcoesExtracao, iaIndisponivel } from "@/lib/ai/comum";
 
 export const MODELO = process.env.ANTHROPIC_MODEL ?? "claude-opus-5-5";
 
@@ -13,10 +13,7 @@ export async function extrairClaude<S extends z.ZodType>(
   opts: OpcoesExtracao<S>,
 ): Promise<z.infer<S>> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    throw new ErroIA(
-      "A chave da IA (ANTHROPIC_API_KEY) não está configurada no servidor.",
-      503,
-    );
+    throw iaIndisponivel("ANTHROPIC_API_KEY não está configurada no servidor.");
   }
   const client = new Anthropic();
 
@@ -74,7 +71,7 @@ export async function extrairClaude<S extends z.ZodType>(
       throw new ErroIA("Muitas requisições à IA agora. Tente de novo em um minuto.", 429);
     }
     if (e instanceof Anthropic.AuthenticationError) {
-      throw new ErroIA("A chave da IA configurada no servidor é inválida.", 503);
+      throw iaIndisponivel("A chave da IA configurada no servidor foi recusada.");
     }
     if (e instanceof Anthropic.BadRequestError) {
       throw new ErroIA(`A IA não aceitou o material enviado: ${e.message}`, 422);
