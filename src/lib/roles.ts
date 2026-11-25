@@ -33,6 +33,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/painel", label: "Painel", enabled: true },
     { href: "/visao-360", label: "Visão 360", enabled: true },
     { href: "/alertas", label: "Alertas", enabled: true },
+    { href: "/familia", label: "Pedidos da família", enabled: true },
 
     { href: "/medicacao", label: "Medicação", enabled: true, grupo: "Dia a dia" },
     { href: "/diario", label: "Diário", enabled: true, grupo: "Dia a dia" },
@@ -59,6 +60,7 @@ const byRole: Record<Role, NavItem[]> = {
   cuidador: [
     { href: "/painel", label: "Hoje", enabled: true },
     { href: "/alertas", label: "Avisos", enabled: true },
+    { href: "/familia", label: "Pedidos para os familiares", enabled: true },
 
     { href: "/medicacao", label: "Medicação", enabled: true, grupo: "Dia a dia" },
     { href: "/diario", label: "Diário", enabled: true, grupo: "Dia a dia" },
@@ -81,6 +83,7 @@ const byRole: Record<Role, NavItem[]> = {
   idoso: [
     { href: "/painel", label: "Painel", enabled: true },
     { href: "/alertas", label: "Alertas", enabled: true },
+    { href: "/familia", label: "Pedidos para os familiares", enabled: true },
 
     { href: "/perfil", label: "Meu perfil", enabled: true, grupo: "Sobre mim" },
     { href: "/identidade", label: "Minhas preferências", enabled: true, grupo: "Sobre mim" },

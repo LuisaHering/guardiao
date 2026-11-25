@@ -282,6 +282,24 @@ testadas nas migrações `20261125130000` a `20261125160000`.
 **Limite:** o aviso da véspera é gerado quando alguém abre o aplicativo naquele dia e não chega
 como notificação com o celular fechado.
 
+## Pedidos para os familiares
+
+Quem cuida e a pessoa cuidada pedem algo à família toda ou a uma pessoa: remédio acabando,
+compras, ajuda, "me liguem" ou outra coisa, com marca de urgente. "Família" são os vínculos com
+papel de familiar.
+
+| Ação | Quem pode | Garantido no |
+|------|-----------|--------------|
+| Ver um pedido | quem pediu, a quem foi dirigido e o administrador (que vê todos) | **banco** (RLS) |
+| Receber o aviso | só a quem foi dirigido; o administrador não é avisado do que é de outra pessoa | **banco** |
+| "Eu resolvo", desistir, marcar como feito | quem recebe (o administrador também); um pedido tem um responsável por vez | **banco** |
+| Marcar o próprio como resolvido ou cancelar | quem pediu | **banco** |
+
+Regras testadas na migração `20261125190000_pedidos_para_os_familiares.sql`.
+
+**Limite:** o aviso aparece quando a pessoa abre o aplicativo, sem notificação com o celular
+fechado. Um pedido não substitui uma ligação, e a tela de urgência lembra o 192.
+
 ## Limitações conhecidas
 
 - O interruptor de participação do idoso como contribuidor (`pode_contribuir` no

@@ -8,6 +8,7 @@ import { Badge, Card } from "@/components/ui";
 import { CompletudePerfil } from "@/components/completude-perfil";
 import { ResumoTarefas } from "@/components/resumo-tarefas";
 import { FotosRecentes } from "@/components/fotos-recentes";
+import { PedidosNoPainel } from "@/components/pedidos-familia";
 import { dataCurta, fmt, posicaoNaFaixa, rotuloPosicao } from "@/lib/tendencia";
 import {
   COLUNAS_DOSE,
@@ -332,6 +333,8 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col gap-4">
+      {idosoId && membership.role === "familiar" && <PedidosNoPainel idosoId={idosoId} />}
+
       {semMarcar.length > 0 && (
         <Link href="/pedidos" className="rounded-xl border-2 border-danger bg-danger/10 p-4">
           <p className="text-sm font-semibold text-danger">

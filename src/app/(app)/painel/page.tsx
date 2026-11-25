@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/data/membership";
@@ -39,6 +40,12 @@ export default async function PainelPage() {
             : `Você está cuidando de ${membership.idosoNome}.`}
         </p>
       </div>
+
+      {membership.role === "idoso" && (
+        <Link href="/familia" className="flex min-h-[80px] items-center justify-center rounded-2xl border-2 border-primary bg-card px-4 text-center text-xl font-semibold text-ink hover:bg-panel">
+          Pedidos para os familiares
+        </Link>
+      )}
 
       <PrimeirosPassos />
 
