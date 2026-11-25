@@ -7,37 +7,10 @@ import { Badge, Button, Card } from "@/components/ui";
 import { DosesDeHoje } from "@/components/doses-de-hoje";
 import { FormRemedio, type DadosRemedio } from "@/components/form-remedio";
 import { COLUNAS_REMEDIO, descreverAgenda, emUso, hojeBR, type Remedio } from "@/lib/medicacao";
+import { carregarRevisoes, decidirRevisao, efeitoDeNegar, EVENTO_REMEDIOS, type Revisao } from "@/lib/revisoes";
 
-type Pedido = {
-  id: string;
-  medicacao_id: string;
-  tipo: "alterar" | "suspender";
-  dados: Partial<DadosRemedio>;
-  motivo: string | null;
-  pedido_por: string;
-  pedido_em: string;
-};
-
-/** Em edição: "editar" grava direto; "confirmar" grava e confirma; "pedir" vira pedido. */
-type Edicao = { id: string; modo: "editar" | "confirmar" | "pedir" } | null;
-
-/** O que o pedido mudaria, em frases, para o administrador decidir sabendo o que aprova. */
-function mudancas(r: Remedio, d: Partial<DadosRemedio>): string[] {
-  const linhas: string[] = [];
-  const texto = (rotulo: string, antes: string | null, depois: string | null | undefined) => {
-    if (depois !== undefined && (antes ?? "") !== (depois ?? "")) {
-      linhas.push(`${rotulo}: ${antes || "vazio"} → ${depois || "vazio"}`);
-    }
-  };
-  texto("Nome", r.nome, d.nome);
-  texto("Dosagem", r.dosagem, d.dosagem);
-  texto("Instruções", r.instrucoes, d.instrucoes);
-  const antes = descreverAgenda(r);
-  const depois = descreverAgenda({ ...r, ...d });
-  if (antes !== depois) linhas.push(`Agenda: ${antes} → ${depois}`);
-  if (d.inicio !== undefined && d.inicio !== r.inicio) linhas.push("Data de início alterada");
-  return linhas;
-}
+/** Em edição: "editar" grava direto; "confirmar" grava e aprova; "mudar" vale na hora e vai para revisão. */
+type Edicao = { id: string; modo: "editar" | "confirmar" | "mudar" } | null;
 
 export default function MedicacaoPage() {
   const supabase = createClient();
@@ -46,8 +19,7 @@ export default function MedicacaoPage() {
   const admin = !!membership?.admin;
 
   const [remedios, setRemedios] = useState<Remedio[]>([]);
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [nomes, setNomes] = useState<Record<string, string>>({});
+  const [revisoes, setRevisoes] = useState<Revisao[]>([]);
   const [meuId, setMeuId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [versao, setVersao] = useState(0);
@@ -55,6 +27,7 @@ export default function MedicacaoPage() {
   const [adicionando, setAdicionando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [negando, setNegando] = useState<string | null>(null);
 
   const recarregar = () => setVersao((v) => v + 1);
 
@@ -62,24 +35,14 @@ export default function MedicacaoPage() {
     if (!idosoId) return;
     let cancelado = false;
     (async () => {
-      const [{ data: ms }, { data: ps }, { data: auth }] = await Promise.all([
+      const [{ data: ms }, rev, { data: auth }] = await Promise.all([
         supabase.from("medicacao").select(COLUNAS_REMEDIO).eq("idoso_id", idosoId).eq("ativo", true).is("deleted_at", null).order("nome"),
-        supabase
-          .from("medicacao_pedido")
-          .select("id, medicacao_id, tipo, dados, motivo, pedido_por, pedido_em")
-          .eq("idoso_id", idosoId)
-          .eq("status", "pendente")
-          .order("pedido_em"),
+        carregarRevisoes(supabase, idosoId),
         supabase.auth.getUser(),
       ]);
-      const lista = (ms ?? []) as unknown as Remedio[];
-      const pend = (ps ?? []) as unknown as Pedido[];
-      const ids = [...new Set([...lista.map((m) => m.autor_id), ...pend.map((p) => p.pedido_por)].filter(Boolean))] as string[];
-      const { data: us } = ids.length ? await supabase.from("usuario").select("id, nome").in("id", ids) : { data: [] };
       if (cancelado) return;
-      setRemedios(lista);
-      setPedidos(pend);
-      setNomes(Object.fromEntries((us ?? []).map((u) => [u.id as string, (u.nome as string) || "Alguém da rede"])));
+      setRemedios((ms ?? []) as unknown as Remedio[]);
+      setRevisoes(rev);
       setMeuId(auth.user?.id ?? null);
       setCarregando(false);
     })();
@@ -88,7 +51,12 @@ export default function MedicacaoPage() {
     };
   }, [supabase, idosoId, versao]);
 
-  const quem = (id: string | null) => (id ? (id === meuId ? "você" : nomes[id] ?? "alguém da rede") : "alguém da rede");
+  // Uma decisão tomada no pop-up atualiza esta tela.
+  useEffect(() => {
+    const atualizarTela = () => setVersao((v) => v + 1);
+    window.addEventListener(EVENTO_REMEDIOS, atualizarTela);
+    return () => window.removeEventListener(EVENTO_REMEDIOS, atualizarTela);
+  }, []);
 
   function terminar(mensagem: string | null) {
     setErro(null);
@@ -106,18 +74,16 @@ export default function MedicacaoPage() {
     return null;
   }
 
-  async function salvarEdicao(r: Remedio, modo: "editar" | "confirmar" | "pedir", dados: DadosRemedio, motivo: string) {
-    if (modo === "pedir") {
-      const { error } = await supabase.from("medicacao_pedido").insert({
-        idoso_id: idosoId,
-        medicacao_id: r.id,
-        tipo: "alterar",
-        dados,
-        motivo: motivo || null,
-        pedido_por: meuId,
+  async function salvarEdicao(r: Remedio, modo: "editar" | "confirmar" | "mudar", dados: DadosRemedio, motivo: string) {
+    if (modo === "mudar") {
+      const { error } = await supabase.rpc("aplicar_mudanca_medicacao", {
+        p_med: r.id,
+        p_tipo: "alterar",
+        p_dados: dados,
+        p_motivo: motivo || null,
       });
-      if (error) return "Não consegui enviar o pedido.";
-      terminar("Pedido enviado. O remédio continua como está até o administrador aprovar.");
+      if (error) return "Não consegui salvar a mudança.";
+      terminar("Mudança feita e já valendo. A família foi avisada.");
       return null;
     }
     const { error } = await supabase
@@ -138,13 +104,6 @@ export default function MedicacaoPage() {
     terminar(mensagem);
   }
 
-  const confirmar = (r: Remedio) => atualizar(r.id, { confirmado: true }, `${r.nome} aprovado.`);
-
-  function recusar(r: Remedio) {
-    if (!window.confirm(`Negar ${r.nome}? Ele sai da lista. Doses já registradas continuam no histórico.`)) return;
-    atualizar(r.id, { ativo: false, recusado_em: new Date().toISOString() }, `${r.nome} negado e retirado da lista.`);
-  }
-
   function suspender(r: Remedio) {
     if (!window.confirm(`Suspender ${r.nome}? Ele deixa de aparecer nas doses; o histórico fica.`)) return;
     atualizar(r.id, { ativo: false }, `${r.nome} suspenso.`);
@@ -156,30 +115,32 @@ export default function MedicacaoPage() {
     atualizar(r.id, { deleted_at: new Date().toISOString() }, `${r.nome} removido.`);
   }
 
-  async function pedirSuspensao(r: Remedio) {
-    const motivo = window.prompt(`Pedir para suspender ${r.nome}. Por quê? (pode deixar em branco)`);
+  async function suspenderComRevisao(r: Remedio) {
+    const motivo = window.prompt(
+      `Suspender ${r.nome}? Ele sai da lista de hoje agora, e a família vai revisar.\nPor quê? (pode deixar em branco)`,
+    );
     if (motivo === null) return;
-    const { error } = await supabase.from("medicacao_pedido").insert({
-      idoso_id: idosoId,
-      medicacao_id: r.id,
-      tipo: "suspender",
-      motivo: motivo.trim() || null,
-      pedido_por: meuId,
+    const { error } = await supabase.rpc("aplicar_mudanca_medicacao", {
+      p_med: r.id,
+      p_tipo: "suspender",
+      p_motivo: motivo.trim() || null,
     });
     if (error) {
-      setErro("Não consegui enviar o pedido.");
+      setErro("Não consegui suspender.");
       return;
     }
-    terminar("Pedido enviado. Continue como está até o administrador aprovar.");
+    terminar(`${r.nome} suspenso. A família foi avisada.`);
   }
 
-  async function decidir(p: Pedido, aprovar: boolean) {
-    const { error } = await supabase.rpc("decidir_pedido_medicacao", { p_pedido: p.id, p_aprovar: aprovar });
-    if (error) {
-      setErro(error.message);
+  async function decidir(r: Revisao, aprovar: boolean) {
+    const falha = await decidirRevisao(supabase, r, aprovar);
+    if (falha) {
+      setErro(falha);
       return;
     }
-    terminar(aprovar ? "Pedido aprovado." : "Pedido recusado.");
+    setNegando(null);
+    terminar(aprovar ? `${r.remedio.nome}: aprovado.` : `${r.remedio.nome}: negado.`);
+    window.dispatchEvent(new Event(EVENTO_REMEDIOS));
   }
 
   if (!membership || !idosoId) {
@@ -187,7 +148,6 @@ export default function MedicacaoPage() {
   }
   if (carregando) return <p className="text-sm text-subtle">Carregando...</p>;
 
-  const pendentes = remedios.filter((r) => !r.confirmado);
   const hoje = hojeBR();
 
   return (
@@ -202,53 +162,55 @@ export default function MedicacaoPage() {
       {aviso && <p className="rounded-lg bg-primary-soft px-3 py-2 text-sm text-primary-ink" role="status">{aviso}</p>}
       {erro && <p className="text-sm text-danger" role="alert">{erro}</p>}
 
-      {admin && (pendentes.length > 0 || pedidos.length > 0) && (
+      {admin && revisoes.length > 0 && (
         <Card className="flex flex-col gap-3 border-warn/50">
-          <h2 className="text-base font-semibold text-ink">Para você revisar ({pendentes.length + pedidos.length})</h2>
-          {pendentes.length > 0 && (
-            <p className="text-sm text-subtle">Os remédios novos já estão valendo. Se você negar, eles saem da lista.</p>
-          )}
+          <h2 className="text-base font-semibold text-ink">Para você revisar ({revisoes.length})</h2>
+          <p className="text-sm text-subtle">Tudo aqui já está valendo. Se você negar, volta a ser como antes.</p>
 
-          {pendentes.map((r) => (
-            <div key={r.id} className="flex flex-col gap-2 border-t border-line pt-3">
+          {revisoes.map((rv) => (
+            <div key={rv.chave} className="flex flex-col gap-2 border-t border-line pt-3">
               <p className="text-sm text-ink">
-                <strong>{r.nome}</strong>
-                {r.dosagem ? ` ${r.dosagem}` : ""}, adicionado por {quem(r.autor_id)}
+                {rv.quem} {rv.tipo === "novo" ? "adicionou" : rv.tipo === "alterar" ? "mudou" : "suspendeu"}{" "}
+                <strong>{rv.remedio.nome}</strong>
+                {rv.remedio.dosagem ? ` ${rv.remedio.dosagem}` : ""}
               </p>
-              <p className="text-sm text-subtle">{[descreverAgenda(r), r.instrucoes].filter(Boolean).join(" · ")}</p>
-              {edicao?.id === r.id && edicao.modo === "confirmar" ? (
-                <FormRemedio inicial={r} rotuloBotao="Salvar e aprovar" onSalvar={(d, m) => salvarEdicao(r, "confirmar", d, m)} onCancelar={() => setEdicao(null)} />
+              {rv.tipo === "alterar" ? (
+                <ul className="list-disc pl-5 text-sm text-ink">
+                  {rv.mudancas.map((l) => <li key={l}>{l}</li>)}
+                </ul>
+              ) : (
+                <p className="text-sm text-subtle">
+                  {[descreverAgenda(rv.remedio), rv.remedio.instrucoes].filter(Boolean).join(" · ")}
+                </p>
+              )}
+              {rv.motivo && <p className="text-sm text-subtle">Motivo: {rv.motivo}</p>}
+
+              {rv.tipo === "novo" && edicao?.id === rv.remedio.id && edicao.modo === "confirmar" ? (
+                <FormRemedio
+                  inicial={rv.remedio}
+                  rotuloBotao="Salvar e aprovar"
+                  onSalvar={(d, m) => salvarEdicao(rv.remedio, "confirmar", d, m)}
+                  onCancelar={() => setEdicao(null)}
+                />
+              ) : negando === rv.chave ? (
+                <div className="flex flex-col gap-2 rounded-lg border border-danger/50 p-3">
+                  <p className="text-sm text-ink">{efeitoDeNegar(rv)}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button className="border-danger text-danger" onClick={() => decidir(rv, false)}>Sim, negar</Button>
+                    <Button variant="ghost" onClick={() => setNegando(null)}>Voltar</Button>
+                  </div>
+                </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="primary" onClick={() => confirmar(r)}>Aprovar</Button>
-                  <Button onClick={() => setEdicao({ id: r.id, modo: "confirmar" })}>Corrigir e aprovar</Button>
-                  <Button variant="ghost" onClick={() => recusar(r)}>Negar</Button>
+                  <Button variant="primary" onClick={() => decidir(rv, true)}>Aprovar</Button>
+                  {rv.tipo === "novo" && (
+                    <Button onClick={() => setEdicao({ id: rv.remedio.id, modo: "confirmar" })}>Corrigir e aprovar</Button>
+                  )}
+                  <Button variant="ghost" onClick={() => setNegando(rv.chave)}>Negar</Button>
                 </div>
               )}
             </div>
           ))}
-
-          {pedidos.map((p) => {
-            const r = remedios.find((m) => m.id === p.medicacao_id);
-            if (!r) return null;
-            return (
-              <div key={p.id} className="flex flex-col gap-2 border-t border-line pt-3">
-                <p className="text-sm text-ink">
-                  {quem(p.pedido_por)} pede {p.tipo === "suspender" ? "para suspender" : "uma mudança em"} <strong>{r.nome}</strong>
-                </p>
-                {p.motivo && <p className="text-sm text-subtle">Motivo: {p.motivo}</p>}
-                {p.tipo === "alterar" && (
-                  <ul className="list-disc pl-5 text-sm text-ink">
-                    {mudancas(r, p.dados).map((l) => <li key={l}>{l}</li>)}
-                  </ul>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="primary" onClick={() => decidir(p, true)}>Aprovar</Button>
-                  <Button variant="ghost" onClick={() => decidir(p, false)}>Recusar</Button>
-                </div>
-              </div>
-            );
-          })}
         </Card>
       )}
 
@@ -277,7 +239,7 @@ export default function MedicacaoPage() {
 
         {remedios.map((r) => {
           const meuPendente = !r.confirmado && r.autor_id === meuId;
-          const comPedido = pedidos.some((p) => p.medicacao_id === r.id);
+          const emRevisao = revisoes.some((rv) => rv.pedidoId && rv.remedio.id === r.id);
           const modo = edicao?.id === r.id && edicao.modo !== "confirmar" ? edicao.modo : null;
           return (
             <div key={r.id} className="flex flex-col gap-2 border-t border-line pt-3">
@@ -289,7 +251,7 @@ export default function MedicacaoPage() {
                 <p className="text-sm text-subtle">{[descreverAgenda(r), r.instrucoes].filter(Boolean).join(" · ")}</p>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {admin && !r.confirmado && <Badge tone="warn">para revisar</Badge>}
-                  {comPedido && <Badge tone="warn">pedido de mudança em análise</Badge>}
+                  {emRevisao && admin && <Badge tone="warn">mudança para revisar</Badge>}
                   {!emUso(r, hoje) && <Badge tone="neutral">{r.fim && r.fim < hoje ? "período encerrado" : "ainda não começou"}</Badge>}
                 </div>
               </div>
@@ -297,8 +259,8 @@ export default function MedicacaoPage() {
               {modo ? (
                 <FormRemedio
                   inicial={r}
-                  rotuloBotao={modo === "pedir" ? "Enviar pedido" : "Salvar"}
-                  pedirMotivo={modo === "pedir"}
+                  rotuloBotao={modo === "mudar" ? "Salvar mudança" : "Salvar"}
+                  pedirMotivo={modo === "mudar"}
                   onSalvar={(d, m) => salvarEdicao(r, modo, d, m)}
                   onCancelar={() => setEdicao(null)}
                 />
@@ -315,10 +277,10 @@ export default function MedicacaoPage() {
                       {meuPendente && !admin ? "Apagar (adicionei errado)" : "Remover"}
                     </Button>
                   )}
-                  {!admin && !meuPendente && !comPedido && (
+                  {!admin && !meuPendente && (
                     <>
-                      <Button variant="ghost" onClick={() => setEdicao({ id: r.id, modo: "pedir" })} className="h-9 px-2 text-xs">Pedir mudança</Button>
-                      <Button variant="ghost" onClick={() => pedirSuspensao(r)} className="h-9 px-2 text-xs">Pedir para suspender</Button>
+                      <Button variant="ghost" onClick={() => setEdicao({ id: r.id, modo: "mudar" })} className="h-9 px-2 text-xs">Mudar</Button>
+                      <Button variant="ghost" onClick={() => suspenderComRevisao(r)} className="h-9 px-2 text-xs">Suspender</Button>
                     </>
                   )}
                 </div>

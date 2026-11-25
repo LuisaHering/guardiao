@@ -9,6 +9,7 @@ import { navFor, roleLabels, type NavItem } from "@/lib/roles";
 import { cn } from "@/lib/cn";
 import { SinoAlertas } from "@/components/sino-alertas";
 import { BoasVindas } from "@/components/boas-vindas";
+import { PopupRevisao } from "@/components/popup-revisao";
 import { EVENTO_BOAS_VINDAS } from "@/lib/onboarding";
 
 function Shield() {
@@ -203,6 +204,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 p-4 sm:p-6">{children}</main>
       </div>
+      <PopupRevisao />
       <BoasVindas />
     </div>
   );

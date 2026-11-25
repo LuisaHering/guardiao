@@ -16,7 +16,7 @@ export function FormRemedio({
 }: {
   inicial?: Remedio;
   rotuloBotao: string;
-  /** nos pedidos de mudança, quem pede pode explicar por quê */
+  /** em mudanças que vão para revisão, quem muda pode explicar por quê */
   pedirMotivo?: boolean;
   /** devolve a mensagem de erro, ou null se gravou */
   onSalvar: (dados: DadosRemedio, motivo: string) => Promise<string | null>;

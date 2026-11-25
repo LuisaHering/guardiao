@@ -86,17 +86,27 @@ tarde às 18:00, noite às 23:00); a de horário específico, 30 minutos depois 
 
 | Ação | Administrador | Demais membros | Garantido no |
 |------|---------------|----------------|--------------|
-| Adicionar remédio | vale na hora | vale na hora e vai para a revisão do administrador | **banco** |
+| Adicionar remédio | vale na hora | vale na hora e vai para revisão | **banco** |
+| Mudar dose, horário ou suspender | direto | vale na hora e vai para revisão | **banco** (função que guarda o estado anterior) |
+| Aprovar ou negar uma revisão | sim | não | **banco** |
 | Registrar dose | sim | sim | **banco** |
-| Aprovar ou negar um remédio novo | sim | não | **banco** |
-| Mudar ou suspender remédio já revisado | direto | só por pedido, que o administrador decide | **banco** |
-| Corrigir ou apagar o próprio remédio ainda não revisado | sim | sim | **banco** |
 
-O remédio adicionado por quem não administra **vale desde a hora em que entra**: aparece nas
-doses, no QR de emergência, na folha de cuidado e conta no alerta de silêncio. O administrador
-é avisado e pode aprovar, corrigir ou negar; só ao negar ele sai, e quem cuida é avisado para
-não dar de novo. Esta foi uma escolha de produto: o registro não pode esperar a revisão. O
-custo é que um erro de nome ou dose fica em uso até alguém revisar.
+**Tudo o que quem não administra faz vale na hora**, e o administrador revisa: um pop-up
+aparece ao abrir o aplicativo (e é conferido a cada 30 segundos enquanto ele está aberto),
+além do aviso no sino. Aprovar não muda nada. Negar desfaz: um remédio novo sai da lista,
+uma mudança volta ao estado anterior e um remédio suspenso volta; quem cuida é avisado.
+
+- Há no máximo uma revisão aberta por remédio. Mudanças seguidas se somam, e negar volta ao
+  último estado que o administrador conhecia.
+- Se o administrador editar o remédio com revisão aberta, a revisão se encerra, para que um
+  "negar" posterior não desfaça a edição dele.
+- Quem não administra não escreve direto em um remédio já revisado nem cria revisão: as duas
+  coisas passam pela função do banco, que guarda o estado anterior de verdade.
+
+Esta foi uma escolha de produto: o cuidado não pode esperar a revisão. O custo é que um erro
+de nome, dose ou suspensão fica em uso até alguém revisar. O aplicativo não envia
+notificação para o celular fechado, então a revisão depende de o administrador abrir o
+aplicativo.
 
 Na lista de hoje, "Dei todos" marca apenas as doses cuja hora já chegou, depois de a pessoa
 conferir a lista, e não altera o que outra pessoa tenha marcado.
@@ -113,7 +123,7 @@ organiza a lista e marca o atraso.
 
 As regras de agenda e dose ficam em `src/lib/medicacao.ts`, com testes (`npm test`). As
 regras do banco são testadas dentro da migração
-`20261124150000_remedios_agenda_e_confirmacao.sql` e `20261124170000_remedio_vale_na_hora.sql`.
+`20261124150000_remedios_agenda_e_confirmacao.sql` `20261124170000_remedio_vale_na_hora.sql` e `20261124180000_mudanca_vale_na_hora.sql`.
 
 ## Limitações conhecidas
 
