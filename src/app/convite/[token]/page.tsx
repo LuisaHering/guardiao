@@ -80,10 +80,11 @@ export default function AceitarConvitePage() {
               Você recebeu um convite para ajudar a cuidar de alguém no Guardião.
             </p>
             <p className="text-sm text-subtle">
-              Entre ou crie sua conta e depois abra este link de novo para aceitar.
+              Entre ou crie a sua conta com o e-mail que recebeu o convite. Depois você volta
+              para cá e aceita.
             </p>
             <Link
-              href="/login"
+              href={`/login?convite=${token}`}
               className="mx-auto inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-medium text-white hover:opacity-90"
             >
               Entrar ou criar conta
@@ -106,8 +107,8 @@ export default function AceitarConvitePage() {
             ) : (
               <>
                 <p className="text-sm text-ink">
-                  Você foi convidada para cuidar de{" "}
-                  <span className="font-medium">{info.idoso_nome}</span> como{" "}
+                  {info.papel === "idoso" ? "Você recebeu um convite para o seu espaço no Guardião, " : "Você recebeu um convite para cuidar de "}
+                  <span className="font-medium">{info.idoso_nome}</span>, como{" "}
                   <span className="font-medium">
                     {roleLabels[info.papel as Role] ?? info.papel}
                   </span>

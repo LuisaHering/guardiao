@@ -15,6 +15,13 @@ function traduzErro(msg: string): string {
   return msg;
 }
 
+/** Quem chega por um convite volta para ele depois de entrar. Só aceito um token
+ *  no formato esperado, nunca um endereço livre (evita redirecionar para outro site). */
+function destinoAposEntrar() {
+  const t = new URLSearchParams(window.location.search).get("convite");
+  return t && /^[0-9a-zA-Z-]{16,80}$/.test(t) ? `/convite/${t}` : "/painel";
+}
+
 const inputClass =
   "h-10 w-full rounded-lg border border-line bg-card px-3 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 
@@ -42,7 +49,7 @@ export default function LoginPage() {
         password: senha,
       });
       if (error) setErro(traduzErro(error.message));
-      else router.push("/painel");
+      else router.push(destinoAposEntrar());
     } else {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -50,7 +57,7 @@ export default function LoginPage() {
         options: { data: { nome } },
       });
       if (error) setErro(traduzErro(error.message));
-      else if (data.session) router.push("/painel");
+      else if (data.session) router.push(destinoAposEntrar());
       else
         setAviso(
           "Conta criada. Confira seu email para confirmar o cadastro antes de entrar.",
