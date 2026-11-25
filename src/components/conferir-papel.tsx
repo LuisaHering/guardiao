@@ -377,7 +377,7 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
       <div className="flex flex-col gap-3">
         {foto}
         <div ref={pergunta} className={`${cartao} scroll-mt-16`}>
-          <p className="text-xl font-semibold text-ink">Ficou faltando alguma coisa do papel?</p>
+          <p className="text-xl font-semibold text-ink">Olhe o papel. Ficou faltando alguma coisa?</p>
           <p className="text-base text-subtle">Um remédio ou um exame que não apareceu.</p>
           <Button variant="primary" onClick={() => guardar(false)} className="h-16 text-xl">Não, apareceu tudo</Button>
           <Button onClick={() => guardar(true)} className="h-14 text-lg">Sim, ficou faltando</Button>
@@ -461,10 +461,11 @@ function Destaque({ children, atencao }: { children: React.ReactNode; atencao?: 
 
 const Pequeno = ({ children }: { children: React.ReactNode }) => <p className="text-base text-subtle">{children}</p>;
 
+/** Toda conferência manda olhar o papel: sem isso, é fácil confiar demais na leitura. */
 function SimNao({ pergunta, onSim, onNao }: { pergunta: string; onSim: () => void; onNao: () => void }) {
   return (
     <>
-      <p className="pt-1 text-xl font-semibold text-ink">{pergunta}</p>
+      <p className="pt-1 text-xl font-semibold text-ink">Olhe o papel. {pergunta}</p>
       <Button variant="primary" onClick={onSim} className="h-16 text-xl">Sim, está igual</Button>
       <Button onClick={onNao} className="h-14 text-lg">Não, ou não sei</Button>
     </>
@@ -534,7 +535,7 @@ function Tela({ leitura, bloco, passo, agenda: escolhida, recusa, onSim, onNao, 
           <Destaque>{preparo || "O papel não fala de preparo"}</Destaque>
           {!preparo && <Pequeno>{SEM_PREPARO}</Pequeno>}
           <SimNao
-            pergunta={preparo ? "O preparo no papel é este?" : "É isso mesmo, não há preparo escrito?"}
+            pergunta={preparo ? "O preparo é este?" : "É verdade que não há preparo escrito?"}
             onSim={onSim}
             onNao={() => onNao("o preparo")}
           />
@@ -596,7 +597,7 @@ function Tela({ leitura, bloco, passo, agenda: escolhida, recusa, onSim, onNao, 
         {titulo}
         <Destaque>{item.texto ? `“${item.texto}”` : "Não li como tomar"}</Destaque>
         <SimNao
-          pergunta={item.texto ? "No papel está escrito assim, com tudo?" : "O papel não explica como tomar?"}
+          pergunta={item.texto ? "Está escrito assim, com tudo?" : "Ele não explica como tomar?"}
           onSim={onSim}
           onNao={() => onNao("o modo de tomar")}
         />
@@ -614,7 +615,7 @@ function Tela({ leitura, bloco, passo, agenda: escolhida, recusa, onSim, onNao, 
             <span key={m} className="block text-xl">{m}</span>
           ))}
         </Destaque>
-        <SimNao pergunta="É essa a mudança que o papel pede?" onSim={onSim} onNao={() => onNao("a mudança")} />
+        <SimNao pergunta="É essa a mudança?" onSim={onSim} onNao={() => onNao("a mudança")} />
       </>
     );
   }
@@ -650,11 +651,10 @@ function Tela({ leitura, bloco, passo, agenda: escolhida, recusa, onSim, onNao, 
         {titulo}
         {naoDiario && <p className="text-xl font-bold text-danger">Atenção: não é de todo dia</p>}
         <Destaque atencao={naoDiario}>{quantasVezes(classe.agenda, classe.recorrencia)}</Destaque>
-        {noPapel}
         {classe.agenda.frequencia === "unica" && (
           <p className="text-base font-medium text-warn">Se for uma vez todo dia, toque em “Não, ou não sei”.</p>
         )}
-        <SimNao pergunta="Olhe o papel. É isso mesmo?" onSim={onSim} onNao={() => onNao("quantas vezes tomar")} />
+        <SimNao pergunta="É isso mesmo?" onSim={onSim} onNao={() => onNao("quantas vezes tomar")} />
       </>
     );
   }
@@ -680,13 +680,12 @@ function Tela({ leitura, bloco, passo, agenda: escolhida, recusa, onSim, onNao, 
         {titulo}
         <Pequeno>A que hora do dia:</Pequeno>
         <Destaque>{horaDoDia(agenda)}</Destaque>
-        {noPapel}
         {!agenda.horarios.length && (
           <p className="text-base font-medium text-warn">
             Na lista ele aparece uma vez no dia. Se for mais de uma vez, siga o papel e avise a família.
           </p>
         )}
-        <SimNao pergunta="Olhe o papel. É isso mesmo?" onSim={onSim} onNao={() => onNao("a hora de tomar")} />
+        <SimNao pergunta="É isso mesmo?" onSim={onSim} onNao={() => onNao("a hora de tomar")} />
       </>
     );
   }
@@ -709,8 +708,7 @@ function Tela({ leitura, bloco, passo, agenda: escolhida, recusa, onSim, onNao, 
             "Sem data para acabar"
           )}
         </Destaque>
-        {noPapel}
-        <SimNao pergunta="Olhe o papel. É isso mesmo?" onSim={onSim} onNao={() => onNao("até quando tomar")} />
+        <SimNao pergunta="É isso mesmo?" onSim={onSim} onNao={() => onNao("até quando tomar")} />
       </>
     );
   }
