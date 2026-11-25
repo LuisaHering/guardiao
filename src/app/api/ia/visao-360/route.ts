@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
       const ultimo = regs.length ? regs[regs.length - 1].data : null;
       for (const r of regs) datas.add(r.data);
       linhas.push(
-        `- ${m.nome}${m.dosagem ? ` ${m.dosagem}` : ""}${m.instrucoes ? ` | ${m.instrucoes}` : ""} | agenda: ${descreverAgenda(m as unknown as Remedio)}${m.confirmado ? "" : " | AGUARDANDO CONFIRMACAO do administrador"} | ultimos 14 dias: ${regs.length} registro(s), ${dadas} dada(s), ${nao.length} nao dada(s)${
+        `- ${m.nome}${m.dosagem ? ` ${m.dosagem}` : ""}${m.instrucoes ? ` | ${m.instrucoes}` : ""} | agenda: ${descreverAgenda(m as unknown as Remedio)} | ultimos 14 dias: ${regs.length} registro(s), ${dadas} dada(s), ${nao.length} nao dada(s)${
           nao.length ? ` (motivos: ${nao.map((r) => `${r.data} ${r.motivo ?? "sem motivo"}`).join("; ")})` : ""
         }${ultimo ? ` | ultimo registro em ${ultimo}` : " | nenhum registro nos ultimos 14 dias"}`,
       );

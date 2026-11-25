@@ -130,6 +130,9 @@ test("períodos do dia: ordem, atraso e dose da conversa", () => {
   assert.equal(dosesDoDia([r], [], HOJE, agora("12:00"))[0].atrasada, false);
   assert.equal(doseParaRegistrar(d, "10:00")?.horario, "manha");
   assert.equal(jaChegou("noite", "10:00"), false);
+  assert.equal(jaChegou("20:00", "19:05"), true);
+  assert.equal(jaChegou("20:00", "19:05", 30), false, "em lote a folga é de 30 min");
+  assert.equal(jaChegou("20:00", "19:30", 30), true);
   assert.equal(jaChegou("manha", "08:00"), true);
   assert.equal(descreverAgenda(r), "Todo dia, manhã e noite");
   assert.equal(validarAgenda(r), null);

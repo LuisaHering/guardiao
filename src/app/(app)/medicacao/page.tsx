@@ -102,7 +102,7 @@ export default function MedicacaoPage() {
     // Quem não administra tem o remédio marcado como pendente pelo próprio banco.
     const { error } = await supabase.from("medicacao").insert({ idoso_id: idosoId, ...dados });
     if (error) return "Não consegui salvar o remédio.";
-    terminar(admin ? "Remédio adicionado." : "Enviado. O administrador precisa confirmar; enquanto isso, ele aparece como pendente.");
+    terminar(admin ? "Remédio adicionado." : "Remédio adicionado e já valendo. A família foi avisada.");
     return null;
   }
 
@@ -125,7 +125,7 @@ export default function MedicacaoPage() {
       .update(modo === "confirmar" ? { ...dados, confirmado: true } : dados)
       .eq("id", r.id);
     if (error) return error.message;
-    terminar(modo === "confirmar" ? "Remédio corrigido e confirmado." : "Remédio atualizado.");
+    terminar(modo === "confirmar" ? "Remédio corrigido e aprovado." : "Remédio atualizado.");
     return null;
   }
 
@@ -138,11 +138,11 @@ export default function MedicacaoPage() {
     terminar(mensagem);
   }
 
-  const confirmar = (r: Remedio) => atualizar(r.id, { confirmado: true }, `${r.nome} confirmado.`);
+  const confirmar = (r: Remedio) => atualizar(r.id, { confirmado: true }, `${r.nome} aprovado.`);
 
   function recusar(r: Remedio) {
-    if (!window.confirm(`Recusar ${r.nome}? Ele sai da lista. Doses já registradas continuam no histórico.`)) return;
-    atualizar(r.id, { ativo: false, recusado_em: new Date().toISOString() }, `${r.nome} não foi confirmado.`);
+    if (!window.confirm(`Negar ${r.nome}? Ele sai da lista. Doses já registradas continuam no histórico.`)) return;
+    atualizar(r.id, { ativo: false, recusado_em: new Date().toISOString() }, `${r.nome} negado e retirado da lista.`);
   }
 
   function suspender(r: Remedio) {
@@ -151,7 +151,7 @@ export default function MedicacaoPage() {
   }
 
   function remover(r: Remedio) {
-    const texto = r.confirmado ? `Remover ${r.nome} do cadastro? Use só se foi cadastrado por engano.` : `Cancelar o envio de ${r.nome}?`;
+    const texto = r.confirmado ? `Remover ${r.nome} do cadastro? Use só se foi cadastrado por engano.` : `Apagar ${r.nome}? Use só se foi adicionado por engano.`;
     if (!window.confirm(texto)) return;
     atualizar(r.id, { deleted_at: new Date().toISOString() }, `${r.nome} removido.`);
   }
@@ -204,7 +204,10 @@ export default function MedicacaoPage() {
 
       {admin && (pendentes.length > 0 || pedidos.length > 0) && (
         <Card className="flex flex-col gap-3 border-warn/50">
-          <h2 className="text-base font-semibold text-ink">Esperando a sua decisão ({pendentes.length + pedidos.length})</h2>
+          <h2 className="text-base font-semibold text-ink">Para você revisar ({pendentes.length + pedidos.length})</h2>
+          {pendentes.length > 0 && (
+            <p className="text-sm text-subtle">Os remédios novos já estão valendo. Se você negar, eles saem da lista.</p>
+          )}
 
           {pendentes.map((r) => (
             <div key={r.id} className="flex flex-col gap-2 border-t border-line pt-3">
@@ -214,12 +217,12 @@ export default function MedicacaoPage() {
               </p>
               <p className="text-sm text-subtle">{[descreverAgenda(r), r.instrucoes].filter(Boolean).join(" · ")}</p>
               {edicao?.id === r.id && edicao.modo === "confirmar" ? (
-                <FormRemedio inicial={r} rotuloBotao="Salvar e confirmar" onSalvar={(d, m) => salvarEdicao(r, "confirmar", d, m)} onCancelar={() => setEdicao(null)} />
+                <FormRemedio inicial={r} rotuloBotao="Salvar e aprovar" onSalvar={(d, m) => salvarEdicao(r, "confirmar", d, m)} onCancelar={() => setEdicao(null)} />
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="primary" onClick={() => confirmar(r)}>Confirmar</Button>
-                  <Button onClick={() => setEdicao({ id: r.id, modo: "confirmar" })}>Corrigir e confirmar</Button>
-                  <Button variant="ghost" onClick={() => recusar(r)}>Recusar</Button>
+                  <Button variant="primary" onClick={() => confirmar(r)}>Aprovar</Button>
+                  <Button onClick={() => setEdicao({ id: r.id, modo: "confirmar" })}>Corrigir e aprovar</Button>
+                  <Button variant="ghost" onClick={() => recusar(r)}>Negar</Button>
                 </div>
               )}
             </div>
@@ -263,10 +266,10 @@ export default function MedicacaoPage() {
           <div className="rounded-lg border border-line p-3">
             {!admin && (
               <p className="mb-3 text-sm text-subtle">
-                O remédio fica aguardando o administrador confirmar. Você já pode registrar as doses.
+                O remédio vale assim que você adicionar. A família recebe um aviso e pode revisar.
               </p>
             )}
-            <FormRemedio rotuloBotao={admin ? "Adicionar" : "Enviar para confirmação"} onSalvar={adicionar} />
+            <FormRemedio rotuloBotao="Adicionar remédio" onSalvar={adicionar} />
           </div>
         )}
 
@@ -285,7 +288,7 @@ export default function MedicacaoPage() {
                 </p>
                 <p className="text-sm text-subtle">{[descreverAgenda(r), r.instrucoes].filter(Boolean).join(" · ")}</p>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {!r.confirmado && <Badge tone="warn">aguardando confirmação</Badge>}
+                  {admin && !r.confirmado && <Badge tone="warn">para revisar</Badge>}
                   {comPedido && <Badge tone="warn">pedido de mudança em análise</Badge>}
                   {!emUso(r, hoje) && <Badge tone="neutral">{r.fim && r.fim < hoje ? "período encerrado" : "ainda não começou"}</Badge>}
                 </div>
@@ -309,10 +312,10 @@ export default function MedicacaoPage() {
                   )}
                   {(admin || meuPendente) && (
                     <Button variant="ghost" onClick={() => remover(r)} className="h-9 px-2 text-xs">
-                      {meuPendente && !admin ? "Cancelar envio" : "Remover"}
+                      {meuPendente && !admin ? "Apagar (adicionei errado)" : "Remover"}
                     </Button>
                   )}
-                  {!admin && r.confirmado && !comPedido && (
+                  {!admin && !meuPendente && !comPedido && (
                     <>
                       <Button variant="ghost" onClick={() => setEdicao({ id: r.id, modo: "pedir" })} className="h-9 px-2 text-xs">Pedir mudança</Button>
                       <Button variant="ghost" onClick={() => pedirSuspensao(r)} className="h-9 px-2 text-xs">Pedir para suspender</Button>

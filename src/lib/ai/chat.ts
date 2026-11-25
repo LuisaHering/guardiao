@@ -222,8 +222,7 @@ export async function montarContexto(
                   })
                   .join("; ")
               : "sem dose prevista hoje";
-            const pend = m.confirmado ? "" : " [AGUARDANDO CONFIRMAÇÃO do administrador]";
-            return `- ${m.nome}${m.dosagem ? ` ${m.dosagem}` : ""}${m.instrucoes ? `, ${m.instrucoes}` : ""}. Agenda: ${descreverAgenda(m)} (${hojeTxt})${pend}`;
+            return `- ${m.nome}${m.dosagem ? ` ${m.dosagem}` : ""}${m.instrucoes ? `, ${m.instrucoes}` : ""}. Agenda: ${descreverAgenda(m)} (${hojeTxt})`;
           })
           .join("\n"),
     );

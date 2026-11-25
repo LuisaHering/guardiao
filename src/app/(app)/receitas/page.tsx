@@ -237,7 +237,7 @@ export default function ReceitasPage() {
         dosagem: l.dosagem.trim() || null,
         instrucoes:
           [l.frequencia.trim(), l.observacoes.trim()].filter(Boolean).join(" · ") || null,
-        // Se quem cadastra não administra, o banco deixa o remédio aguardando confirmação.
+        // Vale na hora; se quem cadastra não administra, o banco o marca para o admin revisar.
         ...agendaParaGravar(l.agenda),
       })),
     );
@@ -379,7 +379,7 @@ export default function ReceitasPage() {
 
           {erro && <p className="text-sm text-danger">{erro}</p>}
           {!membership.admin && (
-            <p className="text-sm text-subtle">Os remédios ficam aguardando o administrador confirmar.</p>
+            <p className="text-sm text-subtle">Os remédios passam a valer na hora, e a família é avisada para revisar.</p>
           )}
           <div className="flex gap-2">
             <Button variant="primary" onClick={confirmar} disabled={salvando}>

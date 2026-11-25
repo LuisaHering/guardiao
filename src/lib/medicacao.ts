@@ -104,10 +104,10 @@ const posicao = (h: string) => (h ? minutos(periodoDe(h)?.meio ?? h) : 24 * 60);
 
 export const compararHorarios = (a: string, b: string) => posicao(a) - posicao(b) || a.localeCompare(b);
 
-/** A hora desta dose já chegou (com 1 h de folga)? Sem horário, vale o dia todo. */
-export function jaChegou(horario: string, hora: string): boolean {
+/** A hora desta dose já chegou (com uma folga, em minutos)? Sem horário, vale o dia todo. */
+export function jaChegou(horario: string, hora: string, folga = 60): boolean {
   if (!horario) return true;
-  return minutos(periodoDe(horario)?.inicio ?? horario) <= minutos(hora) + 60;
+  return minutos(periodoDe(horario)?.inicio ?? horario) <= minutos(hora) + folga;
 }
 
 function passouDaHora(horario: string, hora: string): boolean {

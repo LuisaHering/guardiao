@@ -86,14 +86,20 @@ tarde às 18:00, noite às 23:00); a de horário específico, 30 minutos depois 
 
 | Ação | Administrador | Demais membros | Garantido no |
 |------|---------------|----------------|--------------|
-| Adicionar remédio | entra confirmado | fica aguardando confirmação | **banco** |
-| Registrar dose, inclusive de remédio aguardando | sim | sim | **banco** |
-| Confirmar ou recusar | sim | não | **banco** |
-| Mudar ou suspender remédio confirmado | direto | só por pedido, que o administrador decide | **banco** |
-| Corrigir ou cancelar o próprio envio ainda não confirmado | sim | sim | **banco** |
+| Adicionar remédio | vale na hora | vale na hora e vai para a revisão do administrador | **banco** |
+| Registrar dose | sim | sim | **banco** |
+| Aprovar ou negar um remédio novo | sim | não | **banco** |
+| Mudar ou suspender remédio já revisado | direto | só por pedido, que o administrador decide | **banco** |
+| Corrigir ou apagar o próprio remédio ainda não revisado | sim | sim | **banco** |
 
-Enquanto aguarda, o remédio aparece com esse aviso na lista de doses, no QR de emergência e
-na folha de cuidado: um socorrista precisa saber que a pessoa pode estar tomando.
+O remédio adicionado por quem não administra **vale desde a hora em que entra**: aparece nas
+doses, no QR de emergência, na folha de cuidado e conta no alerta de silêncio. O administrador
+é avisado e pode aprovar, corrigir ou negar; só ao negar ele sai, e quem cuida é avisado para
+não dar de novo. Esta foi uma escolha de produto: o registro não pode esperar a revisão. O
+custo é que um erro de nome ou dose fica em uso até alguém revisar.
+
+Na lista de hoje, "Dei todos" marca apenas as doses cuja hora já chegou, depois de a pessoa
+conferir a lista, e não altera o que outra pessoa tenha marcado.
 
 Duas proteções contra erro de dose:
 
@@ -107,7 +113,7 @@ organiza a lista e marca o atraso.
 
 As regras de agenda e dose ficam em `src/lib/medicacao.ts`, com testes (`npm test`). As
 regras do banco são testadas dentro da migração
-`20261124150000_remedios_agenda_e_confirmacao.sql`.
+`20261124150000_remedios_agenda_e_confirmacao.sql` e `20261124170000_remedio_vale_na_hora.sql`.
 
 ## Limitações conhecidas
 

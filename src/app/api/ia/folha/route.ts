@@ -104,7 +104,7 @@ Voce monta uma folha PRATICA de cuidado para quem cuida de uma pessoa idosa (cui
         medicacoes: ((meds ?? []) as unknown as Remedio[])
           .filter((m) => emUso(m, hojeBR()))
           .map((m) => ({
-            nome: m.confirmado ? m.nome : `${m.nome} (aguardando confirmação)`,
+            nome: m.nome,
             dosagem: m.dosagem,
             instrucoes: [descreverAgenda(m), m.instrucoes].filter(Boolean).join(" · "),
           })),

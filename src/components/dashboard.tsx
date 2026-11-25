@@ -339,7 +339,6 @@ export function Dashboard() {
                       <p className="text-sm text-ink">
                         {m.nome}
                         {m.dosagem && <span className="text-xs text-subtle"> · {m.dosagem}</span>}
-                        {!m.confirmado && <span className="text-xs text-warn"> · aguardando confirmação</span>}
                       </p>
                       <span className="shrink-0 text-xs text-subtle">
                         {deHoje.previstas

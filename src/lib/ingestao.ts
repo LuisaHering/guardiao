@@ -93,8 +93,31 @@ export async function gravarProposta(
       registrado_por: p.autorId,
       origem_mensagem_id: p.mensagemId,
     });
+    let repetida = error?.code === "23505";
+    if (repetida) {
+      // Se a linha existente foi desmarcada, a dose está livre: reaproveito a mesma linha.
+      const { data: reativada } = await supabase
+        .from("registro_medicacao")
+        .update({
+          status: "dada",
+          motivo: null,
+          registrado_por: p.autorId,
+          registrado_em: new Date().toISOString(),
+          origem_mensagem_id: p.mensagemId,
+          deleted_at: null,
+        })
+        .eq("medicacao_id", d.medicacaoId)
+        .eq("data", hoje)
+        .eq("horario", d.horario)
+        .not("deleted_at", "is", null)
+        .select("id");
+      if (reativada?.length) {
+        repetida = false;
+        return { ok: true };
+      }
+    }
     erro =
-      error?.code === "23505"
+      repetida
         ? { message: "Essa dose já tinha sido registrada, e nada foi alterado. Para corrigir, use a tela de Medicação." }
         : error;
   } else {
