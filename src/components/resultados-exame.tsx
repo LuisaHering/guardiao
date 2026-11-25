@@ -24,6 +24,59 @@ type Exame = {
   }[];
 };
 
+const COLUNAS =
+  "id, tipo, laboratorio, data, arquivo_url, exame_resultado(valor, unidade, ref_min, ref_max, analito:analito_id(nome_canonico))";
+
+function ListaDeValores({ valores }: { valores: Exame["exame_resultado"] }) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {valores.map((r, i) => {
+        if (r.valor === null) return null;
+        const alvo = { valor: Number(r.valor), refMin: r.ref_min, refMax: r.ref_max };
+        const posicao = posicaoNaFaixa(alvo);
+        const fora = posicao === "acima" || posicao === "abaixo";
+        return (
+          <li key={i} className="border-t border-line pt-2">
+            <p className="text-base text-ink">
+              {r.analito?.nome_canonico ?? "Item"}: <strong>{fmt(alvo.valor)} {r.unidade ?? ""}</strong>
+            </p>
+            {(r.ref_min !== null || r.ref_max !== null) && (
+              <p className={`text-sm ${fora ? "font-medium text-warn" : "text-subtle"}`}>{rotuloPosicao(alvo)}</p>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Os valores conferidos de um resultado (pelo arquivo deles). */
+export function ValoresDoExame({ arquivo }: { arquivo: string }) {
+  const [valores, setValores] = useState<Exame["exame_resultado"] | null>(null);
+  const [falhou, setFalhou] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      const { data, error } = await createClient().from("exame").select(COLUNAS).eq("arquivo_url", arquivo).is("deleted_at", null);
+      if (cancelado) return;
+      setFalhou(!!error);
+      setValores(((data ?? []) as unknown as Exame[]).flatMap((e) => e.exame_resultado));
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [arquivo]);
+
+  if (falhou) return <p className="text-base text-danger" role="alert">Não consegui carregar os valores.</p>;
+  if (!valores) return <p className="text-base text-subtle">Carregando...</p>;
+  return (
+    <div className="rounded-2xl border border-line bg-card p-4">
+      <ListaDeValores valores={valores} />
+    </div>
+  );
+}
+
 export function ResultadosExame({ idosoId }: { idosoId: string }) {
   const supabase = createClient();
   const [exames, setExames] = useState<Exame[] | null>(null);
@@ -34,7 +87,7 @@ export function ResultadosExame({ idosoId }: { idosoId: string }) {
     (async () => {
       const { data, error } = await supabase
         .from("exame")
-        .select("id, tipo, laboratorio, data, arquivo_url, exame_resultado(valor, unidade, ref_min, ref_max, analito:analito_id(nome_canonico))")
+        .select(COLUNAS)
         .eq("idoso_id", idosoId)
         .is("deleted_at", null)
         .order("data", { ascending: false })
@@ -67,24 +120,9 @@ export function ResultadosExame({ idosoId }: { idosoId: string }) {
               {[e.data ? dataCurta(e.data) : "", e.laboratorio].filter(Boolean).join(" · ")}
             </span>
           </summary>
-          <ul className="mt-3 flex flex-col gap-2">
-            {e.exame_resultado.map((r, i) => {
-              if (r.valor === null) return null;
-              const alvo = { valor: Number(r.valor), refMin: r.ref_min, refMax: r.ref_max };
-              const posicao = posicaoNaFaixa(alvo);
-              const fora = posicao === "acima" || posicao === "abaixo";
-              return (
-                <li key={i} className="border-t border-line pt-2">
-                  <p className="text-base text-ink">
-                    {r.analito?.nome_canonico ?? "Item"}: <strong>{fmt(alvo.valor)} {r.unidade ?? ""}</strong>
-                  </p>
-                  {(r.ref_min !== null || r.ref_max !== null) && (
-                    <p className={`text-sm ${fora ? "font-medium text-warn" : "text-subtle"}`}>{rotuloPosicao(alvo)}</p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <div className="mt-3">
+            <ListaDeValores valores={e.exame_resultado} />
+          </div>
           {e.arquivo_url && (
             <Button className="mt-3 h-12 text-base" onClick={async () => setErro(await abrirArquivo(supabase, "exames", e.arquivo_url as string))}>
               Ver o laudo

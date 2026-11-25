@@ -167,7 +167,7 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
         .from("pedido_exame")
         .select(COLUNAS_PEDIDO)
         .eq("idoso_id", idosoId)
-        .in("status", ["falta_marcar", "marcado", "feito"]);
+        .in("status", ["falta_marcar", "marcado", "feito", "resultado_enviado"]);
       const remedios = (ms ?? []) as unknown as Remedio[];
       const tarefas = (ts ?? []) as unknown as Tarefa[];
       const [{ data: ds }, { data: rs }] = await Promise.all([

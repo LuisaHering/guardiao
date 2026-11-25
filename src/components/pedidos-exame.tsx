@@ -12,6 +12,7 @@ import { Button, Input } from "@/components/ui";
 import { EnviarFoto } from "@/components/papeis";
 import { EnviarResultado, EscolherArquivoDoResultado } from "@/components/enviar-resultado";
 import { QuemConfere } from "@/components/conferir-valores";
+import { ValoresDoExame } from "@/components/resultados-exame";
 import { PapelAMao, VerPapel } from "@/components/ver-papel";
 import { ApagarEnvio } from "@/components/apagar-envio";
 import { hojeBR, somarDias } from "@/lib/medicacao";
@@ -22,6 +23,7 @@ import {
   EVENTO_PEDIDOS,
   exameFeito,
   marcarExame,
+  marcarLaudo,
   ordenarPedidos,
   situacao,
   type PedidoExame,
@@ -118,7 +120,7 @@ export function PedidosExame({ idosoId, titulo, depois }: { idosoId: string; tit
           "flex min-h-[76px] w-full items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left",
           s.tom === "perigo"
             ? "border-danger bg-danger/10"
-            : p.status === "falta_marcar"
+            : p.status === "falta_marcar" || p.status === "resultado_enviado"
               ? "border-warn bg-card hover:bg-panel"
               : "border-line bg-card hover:bg-panel",
         )}
@@ -165,15 +167,15 @@ export function PedidosExame({ idosoId, titulo, depois }: { idosoId: string; tit
   );
 }
 
-const ETAPAS = ["Marcar", "Fazer", "Resultado"];
+const ETAPAS = ["Marcar", "Fazer", "Resultado", "Conferir"];
 
 const etapaDe: Record<PedidoExame["status"], number> = {
   falta_marcar: 0,
   marcado: 1,
   feito: 2,
-  resultado_enviado: 2,
-  concluido: 3,
-  cancelado: 3,
+  resultado_enviado: 3,
+  concluido: 4,
+  cancelado: 4,
 };
 
 const CHIP: Record<Tom, string> = {
@@ -186,10 +188,16 @@ const CHIP: Record<Tom, string> = {
 /** Em que ponto o exame está. */
 function Etapas({ atual }: { atual: number }) {
   return (
-    <ol className="grid grid-cols-3 gap-2" aria-label="Etapas do exame">
+    <ol className="grid grid-cols-4 gap-1.5" aria-label="Etapas do exame">
       {ETAPAS.map((nome, i) => (
         <li key={nome} aria-current={i === atual ? "step" : undefined} className="flex flex-col gap-1 text-center">
-          <span className={cn("h-2 rounded-full", i < atual ? "bg-success" : i === atual ? "bg-primary" : "bg-subtle/30")} />
+          <span
+            className={cn(
+              "h-2 rounded-full",
+              // conferir é a pendência que mais passa despercebida: fica em amarelo
+              i < atual ? "bg-success" : i !== atual ? "bg-subtle/30" : i === ETAPAS.length - 1 ? "bg-warn" : "bg-primary",
+            )}
+          />
           <span className={cn("text-sm", i === atual ? "font-semibold text-ink" : "text-subtle")}>
             {i < atual ? "✓ " : ""}
             {nome}
@@ -240,7 +248,11 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
   const [marcando, setMarcando] = useState(false);
   const [mandando, setMandando] = useState(false);
   const [conferindo, setConferindo] = useState(false);
-  const soCuida = useRole()?.role === "cuidador" && !admin;
+  const papel = useRole()?.role;
+  const soCuida = papel === "cuidador" && !admin;
+  const daFamilia = admin || papel === "familiar";
+  const [confirmandoLaudo, setConfirmandoLaudo] = useState(false);
+  const [vendoValores, setVendoValores] = useState(false);
   // quem já foi chamado para conferir (para não pedir duas vezes)
   const [chamado, setChamado] = useState<string | null>(null);
   const [cancelando, setCancelando] = useState(false);
@@ -346,9 +358,6 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
             <Button variant="primary" disabled={ocupado} onClick={() => fazer(() => exameFeito(supabase, pedido.id))} className={principal}>
               Sim, já fiz
             </Button>
-            <Button disabled={ocupado} onClick={() => setMarcando(true)} className={segundo}>
-              {pedido.dia ? "Mudar o dia" : "Dizer o dia"}
-            </Button>
           </>
         ) : pedido.status === "feito" ? (
           enviarArquivo
@@ -364,29 +373,53 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
             Já tenho o resultado
           </Button>
         )}
+        {!marcando && !mandando && pedido.status === "marcado" && (
+          <button type="button" disabled={ocupado} onClick={() => setMarcando(true)} className={discreto}>
+            {pedido.dia ? "Mudar o dia" : "Dizer o dia"}
+          </button>
+        )}
 
         {soCuida && pedido.status === "resultado_enviado" &&
           (chamado ? (
             <p className="rounded-2xl bg-panel p-4 text-lg text-ink">Você pediu para {chamado} conferir os valores.</p>
           ) : (
+            <Button variant="primary" onClick={() => setConferindo(true)} className={principal}>Conferir os valores</Button>
+          ))}
+
+        {daFamilia && pedido.status === "resultado_enviado" &&
+          (confirmandoLaudo ? (
+            <div className="flex flex-col gap-3 rounded-2xl border-2 border-line bg-card p-4">
+              <p className={pergunta}>Olhe o arquivo. Ele não tem nenhum número para guardar?</p>
+              <Button
+                variant="primary"
+                disabled={ocupado}
+                onClick={() => fazer(() => marcarLaudo(supabase, pedido.id))}
+                className={segundo}
+              >
+                Sim, é um laudo
+              </Button>
+              <Button disabled={ocupado} onClick={() => setConfirmandoLaudo(false)} className="h-12 text-base">Voltar</Button>
+            </div>
+          ) : (
             <>
-              <p className={pergunta}>Falta conferir os valores</p>
-              <Button variant="primary" onClick={() => setConferindo(true)} className={principal}>Conferir os valores</Button>
+              <Link
+                href={`/exames?documento=${pedido.resultado_documento_id}&pedido=${pedido.id}`}
+                className="flex min-h-16 items-center justify-center rounded-lg bg-primary text-xl font-medium text-white"
+              >
+                Conferir os valores
+              </Link>
+              <Button disabled={ocupado} onClick={() => setConfirmandoLaudo(true)} className={segundo}>
+                É um laudo, não tem números
+              </Button>
             </>
           ))}
-        {admin && pedido.status === "resultado_enviado" && (
-          <>
-            <Link
-              href={`/exames?documento=${pedido.resultado_documento_id}&pedido=${pedido.id}`}
-              className="flex min-h-16 items-center justify-center rounded-lg bg-primary text-xl font-medium text-white"
-            >
-              Ler os valores e concluir
-            </Link>
-            <button type="button" disabled={ocupado} onClick={() => fazer(() => encerrarExame(supabase, pedido.id))} className={discreto}>
-              Concluir sem ler os valores
-            </button>
-          </>
-        )}
+
+        {pedido.status === "concluido" && !pedido.laudo && pedido.exame_arquivo &&
+          (vendoValores ? (
+            <ValoresDoExame arquivo={pedido.exame_arquivo} />
+          ) : (
+            <Button variant="primary" onClick={() => setVendoValores(true)} className={principal}>Ver os valores</Button>
+          ))}
       </div>
 
       {!marcando && antesDeFazer && (

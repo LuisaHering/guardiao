@@ -164,6 +164,7 @@ export default function ExamesPage() {
 
   // Vindo de um pedido: carrega o resultado enviado. A leitura só começa no botão desta tela.
   const pedidoDeOrigem = useRef<string | null>(null);
+  const [voltaAoPedido, setVoltaAoPedido] = useState<string | null>(null);
   useEffect(() => {
     const parametros = new URLSearchParams(window.location.search);
     const id = parametros.get("documento");
@@ -176,6 +177,7 @@ export default function ExamesPage() {
       if (!d) return;
       const { data: conteudo, error } = await cliente.storage.from("documentos").download(d.arquivo_url as string);
       if (cancelado) return;
+      setVoltaAoPedido(parametros.get("pedido"));
       if (error || !conteudo) {
         setErro("Não consegui abrir o resultado enviado.");
         return;
@@ -341,6 +343,7 @@ export default function ExamesPage() {
       const falha = await encerrarExame(supabase, pedidoDeOrigem.current, false, caminho);
       if (falha) setErro("Os valores foram salvos, mas o pedido continua aberto. Conclua em Pedidos de exame.");
       pedidoDeOrigem.current = null;
+      setVoltaAoPedido(null);
     }
 
     setRevisao(null);
@@ -403,6 +406,11 @@ export default function ExamesPage() {
           {lendo ? "Lendo o exame..." : "Ler exame"}
         </Button>
         {lendo && <IACarregando rotulo="Lendo o exame..." />}
+        {voltaAoPedido && (
+          <Link href={`/pedidos?abrir=${voltaAoPedido}`} className="self-start text-sm text-primary underline underline-offset-4">
+            É um laudo, sem números? Marque isso na tela do exame
+          </Link>
+        )}
         <p className="text-xs text-subtle">
           O documento é enviado à {NOME_PROVEDOR} para a leitura. Enquanto você
           não confirma, nada é salvo aqui: nem o arquivo, nem os valores.

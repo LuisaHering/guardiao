@@ -294,8 +294,9 @@ que um erro seja percebido.
 ## Para resolver
 
 Na tela Hoje de quem cuida, abaixo do botão de foto, a seção "Para resolver" reúne o que está
-parado: remédio esperando a família, exame sem marcar, exame marcado sem o dia e exame feito sem
-resultado. Ela não entra na contagem do dia e só aparece quando há pendência.
+parado: remédio esperando a família, exame sem marcar, exame marcado sem o dia, exame feito sem
+resultado e resultado sem os valores conferidos. Ela não entra na contagem do dia e só aparece
+quando há pendência.
 
 ## Pedidos e resultados de exame
 
@@ -323,6 +324,16 @@ testadas nas migrações `20261125130000` a `20261125160000`.
 
 **Limite:** o aviso da véspera é gerado quando alguém abre o aplicativo naquele dia e não chega
 como notificação com o celular fechado.
+
+### O exame só está pronto com os valores conferidos
+
+A tela do exame mostra quatro etapas: **marcar, fazer, resultado e conferir**. Com o resultado
+enviado, o exame aparece como "Falta conferir os valores", em destaque, até alguém conferir; a
+conferência vale na hora, como o resto do que é confirmado. A exceção é o **laudo escrito**
+(ultrassom, raio-X), que não tem números: só a família diz que é um laudo, e o exame fica como
+"Laudo recebido". Se os valores forem removidos depois, o exame volta para "conferir" e o mesmo
+arquivo pode ser conferido de novo. Garantido no banco e testado em
+`20261125240000_etapa_conferir_e_laudo.sql`.
 
 ### Quem confere os valores
 

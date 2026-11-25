@@ -18,13 +18,17 @@ export type PedidoExame = {
   laboratorio: string | null;
   documento_id: string | null;
   resultado_documento_id: string | null;
+  /** o arquivo dos valores conferidos */
+  exame_arquivo: string | null;
+  /** resultado escrito, sem números para conferir */
+  laudo: boolean;
   /** desde quando falta marcar (recomeça num "não consegui") */
   falta_desde: string;
   created_at: string;
 };
 
 export const COLUNAS_PEDIDO =
-  "id, exames, preparo, status, dia, hora, laboratorio, documento_id, resultado_documento_id, falta_desde, created_at";
+  "id, exames, preparo, status, dia, hora, laboratorio, documento_id, resultado_documento_id, exame_arquivo, laudo, falta_desde, created_at";
 
 /** Disparado quando um pedido muda, para as telas abertas se atualizarem. */
 export const EVENTO_PEDIDOS = "guardiao:pedidos-exame";
@@ -60,6 +64,9 @@ export function pendenciaDo(p: PedidoExame): { titulo: string; detalhe: string; 
   if (p.status === "feito") {
     return { titulo: `Resultado: ${nomes}`, detalhe: "Feito, falta enviar o resultado", tom: "alerta" };
   }
+  if (p.status === "resultado_enviado") {
+    return { titulo: `Conferir valores: ${nomes}`, detalhe: "Resultado enviado, falta conferir", tom: "alerta" };
+  }
   return null;
 }
 
@@ -71,8 +78,11 @@ export function situacao(p: PedidoExame): { texto: string; tom: Tom } {
       : { texto: "Já está marcado, sem o dia", tom: "alerta" };
   }
   if (p.status === "feito") return { texto: "Feito, falta o resultado", tom: "alerta" };
-  if (p.status === "resultado_enviado") return { texto: "Resultado enviado", tom: "feito" };
-  if (p.status === "concluido") return { texto: "Concluído", tom: "feito" };
+  // Enquanto os valores não forem conferidos, o exame não está pronto.
+  if (p.status === "resultado_enviado") return { texto: "Falta conferir os valores", tom: "alerta" };
+  if (p.status === "concluido") {
+    return { texto: p.laudo ? "Laudo recebido" : p.exame_arquivo ? "Valores conferidos" : "Concluído", tom: "feito" };
+  }
   return { texto: "Cancelado", tom: "normal" };
 }
 
@@ -127,6 +137,10 @@ export const encerrarExame = (supabase: SupabaseClient, id: string, cancelar = f
     { p_pedido: id, p_cancelar: cancelar, p_arquivo: arquivo },
     "Não consegui encerrar este pedido.",
   );
+
+/** O resultado é um laudo escrito: não há número para conferir. Só a família diz isso. */
+export const marcarLaudo = (supabase: SupabaseClient, id: string) =>
+  chamar(supabase, "marcar_laudo", { p_pedido: id }, "Não consegui guardar. Tente de novo.");
 
 export type ResultadoLigado = { pedidoId: string } | { erro: string };
 
