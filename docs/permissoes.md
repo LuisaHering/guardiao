@@ -209,8 +209,12 @@ pedido de exame, o mesmo envio descrito em Documentos.
 
 ## Receita e pedido de exame lidos da foto
 
-Quem envia a foto de uma receita ou de um pedido de exame **confere o que a IA leu**, um item
-por vez, com "Está igual" ou "Não está igual", sem digitar. O confirmado **vale na hora** e o
+Quem envia a foto de uma receita ou de um pedido de exame **confere tudo o que a IA leu e que
+vai ser registrado, com uma pergunta por tela**, sem digitar. Na receita: o médico e a data; de
+cada remédio, o nome e a dose, o texto sobre como tomar, quantas vezes, o dia (quando não é de
+todo dia), a hora e até quando. No exame: os nomes e o preparo. Um "Não, ou não sei" tira só
+aquele item, e o motivo registrado diz o que não foi confirmado. Se o médico ou a data não
+conferirem, eles não são guardados. O confirmado **vale na hora** e o
 administrador recebe um pop-up **com a foto usada** para aceitar ou negar o conjunto. Negar
 desfaz: o remédio novo sai, a dose ou o horário voltam, o pedido de exame é cancelado, e quem
 cuida é avisado. Até a revisão, o remédio aparece na lista de hoje com "Lido da foto, confira
@@ -225,7 +229,7 @@ família ler a foto:
 | Já está na lista com a mesma dose e horário | não duplica |
 | Já está na lista com outra dose ou horário claro | muda, depois de quem enviou conferir |
 | Nome parecido ou outra fórmula (ex: associação, liberação prolongada) | não entra |
-| Semanal, a cada tantos dias, mensal ou dose única | entra, depois de um segundo "Você tem certeza?" (com a escolha do dia), e o administrador recebe um aviso **urgente** |
+| Semanal, a cada tantos dias, mensal ou dose única | a pergunta sobre quantas vezes avisa que não é de todo dia, a pessoa escolhe o dia, e o administrador recebe um aviso **urgente** |
 | Tratamento contado em dias, semanas ou meses | entra com o último dia calculado |
 | "Dose única diária" ou "ao dia" | é tratado como remédio de todo dia |
 | Sem dose, ou mais de uma vez por mês sem dizer os dias | não entra |

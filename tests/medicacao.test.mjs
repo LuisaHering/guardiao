@@ -335,3 +335,20 @@ test("escolher o primeiro dia move o último junto", () => {
   assert.equal(aplicarInicio(agendaDe({}), "2026-12-05", { dias: 7 }).fim, "2026-12-11");
 });
 
+const { perguntasDoRemedio } = await import("../src/lib/medicacao.ts");
+
+test("conferência: remédio de todo dia confere tudo o que vai para a lista", () => {
+  assert.deepEqual(perguntasDoRemedio(classe({})), ["nome", "como", "vezes", "hora", "ate"]);
+});
+
+test("conferência: o que não é de todo dia também escolhe o dia, antes do 'até quando'", () => {
+  assert.deepEqual(perguntasDoRemedio(classe({ nome: "X", frequencia: "1 vez ao mês" })), ["nome", "como", "vezes", "dia", "hora", "ate"]);
+  assert.deepEqual(perguntasDoRemedio(classe({ nome: "X", frequencia: "dose única" })), ["nome", "como", "vezes", "dia", "hora"]);
+});
+
+test("conferência: já tomado e mudança também são conferidos; dúvida não", () => {
+  assert.deepEqual(perguntasDoRemedio(classe({ nome: "Losartana", dosagem: "50 mg", frequencia: "pela manhã" })), ["nome", "como"]);
+  assert.deepEqual(perguntasDoRemedio(classe({ nome: "Losartana", dosagem: "100 mg", frequencia: "pela manhã" })), ["nome", "como", "muda"]);
+  assert.deepEqual(perguntasDoRemedio(classe({ dosagem: null })), []);
+});
+

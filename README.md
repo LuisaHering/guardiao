@@ -65,7 +65,7 @@ A primeira semana foi de idealização do projeto (definição de tema, cliente 
 - Tela Hoje de quem cuida, pensada para o celular: checklist do dia e botões grandes; o administrador cria tarefas diárias, semanais ou de uma vez só
 - Ida ao médico para quem cuida: gravar a consulta (com proteções e aviso de interrupção) ou contar o que o médico disse, documentos para levar, foto de papéis e volta marcada que vira tarefa
 - Foto do dia: quem cuida tira a foto pela tela Hoje, a família vê no painel; armazenamento privado, sem local da foto e sem envio à IA
-- Atalho na tela Hoje para enviar uma receita ou um pedido de exame novo: a IA lê, quem enviou confere item a item, o confirmado vale na hora e a família aceita ou nega olhando a foto
+- Atalho na tela Hoje para enviar uma receita ou um pedido de exame novo: a IA lê, quem enviou confere tudo com uma pergunta por tela, o confirmado vale na hora e a família aceita ou nega olhando a foto
 - Pedido de exame até o resultado: falta marcar em destaque, tarefa no dia com o preparo escrito, aviso na véspera, resultado em foto ou PDF e aba Exames para quem cuida, com os valores
 - Menu por papel (o cuidador vê só o operacional) e navegação adaptada ao celular
 - Chat de cuidado com resposta em fluxo e autoria em cada fala, check-in diário conduzido pela IA e proposta de registros a partir da conversa (cada item mostra quem disse e a fala de origem; nada entra sem confirmação)

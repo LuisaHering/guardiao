@@ -584,3 +584,21 @@ export function classificarRemedio(lido: RemedioLido, ativos: Remedio[], hoje: s
   const agenda = aplicarInicio(base, hoje, duracao);
   return { acao: "novo", agenda: agendaParaGravar(agenda), instrucoes: texto || null, recorrencia, duracao };
 }
+
+/** "dia": escolher quando, nos que não são de todo dia. "muda": o que vai mudar na lista. */
+export type Pergunta = "nome" | "como" | "vezes" | "dia" | "hora" | "ate" | "muda";
+
+/**
+ * O que a pessoa precisa conferir de um remédio lido: TUDO o que vai para a lista, uma
+ * pergunta por vez. Quem não vai entrar sozinho não tem pergunta (vai para a família).
+ */
+export function perguntasDoRemedio(c: Classificacao): Pergunta[] {
+  if (c.acao === "duvida" || c.acao === "parar") return [];
+  if (c.acao === "ja_toma") return ["nome", "como"];
+  if (c.acao === "mudar") return ["nome", "como", "muda"];
+  const perguntas: Pergunta[] = ["nome", "como", "vezes"];
+  if (c.recorrencia) perguntas.push("dia");
+  if (c.agenda.frequencia !== "quando_precisar") perguntas.push("hora");
+  if (c.agenda.frequencia !== "unica") perguntas.push("ate");
+  return perguntas;
+}

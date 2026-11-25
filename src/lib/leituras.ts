@@ -15,8 +15,9 @@ export type ItemRemedio = {
   /** o que está escrito no papel sobre como tomar */
   texto: string;
   classe: Classificacao;
-  /** "sem_certeza": não é de todo dia e quem conferiu não quis confirmar */
-  resposta: Resposta | "sem_certeza" | null;
+  resposta: Resposta | null;
+  /** o que quem conferiu não confirmou ("a hora de tomar"): o item vai para a família */
+  recusou?: string;
 };
 
 export type Leitura = {
@@ -78,6 +79,8 @@ export async function gravarConferencia(
   leitura: Leitura,
   exames: Resposta | null,
   faltou: boolean,
+  /** médico e data só são guardados se a pessoa confirmou */
+  cabecalhoConfere: boolean,
 ): Promise<string | null> {
   // A tela de Receitas guarda o próprio documento de origem de cada remédio.
   let caminho: string | null = null;
@@ -92,12 +95,19 @@ export async function gravarConferencia(
   const { error } = await supabase.rpc("confirmar_leitura", {
     p_documento: documentoId,
     p_dados: {
-      receita: { medico: leitura.papel.medico, data: dataValida(leitura.papel.data), arquivo: caminho },
+      receita: {
+        medico: cabecalhoConfere ? leitura.papel.medico : null,
+        data: cabecalhoConfere ? dataValida(leitura.papel.data) : null,
+        arquivo: caminho,
+      },
       remedios: leitura.remedios.map((i) => {
-        const c: Classificacao =
-          i.resposta === "sem_certeza"
-            ? { acao: "duvida", alvo: null, motivo: "quem conferiu não teve certeza de que não é de todo dia" }
-            : i.classe;
+        const c: Classificacao = i.recusou
+          ? {
+              acao: "duvida",
+              alvo: "alvo" in i.classe ? i.classe.alvo : null,
+              motivo: `quem conferiu não confirmou ${i.recusou}`,
+            }
+          : i.classe;
         const base = {
           resposta: i.resposta,
           acao: c.acao,
@@ -115,7 +125,7 @@ export async function gravarConferencia(
       exames: leitura.papel.exames.length
         ? { resposta: exames, nomes: leitura.papel.exames, preparo: leitura.papel.preparo }
         : null,
-      faltou: faltou || !leitura.papel.legivel,
+      faltou: faltou || !cabecalhoConfere || !leitura.papel.legivel,
     },
   });
   if (error) return "Não consegui guardar. Confira a internet e tente de novo.";
@@ -269,7 +279,7 @@ export async function carregarLeituras(supabase: SupabaseClient, idosoId: string
       }
     }
     if (l.faltou) {
-      linhas.push({ rotulo: "Atenção", texto: "Pode haver algo no papel que não foi lido. Confira a foto.", atencao: true });
+      linhas.push({ rotulo: "Atenção", texto: "Algo no papel pode não ter sido lido ou não conferia. Confira a foto.", atencao: true });
     }
 
     const efeitos = [...desfaz].join(", ");
