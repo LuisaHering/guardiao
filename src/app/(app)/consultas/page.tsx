@@ -7,6 +7,7 @@ import { Badge, Button, Card, Field, Input } from "@/components/ui";
 import type { ResumoConsulta } from "@/lib/ai/schemas";
 import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
 import { IACarregando } from "@/components/ia-carregando";
+import { ConsultaCuidadora } from "@/components/consulta-cuidadora";
 
 type Consulta = {
   id: string;
@@ -17,6 +18,7 @@ type Consulta = {
   status_processamento: string | null;
   transcricao: string | null;
   resumo_json: ResumoConsulta | null;
+  retorno_em: string | null;
 };
 
 const MUDANCA: Record<string, string> = {
@@ -80,6 +82,7 @@ function ConsultaItem({
             {[c.medico, c.especialidade].filter(Boolean).join(" · ") || "Consulta"}
           </p>
           <p className="text-xs text-subtle">{dataLegivel(c.data)}</p>
+          {c.retorno_em && <p className="text-xs text-ink">Volta marcada: {c.retorno_em.split("-").reverse().join("/")}</p>}
         </div>
         <div className="flex items-center gap-2">
           {c.status_processamento === "concluido" && <Badge tone="success">resumida</Badge>}
@@ -229,7 +232,13 @@ function extensaoDe(tipo: string, nome?: string) {
   return "webm";
 }
 
+/** Quem cuida tem uma tela própria, com dois botões; a família vê o histórico completo. */
 export default function ConsultasPage() {
+  const membership = useRole();
+  return membership?.role === "cuidador" ? <ConsultaCuidadora /> : <ConsultasFamilia />;
+}
+
+function ConsultasFamilia() {
   const supabase = createClient();
   const membership = useRole();
   const idosoId = membership?.idosoId;
@@ -261,7 +270,7 @@ export default function ConsultasPage() {
     const { data: lista } = await supabase
       .from("consulta")
       .select(
-        "id, data, medico, especialidade, audio_url, status_processamento, transcricao, resumo_json",
+        "id, data, medico, especialidade, audio_url, status_processamento, transcricao, resumo_json, retorno_em",
       )
       .eq("idoso_id", idosoId)
       .is("deleted_at", null)
@@ -411,9 +420,8 @@ export default function ConsultasPage() {
       <div>
         <h1 className="text-2xl font-semibold text-ink">Consultas</h1>
         <p className="text-sm text-subtle">
-          Registre as consultas de {membership.idosoNome} e guarde o áudio para
-          ouvir depois. Gravar uma consulta exige o aviso e o aceite de quem está
-          sendo atendido.
+          Registre as consultas de {membership.idosoNome} e guarde o áudio para ouvir
+          depois.
         </p>
       </div>
 

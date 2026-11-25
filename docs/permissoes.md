@@ -25,7 +25,7 @@ Papel e administração são eixos separados: um familiar administrador não é 
 | Visão 360 | não | sim | **não** |
 | Preferências e história, folha de cuidado | sim (preferências) | sim | sim |
 | Diretivas | sim | sim | **não** |
-| Documentos (pastas e arquivos) | sim | sim | só as pastas marcadas como visíveis |
+| Documentos | sim | sim | só os marcados "levar nas consultas" e o que enviou |
 | Emergência | não | sim | sim |
 | Rede e acessos | não | só admin | não |
 
@@ -47,7 +47,7 @@ clínico (docs/modelagem.md, seção 3.12).
 | Ver ou mexer nos dados de outro idoso | ninguém | **banco** (RLS por vínculo) |
 | Cuidador ler exames, tendências, observações, visão 360 e diretivas | não | **banco** (leitura só para familiar e titular) |
 | Criar pasta e enviar documento | só o administrador | **banco** |
-| Cuidador ver pasta ou documento não marcado como visível | não | **banco** (inclui o arquivo no Storage) |
+| Quem cuida ver pasta, ou documento não marcado que não enviou | não | **banco** (inclui o arquivo no Storage) |
 | Cuidador ler alertas clínicos ou o texto de alerta de outra pessoa | não | **banco** |
 
 ## Verificação no banco
@@ -67,14 +67,42 @@ de outra pessoa, e quem é de fora não lê nem escreve no cuidado de um idoso a
 
 ## Documentos
 
-A tela de Documentos guarda certidões, carteirinha do plano e outros arquivos em pastas que o
-administrador cria. O cuidador só vê as pastas marcadas como "visíveis para quem cuida" (e cujas
-pastas-mãe também estejam); arquivo solto na raiz não é visível a ele. Os arquivos ficam em um
-bucket privado, abertos por link temporário de 5 minutos, e **nunca são enviados à IA**. Não há
-exclusão física: "remover" esconde o documento. As pastas automáticas (exames, receitas,
+O administrador guarda certidões, carteirinha do plano e outros arquivos em pastas. A permissão
+de quem cuida é **por documento**: ela não vê pastas, só o que estiver marcado como "levar nas
+consultas" e o que ela mesma enviou. Os arquivos ficam em um bucket privado, abertos por link
+temporário. Não há exclusão física: "remover" esconde. As pastas automáticas (exames, receitas,
 consultas, diretivas e folha de cuidado) são montadas a partir do que já existe, sem copiar
-arquivo, e seguem a regra de cada origem (o cuidador não vê exames nem diretivas).
-A migração `20261124130000_documentos.sql` leva o seu próprio teste dessas regras.
+arquivo.
+
+**Envio de um papel.** Quem cuida (ou qualquer membro) envia a foto de uma receita, pedido de
+exame, atestado ou outro papel. Ela chega ao administrador numa caixa própria, com aviso. Quem
+enviou não consegue marcar o próprio envio para consultas nem colocá-lo em uma pasta. Um
+registro nunca pode apontar para o arquivo de outro (caminho único e imutável): sem isso, criar
+um registro apontando para um arquivo escondido daria acesso a ele. Os documentos não são
+enviados à IA, a não ser quando a família escolhe "Ler como receita" e confirma na tela de
+receitas.
+
+Regras testadas nas migrações `20261124130000_documentos.sql` e
+`20261125100000_consulta_e_documentos.sql`.
+
+## Ida ao médico (quem cuida)
+
+Dois botões principais: **Gravar a consulta** (começa na hora) e **Contar sobre a consulta**
+(texto, que a pessoa pode ditar pelo teclado). Gravar e contar no mesmo dia ficam no mesmo
+registro; uma segunda gravação vira outro registro, para nada ser sobrescrito. O áudio **não é
+transformado em texto** e não é enviado à IA. Se a volta for marcada, o banco cria a tarefa
+"Consulta de volta" e avisa o administrador (quem cuida não cria tarefas diretamente).
+
+O aplicativo **não pede nem registra autorização para gravar** (decisão de produto): essa
+responsabilidade fica com quem grava.
+
+Proteções da gravação: a tela é mantida acesa quando o navegador permite; há o aviso "Não
+feche nem bloqueie o celular"; o áudio é guardado em pedaços; interrupções (microfone
+desligado, tela bloqueada, erro) são anunciadas e o que foi gravado até ali é salvo; se o envio
+falhar, dá para tentar de novo ou salvar no celular. A gravação continua ao trocar de tela
+dentro do aplicativo. **Limite:** nenhuma dessas proteções impede o navegador do celular de
+parar de gravar; elas reduzem o risco e avisam. Recarregar ou fechar a página perde o áudio que
+ainda não foi guardado.
 
 ## Remédios: agenda e confirmação
 

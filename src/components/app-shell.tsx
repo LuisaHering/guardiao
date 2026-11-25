@@ -11,6 +11,7 @@ import { SinoAlertas } from "@/components/sino-alertas";
 import { BoasVindas } from "@/components/boas-vindas";
 import { PopupRevisao } from "@/components/popup-revisao";
 import { BarraCuidadora } from "@/components/barra-cuidadora";
+import { GravacaoProvider } from "@/components/gravacao";
 import { EVENTO_BOAS_VINDAS } from "@/lib/onboarding";
 
 function Shield() {
@@ -213,7 +214,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <main className={cn("flex-1 p-4 sm:p-6", comBarra && "pb-24 md:pb-6")}>{children}</main>
+        <main className={cn("flex-1 p-4 sm:p-6", comBarra && "pb-24 md:pb-6")}>
+          {/* A gravação mora aqui, e não na tela: trocar de tela não perde o áudio. */}
+          <GravacaoProvider>{children}</GravacaoProvider>
+        </main>
       </div>
       {comBarra && <BarraCuidadora menuAberto={menuAberto} onMais={setMenuAberto} />}
       <PopupRevisao />

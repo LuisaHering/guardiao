@@ -61,6 +61,30 @@ export default function ReceitasPage() {
   const [removendo, setRemovendo] = useState<string | null>(null);
   const [removendoAgora, setRemovendoAgora] = useState(false);
 
+  // Vindo de Documentos ("Ler como receita"): carrega a foto enviada. Nada vai para a IA
+  // sozinho: a leitura só começa quando a pessoa toca no botão desta tela.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("documento");
+    if (!id) return;
+    let cancelado = false;
+    (async () => {
+      const cliente = createClient();
+      const { data: d } = await cliente.from("documento").select("nome, arquivo_url, tipo").eq("id", id).maybeSingle();
+      if (!d) return;
+      const { data: conteudo, error } = await cliente.storage.from("documentos").download(d.arquivo_url as string);
+      if (cancelado) return;
+      if (error || !conteudo) {
+        setErro("Não consegui abrir o documento enviado.");
+        return;
+      }
+      const extensao = (d.arquivo_url as string).split(".").pop() ?? "jpg";
+      setArquivo(new File([conteudo], `${d.nome}.${extensao}`, { type: (d.tipo as string) || conteudo.type }));
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
   const carregar = useCallback(async () => {
     if (!idosoId) {
       setCarregando(false);
@@ -274,7 +298,10 @@ export default function ReceitasPage() {
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-ink">Nova receita</h2>
-        <input
+        {arquivo && (
+            <p className="w-full text-sm text-ink">Arquivo escolhido: {arquivo.name}</p>
+          )}
+          <input
           type="file"
           accept="image/*,application/pdf"
           onChange={(e) => {

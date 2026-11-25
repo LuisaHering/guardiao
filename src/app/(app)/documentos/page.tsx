@@ -5,8 +5,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Badge, Button, Card, Input } from "@/components/ui";
+import { DocumentosCuidadora } from "@/components/papeis";
+import { abrirArquivo, LIMITE_DOCUMENTO as LIMITE, nomeSeguro, rotuloEnvio, TIPOS_ACEITOS } from "@/lib/documentos";
 
-type Pasta = { id: string; pai_id: string | null; nome: string; visivel_cuidador: boolean };
+type Pasta = { id: string; pai_id: string | null; nome: string };
 
 type Doc = {
   id: string;
@@ -17,6 +19,9 @@ type Doc = {
   tamanho: number | null;
   autor_id: string | null;
   created_at: string;
+  levar_consulta: boolean;
+  envio: string | null;
+  guardado_em: string | null;
 };
 
 /** Pastas que o sistema monta sozinho a partir do que já existe: nada é duplicado. */
@@ -24,22 +29,17 @@ type Auto = {
   id: "exames" | "receitas" | "consultas" | "diretivas" | "folha";
   titulo: string;
   descricao: string;
-  /** o cuidador não vê leitura clínica (docs/permissoes.md) */
-  somenteFamilia: boolean;
 };
 
 const AUTOMATICAS: Auto[] = [
-  { id: "exames", titulo: "Exames", descricao: "Laudos já enviados e confirmados.", somenteFamilia: true },
-  { id: "receitas", titulo: "Receitas", descricao: "Fotos e PDFs das receitas.", somenteFamilia: false },
-  { id: "consultas", titulo: "Consultas", descricao: "Áudios das consultas gravadas.", somenteFamilia: false },
-  { id: "diretivas", titulo: "Diretivas", descricao: "PDFs das diretivas antecipadas.", somenteFamilia: true },
-  { id: "folha", titulo: "Folha de cuidado", descricao: "Resumo para quem começa a cuidar.", somenteFamilia: false },
+  { id: "exames", titulo: "Exames", descricao: "Laudos já enviados e confirmados." },
+  { id: "receitas", titulo: "Receitas", descricao: "Fotos e PDFs das receitas." },
+  { id: "consultas", titulo: "Consultas", descricao: "Áudios das consultas gravadas." },
+  { id: "diretivas", titulo: "Diretivas", descricao: "PDFs das diretivas antecipadas." },
+  { id: "folha", titulo: "Folha de cuidado", descricao: "Resumo para quem começa a cuidar." },
 ];
 
 const SUGESTOES = ["Identificação", "Plano de saúde", "Benefícios e INSS", "Contratos e financeiro", "Outros"];
-
-const TIPOS_ACEITOS = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
-const LIMITE = 15 * 1024 * 1024;
 
 type ItemAuto = { id: string; rotulo: string; detalhe: string; bucket: string; caminho: string };
 
@@ -50,10 +50,6 @@ function dataBr(iso: string | null) {
 function tamanhoLegivel(b: number | null) {
   if (!b) return "";
   return b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function nomeSeguro(n: string) {
-  return n.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9._-]+/g, "_").slice(-80);
 }
 
 function IconePasta({ auto }: { auto?: boolean }) {
@@ -67,12 +63,20 @@ function IconePasta({ auto }: { auto?: boolean }) {
   );
 }
 
+/** Quem cuida não vê pastas: só o que levar e o envio de foto. */
 export default function DocumentosPage() {
+  const membership = useRole();
+  if (membership?.role === "cuidador" && membership.idosoId) {
+    return <DocumentosCuidadora idosoId={membership.idosoId} nome={membership.idosoNome ?? ""} />;
+  }
+  return <DocumentosFamilia />;
+}
+
+function DocumentosFamilia() {
   const supabase = createClient();
   const membership = useRole();
   const idosoId = membership?.idosoId;
   const admin = !!membership?.admin;
-  const ehCuidador = membership?.role === "cuidador";
 
   const [versao, setVersao] = useState(0);
   const [pastas, setPastas] = useState<Pasta[]>([]);
@@ -87,7 +91,6 @@ export default function DocumentosPage() {
 
   const [novaPasta, setNovaPasta] = useState(false);
   const [nomePasta, setNomePasta] = useState("");
-  const [visivelCuidador, setVisivelCuidador] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -100,13 +103,13 @@ export default function DocumentosPage() {
       const [{ data: ps }, { data: ds }] = await Promise.all([
         supabase
           .from("documento_pasta")
-          .select("id, pai_id, nome, visivel_cuidador")
+          .select("id, pai_id, nome")
           .eq("idoso_id", idosoId)
           .is("deleted_at", null)
           .order("nome"),
         supabase
           .from("documento")
-          .select("id, pasta_id, nome, arquivo_url, tipo, tamanho, autor_id, created_at")
+          .select("id, pasta_id, nome, arquivo_url, tipo, tamanho, autor_id, created_at, levar_consulta, envio, guardado_em")
           .eq("idoso_id", idosoId)
           .is("deleted_at", null)
           .order("created_at", { ascending: false }),
@@ -222,19 +225,10 @@ export default function DocumentosPage() {
   }, [supabase, idosoId, atual]);
 
   async function abrir(bucket: string, caminho: string) {
-    // A janela é aberta antes, no clique, para o navegador não bloquear o pop-up.
-    const janela = window.open("", "_blank");
-    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(caminho, 300);
-    if (error || !data?.signedUrl) {
-      janela?.close();
-      setErro("Não consegui abrir este arquivo.");
-      return;
-    }
-    if (janela) janela.location.href = data.signedUrl;
-    else window.location.href = data.signedUrl;
+    setErro(await abrirArquivo(supabase, bucket, caminho));
   }
 
-  async function criarPasta(nome: string, visivel: boolean) {
+  async function criarPasta(nome: string) {
     if (!idosoId || !nome.trim()) return;
     setErro(null);
     const { data: auth } = await supabase.auth.getUser();
@@ -242,12 +236,10 @@ export default function DocumentosPage() {
       idoso_id: idosoId,
       pai_id: atual && !atual.startsWith("auto:") ? atual : null,
       nome: nome.trim(),
-      visivel_cuidador: visivel,
       criado_por: auth.user?.id ?? null,
     });
     if (error) setErro("Não consegui criar a pasta.");
     setNomePasta("");
-    setVisivelCuidador(false);
     setNovaPasta(false);
     recarregar();
   }
@@ -306,10 +298,16 @@ export default function DocumentosPage() {
     recarregar();
   }
 
-  async function moverDoc(d: Doc, pastaId: string) {
-    await supabase.from("documento").update({ pasta_id: pastaId || null }).eq("id", d.id);
+  async function atualizarDoc(d: Doc, campos: Record<string, unknown>) {
+    const { error } = await supabase.from("documento").update(campos).eq("id", d.id);
+    setErro(error ? "Não consegui salvar." : null);
     recarregar();
   }
+
+  // Mexer num envio de quem cuida já o tira da caixa de entrada.
+  const aoOrganizar = (d: Doc) => (d.envio && !d.guardado_em ? { guardado_em: new Date().toISOString() } : {});
+  const moverDoc = (d: Doc, pastaId: string) => atualizarDoc(d, { pasta_id: pastaId || null, ...aoOrganizar(d) });
+  const alternarLevar = (d: Doc) => atualizarDoc(d, { levar_consulta: !d.levar_consulta, ...aoOrganizar(d) });
 
   async function removerDoc(d: Doc) {
     if (!window.confirm(`Remover "${d.nome}"? Ele deixa de aparecer na lista.`)) return;
@@ -321,11 +319,6 @@ export default function DocumentosPage() {
     const novo = window.prompt("Novo nome da pasta:", p.nome)?.trim();
     if (!novo || novo === p.nome) return;
     await supabase.from("documento_pasta").update({ nome: novo }).eq("id", p.id);
-    recarregar();
-  }
-
-  async function alternarVisibilidade(p: Pasta) {
-    await supabase.from("documento_pasta").update({ visivel_cuidador: !p.visivel_cuidador }).eq("id", p.id);
     recarregar();
   }
 
@@ -349,7 +342,11 @@ export default function DocumentosPage() {
   const pastaAtual = atual && !atual.startsWith("auto:") ? pastas.find((p) => p.id === atual) ?? null : null;
   const autoAtual = atual?.startsWith("auto:") ? AUTOMATICAS.find((a) => a.id === atual.slice(5)) ?? null : null;
   const subpastas = pastas.filter((p) => (p.pai_id ?? null) === (pastaAtual?.id ?? null));
-  const docsAqui = docs.filter((d) => (d.pasta_id ?? null) === (pastaAtual?.id ?? null));
+  // Envios de quem cuida que ainda ninguém guardou ficam numa caixa própria.
+  const novos = docs.filter((d) => d.envio && !d.guardado_em);
+  const docsAqui = docs.filter(
+    (d) => (d.pasta_id ?? null) === (pastaAtual?.id ?? null) && !(d.envio && !d.guardado_em),
+  );
   const nDocsEm = (id: string) => docs.filter((d) => d.pasta_id === id).length;
 
   // caminho de migalhas
@@ -357,7 +354,7 @@ export default function DocumentosPage() {
   for (let p = pastaAtual; p; p = pastas.find((x) => x.id === p!.pai_id) ?? null) migalhas.unshift(p);
 
   const naRaiz = !atual;
-  const autoVisiveis = AUTOMATICAS.filter((a) => !(ehCuidador && a.somenteFamilia));
+  const autoVisiveis = AUTOMATICAS;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -458,16 +455,48 @@ export default function DocumentosPage() {
                 maxLength={80}
                 autoFocus
               />
-              <label className="flex items-center gap-2 text-sm text-ink">
-                <input type="checkbox" checked={visivelCuidador} onChange={(e) => setVisivelCuidador(e.target.checked)} />
-                Visível para quem cuida (por exemplo, a carteirinha do plano)
-              </label>
               <div className="flex gap-2">
-                <Button variant="primary" onClick={() => criarPasta(nomePasta, visivelCuidador)} disabled={!nomePasta.trim()}>
+                <Button variant="primary" onClick={() => criarPasta(nomePasta)} disabled={!nomePasta.trim()}>
                   Criar pasta
                 </Button>
                 <Button variant="ghost" onClick={() => setNovaPasta(false)}>Cancelar</Button>
               </div>
+            </Card>
+          )}
+
+          {naRaiz && novos.length > 0 && (
+            <Card className="flex flex-col gap-3 border-warn/50">
+              <h2 className="text-sm font-semibold text-ink">Enviados por quem cuida ({novos.length})</h2>
+              {novos.map((d) => (
+                <div key={d.id} className="flex flex-col gap-2 border-t border-line pt-3">
+                  <p className="text-sm text-ink">
+                    <strong>{rotuloEnvio(d.envio)}</strong> · {d.nome}
+                    <span className="block text-xs text-subtle">
+                      {dataBr(d.created_at)}
+                      {d.autor_id ? ` · enviado por ${nomes[d.autor_id] ?? "alguém da rede"}` : ""}
+                    </span>
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button onClick={() => abrir("documentos", d.arquivo_url)} className="h-9 px-3 text-xs">Abrir</Button>
+                    {d.envio === "receita" && (
+                      <Link href={`/receitas?documento=${d.id}`} className="inline-flex h-9 items-center rounded-lg border border-line px-3 text-xs font-medium text-ink hover:bg-panel">
+                        Ler como receita
+                      </Link>
+                    )}
+                    {admin && (
+                      <>
+                        <select aria-label={`Guardar ${d.nome} em uma pasta`} value="" onChange={(e) => e.target.value && moverDoc(d, e.target.value === "-" ? "" : e.target.value)} className="h-9 rounded-lg border border-line bg-card px-2 text-xs text-ink">
+                          <option value="">Guardar em...</option>
+                          <option value="-">Sem pasta</option>
+                          {pastas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                        </select>
+                        <Button variant="ghost" onClick={() => alternarLevar(d)} className="h-9 px-2 text-xs">Levar nas consultas</Button>
+                        <Button variant="ghost" onClick={() => removerDoc(d)} className="h-9 px-2 text-xs">Remover</Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
             </Card>
           )}
 
@@ -509,7 +538,7 @@ export default function DocumentosPage() {
                     <p className="text-xs text-subtle">Comece por uma sugestão, ou crie a sua em &quot;Nova pasta&quot;:</p>
                     <div className="flex flex-wrap gap-2">
                       {SUGESTOES.map((s) => (
-                        <Button key={s} onClick={() => criarPasta(s, s === "Plano de saúde")} className="h-8 px-3 text-xs">
+                        <Button key={s} onClick={() => criarPasta(s)} className="h-8 px-3 text-xs">
                           + {s}
                         </Button>
                       ))}
@@ -529,7 +558,6 @@ export default function DocumentosPage() {
                       <span className="block truncate text-sm font-medium text-ink">{p.nome}</span>
                       <span className="block text-xs text-subtle">
                         {nDocsEm(p.id)} {nDocsEm(p.id) === 1 ? "arquivo" : "arquivos"}
-                        {admin && p.visivel_cuidador ? " · visível a quem cuida" : ""}
                       </span>
                     </span>
                   </button>
@@ -541,12 +569,6 @@ export default function DocumentosPage() {
           {/* ações da pasta aberta */}
           {admin && pastaAtual && (
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <Badge tone={pastaAtual.visivel_cuidador ? "primary" : "neutral"}>
-                {pastaAtual.visivel_cuidador ? "Visível a quem cuida" : "Só a família vê"}
-              </Badge>
-              <Button variant="ghost" onClick={() => alternarVisibilidade(pastaAtual)} className="h-8 px-2 text-xs">
-                {pastaAtual.visivel_cuidador ? "Esconder de quem cuida" : "Mostrar a quem cuida"}
-              </Button>
               <Button variant="ghost" onClick={() => renomearPasta(pastaAtual)} className="h-8 px-2 text-xs">Renomear</Button>
               <Button variant="ghost" onClick={() => removerPasta(pastaAtual)} className="h-8 px-2 text-xs">Remover pasta</Button>
             </div>
@@ -572,6 +594,14 @@ export default function DocumentosPage() {
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
+                  {admin ? (
+                    <label className="mt-1 flex w-fit cursor-pointer items-center gap-2 text-xs text-ink">
+                      <input type="checkbox" checked={d.levar_consulta} onChange={() => alternarLevar(d)} />
+                      Levar nas consultas (quem cuida vê)
+                    </label>
+                  ) : (
+                    d.levar_consulta && <Badge tone="primary">levar nas consultas</Badge>
+                  )}
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-1">
                   <Button onClick={() => abrir("documentos", d.arquivo_url)} className="h-8 px-3 text-xs">Abrir</Button>
@@ -597,8 +627,14 @@ export default function DocumentosPage() {
             ))}
           </section>
 
+          {naRaiz && admin && (
+            <p className="text-xs text-subtle">
+              Quem cuida não vê as pastas: vê só os documentos marcados como &quot;levar nas consultas&quot; e o que ela
+              mesma enviou.
+            </p>
+          )}
           <p className="text-xs text-subtle">
-            Os documentos ficam guardados com acesso restrito e nunca são enviados à IA. Os links de abertura valem por poucos minutos.
+            Os documentos ficam guardados com acesso restrito e não são enviados à IA, a não ser que você escolha ler uma receita. Os links de abertura valem por poucos minutos.
           </p>
         </>
       )}

@@ -59,10 +59,11 @@ A primeira semana foi de idealização do projeto (definição de tema, cliente 
 - Preferências e história de vida ("como quero ser tratado"), com quem afirmou cada registro
 - Score de completude do perfil, com sugestão do que preencher a seguir
 - Folha "como cuidar de mim" em PDF, para quem começa a cuidar; os fatos de segurança (alergias, medicação, contatos) vêm do banco, e a IA só redige as preferências
-- Documentos do idoso: pastas e arquivos (certidão, carteirinha do plano, RG) com acesso por papel, mais pastas automáticas que reúnem exames, receitas, consultas e diretivas já salvos
+- Documentos do idoso: pastas e arquivos (certidão, carteirinha do plano, RG), com acesso de quem cuida decidido documento a documento, mais pastas automáticas que reúnem exames, receitas, consultas e diretivas já salvos
 - Onboarding por papel: boas-vindas curtas e cartão de primeiros passos que se marca sozinho
 - Remédios com horários e frequência, cada dose registrada à parte; o que quem não administra adiciona, muda ou suspende vale na hora, e o administrador recebe um pop-up para aprovar ou negar (negar desfaz)
 - Tela Hoje de quem cuida, pensada para o celular: checklist do dia e botões grandes; o administrador cria tarefas diárias, semanais ou de uma vez só
+- Ida ao médico para quem cuida: gravar a consulta (com proteções e aviso de interrupção) ou contar o que o médico disse, documentos para levar, foto de papéis e volta marcada que vira tarefa
 - Menu por papel (o cuidador vê só o operacional) e navegação adaptada ao celular
 - Chat de cuidado com resposta em fluxo e autoria em cada fala, check-in diário conduzido pela IA e proposta de registros a partir da conversa (cada item mostra quem disse e a fala de origem; nada entra sem confirmação)
 
