@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +22,15 @@ function destinoAposEntrar() {
   return t && /^[0-9a-zA-Z-]{16,80}$/.test(t) ? `/convite/${t}` : "/painel";
 }
 
+/** Quem chega por convite começa em "Criar conta", a não ser que diga que já tem uma. */
+function modoPeloEndereco(): "login" | "cadastro" {
+  const busca = new URLSearchParams(window.location.search);
+  return busca.get("convite") && busca.get("modo") !== "entrar" ? "cadastro" : "login";
+}
+const temConvite = () => !!new URLSearchParams(window.location.search).get("convite");
+// O endereço não muda enquanto esta tela está aberta.
+const semAvisos = () => () => {};
+
 const inputClass =
   "h-10 w-full rounded-lg border border-line bg-card px-3 text-sm text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 
@@ -29,7 +38,11 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [modo, setModo] = useState<"login" | "cadastro">("login");
+  const modoInicial = useSyncExternalStore(semAvisos, modoPeloEndereco, () => "login" as const);
+  const comConvite = useSyncExternalStore(semAvisos, temConvite, () => false);
+  // null = ainda não trocou de tela pelo botão de baixo
+  const [escolhido, setModo] = useState<"login" | "cadastro" | null>(null);
+  const modo = escolhido ?? modoInicial;
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -60,7 +73,8 @@ export default function LoginPage() {
       else if (data.session) router.push(destinoAposEntrar());
       else
         setAviso(
-          "Conta criada. Confira seu email para confirmar o cadastro antes de entrar.",
+          "Conta criada. Confira seu email para confirmar o cadastro antes de entrar." +
+            (comConvite ? " Depois, abra de novo o link do convite." : ""),
         );
     }
 
@@ -82,9 +96,11 @@ export default function LoginPage() {
           {modo === "login" ? "Entrar" : "Criar conta"}
         </h1>
         <p className="mb-6 mt-1 text-sm text-subtle">
-          {modo === "login"
-            ? "Acesse o cuidado do idoso."
-            : "Comece a acompanhar o cuidado do idoso."}
+          {comConvite
+            ? "Use o mesmo e-mail que recebeu o convite. Depois você aceita."
+            : modo === "login"
+              ? "Acesse o cuidado do idoso."
+              : "Comece a acompanhar o cuidado do idoso."}
         </p>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-3">

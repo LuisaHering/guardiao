@@ -80,14 +80,17 @@ export default function AceitarConvitePage() {
               Você recebeu um convite para ajudar a cuidar de alguém no Guardião.
             </p>
             <p className="text-sm text-subtle">
-              Entre ou crie a sua conta com o e-mail que recebeu o convite. Depois você volta
-              para cá e aceita.
+              Crie a sua conta com o e-mail que recebeu o convite. Depois você volta para cá e
+              aceita.
             </p>
             <Link
               href={`/login?convite=${token}`}
-              className="mx-auto inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-medium text-white hover:opacity-90"
+              className="mx-auto inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 text-base font-medium text-white hover:opacity-90"
             >
-              Entrar ou criar conta
+              Criar minha conta
+            </Link>
+            <Link href={`/login?convite=${token}&modo=entrar`} className="text-sm text-subtle hover:text-ink hover:underline">
+              Já tenho conta, quero entrar
             </Link>
           </div>
         )}
