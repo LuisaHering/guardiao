@@ -256,6 +256,12 @@ chega à família como documento e nada é mudado.
 conferência de quem enviou, o aviso na lista e a revisão com a foto; nenhuma delas garante
 que um erro seja percebido.
 
+## Para resolver
+
+Na tela Hoje de quem cuida, abaixo do botão de foto, a seção "Para resolver" reúne o que está
+parado: remédio esperando a família, exame sem marcar, exame marcado sem o dia e exame feito sem
+resultado. Ela não entra na contagem do dia e só aparece quando há pendência.
+
 ## Pedidos e resultados de exame
 
 Pedido e resultado podem ser colocados por quem cuida ou pela família, lado a lado, na aba de
@@ -268,7 +274,7 @@ os valores nesse passo.
 
 | Passo | Como funciona |
 |-------|----------------|
-| Falta marcar | fica em vermelho no painel da família, na tela Hoje e na aba Exames; não há lembrete com prazo |
+| Falta marcar | aparece com há quantos dias está assim; depois de uma semana fica em vermelho e o administrador recebe um aviso |
 | Já está marcado | sem preencher nada; sem o dia não há tarefa nem lembrete, e o administrador é avisado para completar |
 | Dizer o dia | hora e laboratório são opcionais; vira tarefa na tela Hoje com o que levar e o preparo |
 | Véspera | aviso dentro do aplicativo, com o preparo |

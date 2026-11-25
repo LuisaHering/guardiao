@@ -3,6 +3,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { enviarPapel } from "@/lib/documentos";
+import { diasEntre, hojeBR } from "@/lib/medicacao";
 
 export type SituacaoPedido = "falta_marcar" | "marcado" | "feito" | "resultado_enviado" | "concluido" | "cancelado";
 
@@ -17,11 +18,13 @@ export type PedidoExame = {
   laboratorio: string | null;
   documento_id: string | null;
   resultado_documento_id: string | null;
+  /** desde quando falta marcar (recomeça num "não consegui") */
+  falta_desde: string;
   created_at: string;
 };
 
 export const COLUNAS_PEDIDO =
-  "id, exames, preparo, status, dia, hora, laboratorio, documento_id, resultado_documento_id, created_at";
+  "id, exames, preparo, status, dia, hora, laboratorio, documento_id, resultado_documento_id, falta_desde, created_at";
 
 /** Disparado quando um pedido muda, para as telas abertas se atualizarem. */
 export const EVENTO_PEDIDOS = "guardiao:pedidos-exame";
@@ -30,8 +33,38 @@ const diaMes = (iso: string) => iso.split("-").reverse().slice(0, 2).join("/");
 
 export type Tom = "perigo" | "alerta" | "normal" | "feito";
 
+/** A partir daqui "falta marcar" fica em vermelho e o administrador é avisado (no banco). */
+export const DIAS_PARA_COBRAR = 7;
+
+export const diasSemMarcar = (p: Pick<PedidoExame, "falta_desde">) =>
+  Math.max(0, diasEntre(hojeBR(new Date(p.falta_desde)), hojeBR()));
+
+export function textoFaltaMarcar(p: Pick<PedidoExame, "falta_desde">): { texto: string; tom: Tom } {
+  const dias = diasSemMarcar(p);
+  return {
+    texto: dias === 0 ? "Falta marcar" : `Falta marcar há ${dias} ${dias === 1 ? "dia" : "dias"}`,
+    tom: dias >= DIAS_PARA_COBRAR ? "perigo" : "alerta",
+  };
+}
+
+/** O que está parado num pedido e precisa de alguém. null = nada para resolver agora. */
+export function pendenciaDo(p: PedidoExame): { titulo: string; detalhe: string; tom: Tom } | null {
+  const nomes = p.exames.join(", ");
+  if (p.status === "falta_marcar") {
+    const f = textoFaltaMarcar(p);
+    return { titulo: `Marcar exame: ${nomes}`, detalhe: f.texto, tom: f.tom };
+  }
+  if (p.status === "marcado" && !p.dia) {
+    return { titulo: `Dizer o dia: ${nomes}`, detalhe: "Está marcado, falta o dia", tom: "alerta" };
+  }
+  if (p.status === "feito") {
+    return { titulo: `Resultado: ${nomes}`, detalhe: "Feito, falta enviar o resultado", tom: "alerta" };
+  }
+  return null;
+}
+
 export function situacao(p: PedidoExame): { texto: string; tom: Tom } {
-  if (p.status === "falta_marcar") return { texto: "Falta marcar", tom: "perigo" };
+  if (p.status === "falta_marcar") return textoFaltaMarcar(p);
   if (p.status === "marcado") {
     return p.dia
       ? { texto: `Marcado para ${diaMes(p.dia)}${p.hora ? ` às ${p.hora}` : ""}`, tom: "normal" }

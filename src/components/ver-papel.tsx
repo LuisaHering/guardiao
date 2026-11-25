@@ -31,7 +31,7 @@ export function PapelAMao({ arquivo, children }: { arquivo: File | null | undefi
 const estilo =
   "flex min-h-16 w-full items-center gap-3 rounded-xl bg-panel p-2 text-left text-lg font-semibold text-primary underline underline-offset-4";
 
-export function VerPapel() {
+export function VerPapel({ rotulo = "Abrir o papel" }: { rotulo?: string }) {
   const papel = useContext(Contexto);
   const [aberto, setAberto] = useState(false);
   const [perto, setPerto] = useState(false);
@@ -44,7 +44,7 @@ export function VerPapel() {
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-card text-sm font-bold text-ink no-underline">
           PDF
         </span>
-        Abrir o papel
+        {rotulo}
       </a>
     );
   }
@@ -54,7 +54,7 @@ export function VerPapel() {
       <button type="button" onClick={() => setAberto(true)} className={estilo}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={papel.url} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-line object-cover object-top" />
-        Abrir o papel
+        {rotulo}
       </button>
       {aberto && (
         <div role="dialog" aria-modal="true" aria-label="O papel" className="fixed inset-0 z-50 flex flex-col bg-black">

@@ -9,6 +9,7 @@ import { CompletudePerfil } from "@/components/completude-perfil";
 import { ResumoTarefas } from "@/components/resumo-tarefas";
 import { FotosRecentes } from "@/components/fotos-recentes";
 import { PedidosNoPainel } from "@/components/pedidos-familia";
+import { textoFaltaMarcar } from "@/lib/pedidos-exame";
 import { dataCurta, fmt, posicaoNaFaixa, rotuloPosicao } from "@/lib/tendencia";
 import {
   COLUNAS_DOSE,
@@ -97,7 +98,7 @@ export function Dashboard() {
   const [recentes, setRecentes] = useState<Recente[]>([]);
   const [fora, setFora] = useState<ForaDaFaixa[]>([]);
   const [pauta, setPauta] = useState(0);
-  const [semMarcar, setSemMarcar] = useState<string[]>([]);
+  const [semMarcar, setSemMarcar] = useState<{ nomes: string; texto: string; atrasado: boolean }[]>([]);
 
   const carregar = useCallback(async () => {
     if (!idosoId) {
@@ -273,10 +274,16 @@ export function Dashboard() {
 
     const { data: paraMarcar } = await supabase
       .from("pedido_exame")
-      .select("exames")
+      .select("exames, falta_desde")
       .eq("idoso_id", idosoId)
-      .eq("status", "falta_marcar");
-    setSemMarcar((paraMarcar ?? []).map((p) => (p.exames as string[]).join(", ")));
+      .eq("status", "falta_marcar")
+      .order("falta_desde");
+    setSemMarcar(
+      (paraMarcar ?? []).map((p) => {
+        const f = textoFaltaMarcar({ falta_desde: p.falta_desde as string });
+        return { nomes: (p.exames as string[]).join(", "), texto: f.texto, atrasado: f.tom === "perigo" };
+      }),
+    );
 
     // Resultados mais recentes que estão fora da faixa do próprio laudo (só para quem vê o clínico).
     if (clinico) {
@@ -336,11 +343,18 @@ export function Dashboard() {
       {idosoId && membership.role === "familiar" && <PedidosNoPainel idosoId={idosoId} />}
 
       {semMarcar.length > 0 && (
-        <Link href="/pedidos" className="rounded-xl border-2 border-danger bg-danger/10 p-4">
-          <p className="text-sm font-semibold text-danger">
+        <Link
+          href="/pedidos"
+          className={`rounded-xl border-2 p-4 ${semMarcar.some((x) => x.atrasado) ? "border-danger bg-danger/10" : "border-warn bg-warn/10"}`}
+        >
+          <p className={`text-sm font-semibold ${semMarcar.some((x) => x.atrasado) ? "text-danger" : "text-warn"}`}>
             {semMarcar.length === 1 ? "1 exame falta marcar" : `${semMarcar.length} pedidos de exame faltam marcar`}
           </p>
-          <p className="text-sm text-ink">{semMarcar.join(" · ")}</p>
+          {semMarcar.map((x, i) => (
+            <p key={i} className="text-sm text-ink">
+              {x.nomes} · {x.texto.toLowerCase()}
+            </p>
+          ))}
         </Link>
       )}
 

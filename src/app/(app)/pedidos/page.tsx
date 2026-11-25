@@ -12,9 +12,11 @@ export default function PedidosPage() {
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-5">
-      <h1 className="text-2xl font-semibold text-ink">{cuidador ? "Exames" : "Pedidos e resultados"}</h1>
-      <PedidosExame idosoId={membership.idosoId} />
-      {cuidador && <ResultadosExame idosoId={membership.idosoId} />}
+      <PedidosExame
+        idosoId={membership.idosoId}
+        titulo={cuidador ? "Exames" : "Pedidos e resultados"}
+        depois={cuidador && <ResultadosExame idosoId={membership.idosoId} />}
+      />
     </div>
   );
 }

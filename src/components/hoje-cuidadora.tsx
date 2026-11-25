@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/cn";
 import { FILTRO_RELATO } from "@/lib/diario";
 import { FotoDoDia } from "@/components/foto-do-dia";
+import { COLUNAS_PEDIDO, ordenarPedidos, pendenciaDo, type PedidoExame } from "@/lib/pedidos-exame";
 
 type DiaContado = { quando: string; quemId: string | null } | null;
 
@@ -75,13 +76,56 @@ const linha = (feito: boolean, atrasada = false) =>
 
 const titulo = (feito: boolean) => cn("block text-lg font-semibold leading-tight", feito ? "text-subtle" : "text-ink");
 
+/**
+ * O que está parado e precisa de alguém. Não é tarefa do dia (não entra na barra de
+ * progresso) nem atalho: só aparece quando há pendência e some quando é resolvida.
+ */
+function ParaResolver({ pedidos, esperando }: { pedidos: PedidoExame[]; esperando: number }) {
+  const itens = pedidos.flatMap((p) => {
+    const pendencia = pendenciaDo(p);
+    return pendencia ? [{ chave: p.id, href: `/pedidos?abrir=${p.id}`, ...pendencia }] : [];
+  });
+  if (esperando > 0) {
+    itens.unshift({
+      chave: "remedios-esperando",
+      href: "/hoje/remedios",
+      titulo: esperando === 1 ? "Remédio esperando a família" : "Remédios esperando a família",
+      detalhe: esperando === 1 ? "1 não entrou na lista" : `${esperando} não entraram na lista`,
+      tom: "perigo",
+    });
+  }
+  if (itens.length === 0) return null;
+
+  return (
+    <section className="flex flex-col gap-3" aria-label="Para resolver">
+      <h2 className="text-lg font-semibold text-ink">Para resolver</h2>
+      {itens.map((i) => {
+        const vermelho = i.tom === "perigo";
+        return (
+          <Link
+            key={i.chave}
+            href={i.href}
+            className={`flex min-h-[72px] items-center gap-3 rounded-r-2xl border-l-[6px] px-4 py-3 ${vermelho ? "border-danger bg-danger/10" : "border-warn bg-card hover:bg-panel"}`}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-lg font-semibold leading-tight text-ink">{i.titulo}</span>
+              <span className={`block text-base font-medium ${vermelho ? "text-danger" : "text-warn"}`}>{i.detalhe}</span>
+            </span>
+            <span className="text-2xl text-subtle" aria-hidden>›</span>
+          </Link>
+        );
+      })}
+    </section>
+  );
+}
+
 export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
   const supabase = createClient();
   const membership = useRole();
   const idosoId = membership?.idosoId;
   const [dados, setDados] = useState<Dados | null>(null);
   const [esperando, setEsperando] = useState(0);
-  const [semMarcar, setSemMarcar] = useState(0);
+  const [pedidos, setPedidos] = useState<PedidoExame[]>([]);
   const [recarga, setRecarga] = useState(0);
   const [aberta, setAberta] = useState<string | null>(null);
   const [nota, setNota] = useState("");
@@ -119,11 +163,11 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
         .select("id", { count: "exact", head: true })
         .eq("idoso_id", idosoId)
         .eq("status", "esperando");
-      const { count: nSemMarcar } = await supabase
+      const { data: pes } = await supabase
         .from("pedido_exame")
-        .select("id", { count: "exact", head: true })
+        .select(COLUNAS_PEDIDO)
         .eq("idoso_id", idosoId)
-        .eq("status", "falta_marcar");
+        .in("status", ["falta_marcar", "marcado", "feito"]);
       const remedios = (ms ?? []) as unknown as Remedio[];
       const tarefas = (ts ?? []) as unknown as Tarefa[];
       const [{ data: ds }, { data: rs }] = await Promise.all([
@@ -147,7 +191,7 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
       const { data: us } = ids.length ? await supabase.from("usuario").select("id, nome").in("id", ids) : { data: [] };
       if (cancelado) return;
       setEsperando(nEsperando ?? 0);
-      setSemMarcar(nSemMarcar ?? 0);
+      setPedidos(ordenarPedidos((pes ?? []) as PedidoExame[]));
       setDados({
         remedios,
         doses: (ds ?? []) as unknown as RegistroDose[],
@@ -357,18 +401,6 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
     <div className="mx-auto flex max-w-md flex-col gap-5">
       {cabecalho}
 
-      {esperando > 0 && (
-        <Link href="/hoje/remedios" className="flex min-h-[72px] items-center gap-3 rounded-2xl border-2 border-danger bg-danger/10 px-4 py-3">
-          <span className="min-w-0 flex-1">
-            <span className="block text-lg font-bold leading-tight text-danger">
-              {esperando === 1 ? "1 remédio esperando a família" : `${esperando} remédios esperando a família`}
-            </span>
-            <span className="block text-base text-ink">Não está na lista. Toque para ver e pedir a aprovação.</span>
-          </span>
-          <span className="text-2xl text-danger" aria-hidden>›</span>
-        </Link>
-      )}
-
       <section className="flex flex-col gap-3" aria-label="O que fazer hoje">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold text-ink">Hoje</h2>
@@ -398,18 +430,15 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
 
       {idosoId && <FotoDoDia idosoId={idosoId} nome={membership.idosoNome ?? "quem você cuida"} recarga={recarga} />}
 
+      <ParaResolver pedidos={pedidos} esperando={esperando} />
+
       <section className="flex flex-col gap-3" aria-label="Quando precisar">
         <h2 className="text-lg font-semibold text-ink">Quando precisar</h2>
         {doses.length === 0 && atalho("/hoje/remedios", "Remédios", ["m10.5 20.5 10-10a4.95 4.95 0 0 0-7-7l-10 10a4.95 4.95 0 0 0 7 7Z", "m8.5 8.5 7 7"])}
         {atalho("/sintomas", "Sintoma novo", ["M12 9v4", "M12 17h.01", "M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"])}
         {atalho("/consultas", "Vamos ao médico", ["M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 12 0V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3", "M8 15v1a6 6 0 0 0 12 0v-4", "M20 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"])}
         {atalho("/hoje/papel", "Exame ou receita nova", ["M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", "M14 2v6h6", "M12 18v-6", "M9 15h6"])}
-        {atalho(
-          "/pedidos",
-          semMarcar > 0 ? `Exames: ${semMarcar} ${semMarcar === 1 ? "falta" : "faltam"} marcar` : "Exames",
-          ["M9 3h6", "M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3", "M7 15h10"],
-          semMarcar > 0,
-        )}
+        {atalho("/pedidos", "Exames", ["M9 3h6", "M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3", "M7 15h10"])}
         {atalho("/familia", "Pedidos para os familiares", ["M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z", "M23 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"])}
         {atalho("/hoje/emergencia", "Emergência", ["M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2.1Z"], true)}
       </section>
