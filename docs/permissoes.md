@@ -255,10 +255,15 @@ chega à família como documento e nada é mudado.
 conferência de quem enviou, o aviso na lista e a revisão com a foto; nenhuma delas garante
 que um erro seja percebido.
 
-## Pedido de exame
+## Pedidos e resultados de exame
 
-O pedido nasce da foto conferida (ou anotado à mão pelo administrador) e passa por: falta
-marcar, marcado, feito, resultado enviado e concluído.
+Pedido e resultado podem ser colocados por quem cuida ou pela família, lado a lado, na aba de
+exames e no envio de papel. O pedido nasce da foto conferida (ou anotado à mão pelo
+administrador) e passa por: falta marcar, marcado, feito, resultado enviado e concluído. Um
+**resultado não depende de pedido**: ao enviar, a pessoa diz de qual exame é ou escolhe "de
+nenhum destes", e ele entra direto como resultado enviado. Se uma foto enviada como receita ou
+pedido parecer um resultado, o aplicativo pergunta antes de tratar como tal; a IA não transcreve
+os valores nesse passo.
 
 | Passo | Como funciona |
 |-------|----------------|
@@ -267,7 +272,7 @@ marcar, marcado, feito, resultado enviado e concluído.
 | Dizer o dia | hora e laboratório são opcionais; vira tarefa na tela Hoje com o que levar e o preparo |
 | Véspera | aviso dentro do aplicativo, com o preparo |
 | No dia | "Fiz" marca o exame como feito; "Não consegui" volta para falta marcar |
-| Resultado | foto ou PDF, enviado por quem cuida ou pela família; a família lê os valores na tela de Exames, e o pedido é concluído |
+| Resultado | foto ou PDF, em qualquer situação do pedido ou sem pedido; o arquivo já pode ser aberto, e os valores aparecem depois que a família os confere na tela de Exames |
 | Cancelar | só o administrador; a tarefa e o aviso da véspera saem |
 
 O preparo é só o que está escrito no papel. Sem isso, a tela pede para confirmar com o

@@ -44,7 +44,7 @@ const byRole: Record<Role, NavItem[]> = {
     { href: "/consultas", label: "Consultas", enabled: true, grupo: "Saúde" },
     { href: "/pauta", label: "Pauta médica", enabled: true, grupo: "Saúde" },
     { href: "/receitas", label: "Receitas", enabled: true, grupo: "Saúde" },
-    { href: "/pedidos", label: "Pedidos de exame", enabled: true, grupo: "Saúde" },
+    { href: "/pedidos", label: "Pedidos e resultados", enabled: true, grupo: "Saúde" },
     { href: "/exames", label: "Exames", enabled: true, grupo: "Saúde" },
     { href: "/tendencias", label: "Tendências", enabled: true, grupo: "Saúde" },
     { href: "/insights", label: "Observações", enabled: true, grupo: "Saúde" },

@@ -23,9 +23,10 @@ import {
 } from "@/lib/medicacao";
 import { gravarConferencia, lerPapel, SEM_PREPARO, type ItemRemedio, type Leitura } from "@/lib/leituras";
 import { rotuloEnvio, type TipoEnvio } from "@/lib/documentos";
+import { EnviarResultado } from "@/components/enviar-resultado";
 import { cn } from "@/lib/cn";
 
-type Etapa = "lendo" | "sem_leitura" | "tipo" | "conferindo" | "faltou" | "gravando" | "falhou" | "pronto";
+type Etapa = "lendo" | "sem_leitura" | "parece_resultado" | "resultado" | "tipo" | "conferindo" | "faltou" | "gravando" | "falhou" | "pronto";
 
 type Passo = Pergunta | "medico" | "exames" | "preparo" | "aviso" | "anotado" | "recusado";
 
@@ -158,6 +159,10 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
       if ("erro" in r) {
         setMotivo(r.erro);
         setEtapa("sem_leitura");
+        return;
+      }
+      if (r.papel.tipo_documento === "resultado_exame") {
+        setEtapa("parece_resultado");
         return;
       }
       if (r.remedios.length === 0 && r.papel.exames.length === 0) {
@@ -300,6 +305,39 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
         <Button onClick={onFim} className="h-14 text-lg">Fechar</Button>
       </div>
     );
+  }
+
+  if (etapa === "parece_resultado") {
+    return (
+      <div className={cartao}>
+        <p className="text-xl font-semibold text-ink">Isto parece um resultado de exame.</p>
+        <p className="text-base text-subtle">Olhe o papel. É um resultado?</p>
+        {foto}
+        <Button
+          variant="primary"
+          onClick={async () => {
+            await confirmarTipo("resultado_exame");
+            setEtapa("resultado");
+          }}
+          className="h-16 text-xl"
+        >
+          Sim, é um resultado
+        </Button>
+        <Button
+          onClick={() => {
+            setMotivo("Certo. Não vou usar a minha leitura.");
+            setEtapa("sem_leitura");
+          }}
+          className="h-14 text-lg"
+        >
+          Não, ou não sei
+        </Button>
+      </div>
+    );
+  }
+
+  if (etapa === "resultado") {
+    return <EnviarResultado idosoId={idosoId} documentoId={documentoId} onFim={onFim} />;
   }
 
   if (etapa === "tipo" && leitura) {

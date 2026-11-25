@@ -48,7 +48,7 @@ Voce le fotos de receitas medicas e de pedidos de exame brasileiros (impressos o
 - Um papel pode ter remedios, exames pedidos ou os dois. Se nao for nenhum dos dois, use tipo_documento "outro" e listas vazias.
 - Copie nome, dosagem e posologia como estao escritos; nao troque por equivalente nem corrija "por bom senso".
 - Se a letra ou a imagem nao permite ler um nome com seguranca, nao adivinhe: deixe o item de fora e marque legivel=false.
-- Resultado de exame (laudo com valores) nao e pedido de exame: nesse caso use "outro".
+- Resultado de exame (laudo com valores) nao e pedido de exame: use tipo_documento "resultado_exame", com as listas vazias. Nao transcreva os valores.
 - preparo: copie somente o que o papel diz. Nunca sugira jejum ou horario que nao esteja escrito.
 - medicacao_id: use somente um ID da lista atual, e apenas quando tiver certeza de que e o mesmo remedio.
 

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui";
 import { ConferirPapel } from "@/components/conferir-papel";
+import { EnviarResultado } from "@/components/enviar-resultado";
 import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
 import { abrirArquivo, enviarPapel, rotuloEnvio, TIPOS_ENVIO, type TipoEnvio } from "@/lib/documentos";
 
@@ -62,6 +63,7 @@ export function EnviarFoto({ idosoId, tipos, onEnviado }: { idosoId: string; tip
   const [enviando, setEnviando] = useState<TipoEnvio | null>(null);
   const [mensagem, setMensagem] = useState<{ ok: boolean; texto: string } | null>(null);
   const [conferindo, setConferindo] = useState<{ id: string; arquivo: File; tipo: TipoEnvio } | null>(null);
+  const [resultado, setResultado] = useState(false);
 
   async function escolher(tipo: TipoEnvio, arquivo: File) {
     setEnviando(tipo);
@@ -78,6 +80,18 @@ export function EnviarFoto({ idosoId, tipos, onEnviado }: { idosoId: string; tip
     } else {
       setMensagem({ ok: true, texto: `${rotuloEnvio(tipo)} enviado. A família já pode ver.` });
     }
+  }
+
+  if (resultado) {
+    return (
+      <EnviarResultado
+        idosoId={idosoId}
+        onFim={() => {
+          setResultado(false);
+          onEnviado?.();
+        }}
+      />
+    );
   }
 
   if (conferindo) {
@@ -99,7 +113,14 @@ export function EnviarFoto({ idosoId, tipos, onEnviado }: { idosoId: string; tip
   return (
     <div className="flex flex-col gap-2">
       <p className="text-base text-subtle">O que é o papel? Toque e tire a foto.</p>
-      {TIPOS_ENVIO.filter((t) => !tipos || tipos.includes(t.valor)).map((t) => (
+      {TIPOS_ENVIO.filter((t) => !tipos || tipos.includes(t.valor)).map((t) =>
+        // O resultado pode ser PDF, e antes se pergunta de qual exame ele é.
+        t.valor === "resultado_exame" ? (
+          <button key={t.valor} type="button" disabled={!!enviando} onClick={() => setResultado(true)} className={`${botao} justify-between`}>
+            {t.rotulo}
+            <span className="text-sm font-normal text-subtle">foto ou PDF</span>
+          </button>
+        ) : (
         <label key={t.valor} className={`${botao} cursor-pointer justify-between ${enviando ? "pointer-events-none opacity-60" : ""}`}>
           {t.rotulo}
           <span className="text-sm font-normal text-subtle">{enviando === t.valor ? "Enviando..." : "tirar foto"}</span>
@@ -116,7 +137,8 @@ export function EnviarFoto({ idosoId, tipos, onEnviado }: { idosoId: string; tip
             }}
           />
         </label>
-      ))}
+        ),
+      )}
       <p className="text-sm text-subtle">
         A foto de receita ou de pedido de exame é lida pela {NOME_PROVEDOR}, e você confere antes de valer.{AVISO_PLANO_GRATIS}
       </p>

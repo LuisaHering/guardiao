@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRole } from "@/lib/role-context";
 import { EnviarFoto } from "@/components/papeis";
 
-/** Atalho da tela Hoje: o médico passou uma receita ou pediu um exame. */
+/** Atalho da tela Hoje: receita, pedido de exame ou resultado de exame. */
 export default function PapelNovoPage() {
   const membership = useRole();
   if (!membership?.idosoId) return null;
@@ -15,7 +15,7 @@ export default function PapelNovoPage() {
         <span aria-hidden>←</span> Voltar
       </Link>
       <h1 className="text-2xl font-semibold text-ink">Exame ou receita nova</h1>
-      <EnviarFoto idosoId={membership.idosoId} tipos={["receita", "pedido_exame"]} />
+      <EnviarFoto idosoId={membership.idosoId} tipos={["receita", "pedido_exame", "resultado_exame"]} />
     </div>
   );
 }

@@ -89,20 +89,36 @@ export const exameFeito = (supabase: SupabaseClient, id: string) =>
 export const encerrarExame = (supabase: SupabaseClient, id: string, cancelar = false) =>
   chamar(supabase, "encerrar_exame", { p_pedido: id, p_cancelar: cancelar }, "Não consegui encerrar este pedido.");
 
-/** Envia a foto ou o PDF do resultado e liga ao pedido. Devolve a mensagem de erro, ou null. */
+/** Liga um arquivo já enviado ao pedido dele, ou o registra sozinho. Devolve o erro, ou null. */
+export async function ligarResultado(
+  supabase: SupabaseClient,
+  pedidoId: string | null,
+  documentoId: string,
+): Promise<string | null> {
+  const r = await (pedidoId
+    ? chamar(
+        supabase,
+        "entregar_resultado_exame",
+        { p_pedido: pedidoId, p_documento: documentoId },
+        "O arquivo chegou à família, mas não consegui ligar ao exame. Tente de novo.",
+      )
+    : chamar(
+        supabase,
+        "registrar_resultado_avulso",
+        { p_documento: documentoId },
+        "O arquivo chegou à família, mas não consegui colocar em Exames. Tente de novo.",
+      ));
+  return r?.erro ?? null;
+}
+
+/** Envia a foto ou o PDF do resultado (com ou sem pedido). Devolve o erro, ou null. */
 export async function enviarResultado(
   supabase: SupabaseClient,
   idosoId: string,
-  pedidoId: string,
+  pedidoId: string | null,
   arquivo: File,
 ): Promise<string | null> {
   const enviado = await enviarPapel(supabase, idosoId, arquivo, "resultado_exame");
   if ("erro" in enviado) return enviado.erro;
-  const r = await chamar(
-    supabase,
-    "entregar_resultado_exame",
-    { p_pedido: pedidoId, p_documento: enviado.id },
-    "O arquivo chegou à família, mas não consegui ligar ao pedido. Tente de novo.",
-  );
-  return r?.erro ?? null;
+  return ligarResultado(supabase, pedidoId, enviado.id);
 }

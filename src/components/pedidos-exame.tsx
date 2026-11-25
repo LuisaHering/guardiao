@@ -8,6 +8,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Button, Input } from "@/components/ui";
+import { EnviarFoto } from "@/components/papeis";
+import { EnviarResultado, EscolherArquivoDoResultado } from "@/components/enviar-resultado";
 import { abrirArquivo } from "@/lib/documentos";
 import { hojeBR } from "@/lib/medicacao";
 import {
@@ -35,10 +37,10 @@ export function PedidosExame({ idosoId }: { idosoId: string }) {
   const supabase = createClient();
   const membership = useRole();
   const admin = !!membership?.admin;
-  const cuidador = membership?.role === "cuidador";
   const [pedidos, setPedidos] = useState<PedidoExame[] | null>(null);
   const [aberto, setAberto] = useState<string | null>(null);
   const [anotando, setAnotando] = useState(false);
+  const [colocando, setColocando] = useState<"pedido" | "resultado" | null>(null);
   const [versao, setVersao] = useState(0);
   const [falha, setFalha] = useState<string | null>(null);
 
@@ -70,6 +72,25 @@ export function PedidosExame({ idosoId }: { idosoId: string }) {
       cancelado = true;
     };
   }, [supabase, idosoId, versao]);
+
+  if (colocando) {
+    const fechar = () => {
+      setColocando(null);
+      setVersao((v) => v + 1);
+    };
+    return (
+      <div className="flex flex-col gap-3">
+        <button type="button" onClick={fechar} className="inline-flex h-11 w-fit items-center gap-2 rounded-lg border border-line bg-card px-4 text-base font-medium text-ink hover:bg-panel">
+          <span aria-hidden>←</span> Todos os exames
+        </button>
+        {colocando === "pedido" ? (
+          <EnviarFoto idosoId={idosoId} tipos={["pedido_exame"]} />
+        ) : (
+          <EnviarResultado idosoId={idosoId} onFim={fechar} />
+        )}
+      </div>
+    );
+  }
 
   if (!pedidos) return <p className="text-base text-subtle">Carregando...</p>;
 
@@ -104,15 +125,22 @@ export function PedidosExame({ idosoId }: { idosoId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-2">
+        {(
+          [
+            ["pedido", "Colocar pedido de exame"],
+            ["resultado", "Colocar resultado de exame"],
+          ] as const
+        ).map(([qual, rotulo]) => (
+          <button key={qual} type="button" onClick={() => setColocando(qual)} className="min-h-[76px] rounded-2xl border-2 border-primary bg-card px-3 text-lg font-semibold leading-tight text-ink hover:bg-panel">
+            {rotulo}
+          </button>
+        ))}
+      </div>
       {falha && <p className="text-base text-danger" role="alert">{falha}</p>}
       {!falha && abertos.length === 0 && <p className="text-base text-subtle">Nenhum exame para fazer agora.</p>}
       {abertos.map(linha)}
 
-      {cuidador && (
-        <Link href="/hoje/papel" className="flex min-h-14 items-center justify-center rounded-2xl border-2 border-primary text-lg font-semibold text-ink">
-          Foto de um pedido novo
-        </Link>
-      )}
       {admin && !anotando && <Button onClick={() => setAnotando(true)} className="h-11">Anotar um pedido à mão</Button>}
       {admin && anotando && <Anotar idosoId={idosoId} onFim={() => setAnotando(false)} />}
 
@@ -129,6 +157,7 @@ export function PedidosExame({ idosoId }: { idosoId: string }) {
 function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido: PedidoExame; admin: boolean; onVoltar: () => void }) {
   const supabase = createClient();
   const [marcando, setMarcando] = useState(false);
+  const [mandando, setMandando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -202,8 +231,13 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
               {pedido.dia && <Button disabled={ocupado} onClick={() => setMarcando(true)} className={medio}>Mudar o dia</Button>}
             </>
           )}
-          {pedido.status === "feito" && (
-            <EnviarArquivo
+          {(pedido.status === "falta_marcar" || pedido.status === "marcado") && !mandando && (
+            <Button variant="ghost" disabled={ocupado} onClick={() => setMandando(true)} className="h-14 text-lg">
+              Já tenho o resultado
+            </Button>
+          )}
+          {(pedido.status === "feito" || (mandando && pedido.status !== "resultado_enviado")) && (
+            <EscolherArquivoDoResultado
               ocupado={ocupado}
               onEscolher={(arquivo) => fazer(() => enviarResultado(supabase, idosoId, pedido.id, arquivo))}
             />
@@ -253,40 +287,6 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-/** Foto na hora, ou um PDF / foto que já está no celular. */
-function EnviarArquivo({ ocupado, onEscolher }: { ocupado: boolean; onEscolher: (a: File) => void }) {
-  const opcao = (rotulo: string, aceita: string, camera: boolean, destaque: boolean) => (
-    <label
-      className={cn(
-        "flex min-h-16 cursor-pointer items-center justify-center rounded-lg px-4 text-center text-lg font-semibold",
-        destaque ? "bg-primary text-white" : "border-2 border-line bg-card text-ink",
-        ocupado && "pointer-events-none opacity-60",
-      )}
-    >
-      {rotulo}
-      <input
-        type="file"
-        accept={aceita}
-        {...(camera ? { capture: "environment" as const } : {})}
-        className="sr-only"
-        disabled={ocupado}
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          e.target.value = "";
-          if (f) onEscolher(f);
-        }}
-      />
-    </label>
-  );
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-lg font-semibold text-ink">{ocupado ? "Enviando o resultado..." : "Enviar o resultado"}</p>
-      {opcao("Tirar foto do resultado", "image/*", true, true)}
-      {opcao("Escolher PDF ou foto do celular", "image/*,application/pdf", false, false)}
     </div>
   );
 }

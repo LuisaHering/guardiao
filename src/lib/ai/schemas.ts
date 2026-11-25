@@ -48,7 +48,7 @@ export type ReceitaExtraida = z.infer<typeof ReceitaSchema>;
 
 /** Foto enviada por quem cuida: pode ser receita, pedido de exame ou os dois no mesmo papel. */
 export const PapelSchema = z.object({
-  tipo_documento: z.enum(["receita", "pedido_exame", "ambos", "outro"]),
+  tipo_documento: z.enum(["receita", "pedido_exame", "ambos", "resultado_exame", "outro"]),
   legivel: z.boolean().describe("false se alguma parte importante nao pode ser lida com seguranca."),
   medico: z.string().nullable(),
   data: z.string().nullable().describe("Data do papel no formato AAAA-MM-DD."),
