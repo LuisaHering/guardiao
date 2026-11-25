@@ -6,6 +6,7 @@ import type { PapelExtraido } from "@/lib/ai/schemas";
 import { extensaoDoArquivo, reduzirParaIA } from "@/lib/imagem";
 import { classificarRemedio, COLUNAS_REMEDIO, descreverAgenda, type Classificacao, type Remedio } from "@/lib/medicacao";
 import { descreverMudancas, EVENTO_REMEDIOS } from "@/lib/revisoes";
+import { fmt, posicaoNaFaixa, rotuloPosicao } from "@/lib/tendencia";
 
 export type Resposta = "igual" | "diferente";
 
@@ -143,7 +144,8 @@ function dataValida(d: string | null): string | null {
 // ---------------------------------------------------------------------------
 
 type ItemGravado = {
-  tipo: "remedio" | "exame";
+  tipo: "remedio" | "exame" | "valores";
+  exame_id?: string | null;
   resultado: "entrou" | "mudou" | "ja_tomava" | "nao_entrou" | "duvida" | "parar";
   nome: string;
   texto: string | null;
@@ -157,7 +159,7 @@ export type LinhaRevisao = { rotulo: string; texto: string; detalhe?: string; at
 export type LeituraParaRevisar = {
   chave: string;
   id: string;
-  tipo: "receita" | "pedido_exame";
+  tipo: "receita" | "pedido_exame" | "resultado";
   quem: string;
   /** caminho no bucket "documentos" */
   arquivo: string | null;
@@ -195,6 +197,21 @@ export async function carregarLeituras(supabase: SupabaseClient, idosoId: string
   const itens = leituras.flatMap((l) => l.itens);
   const idsMed = [...new Set(itens.map((i) => i.medicacao_id).filter(Boolean))] as string[];
   const idsPedido = [...new Set(itens.map((i) => i.pedido_id).filter(Boolean))] as string[];
+  const idsExame = [...new Set(itens.map((i) => i.exame_id).filter(Boolean))] as string[];
+  const { data: valores } = idsExame.length
+    ? await supabase
+        .from("exame_resultado")
+        .select("exame_id, valor, unidade, ref_min, ref_max, analito:analito_id(nome_canonico)")
+        .in("exame_id", idsExame)
+    : { data: [] };
+  type Valor = {
+    exame_id: string;
+    valor: number;
+    unidade: string | null;
+    ref_min: number | null;
+    ref_max: number | null;
+    analito: { nome_canonico: string } | null;
+  };
   const [{ data: docs }, { data: us }, { data: ms }, { data: ps }] = await Promise.all([
     supabase.from("documento").select("id, arquivo_url, tipo, envio").in("id", leituras.map((l) => l.documento_id)),
     supabase.from("usuario").select("id, nome").in("id", [...new Set(leituras.map((l) => l.enviado_por))]),
@@ -218,6 +235,22 @@ export async function carregarLeituras(supabase: SupabaseClient, idosoId: string
     const desfaz = new Set<string>();
 
     for (const i of l.itens) {
+      if (i.tipo === "valores") {
+        desfaz.add("os valores saem de Resultados e das tendências, e o resultado volta para você ler");
+        linhas.push({ rotulo: "Valores conferidos", texto: `${i.nome}: ${i.texto}` });
+        for (const v of ((valores ?? []) as unknown as Valor[]).filter((x) => x.exame_id === i.exame_id)) {
+          const alvo = { valor: Number(v.valor), refMin: v.ref_min, refMax: v.ref_max };
+          const posicao = posicaoNaFaixa(alvo);
+          const fora = posicao === "acima" || posicao === "abaixo";
+          linhas.push({
+            rotulo: v.analito?.nome_canonico ?? "Item",
+            texto: `${fmt(alvo.valor)} ${v.unidade ?? ""}`.trim(),
+            detalhe: v.ref_min === null && v.ref_max === null ? undefined : rotuloPosicao(alvo),
+            atencao: fora,
+          });
+        }
+        continue;
+      }
       const m = i.medicacao_id ? med.get(i.medicacao_id) : undefined;
       const noPapel = i.texto ? `No papel: ${i.texto}` : undefined;
       if (i.tipo === "exame") {
@@ -286,7 +319,7 @@ export async function carregarLeituras(supabase: SupabaseClient, idosoId: string
     return {
       chave: `leitura:${l.id}`,
       id: l.id,
-      tipo: doc?.envio === "pedido_exame" ? "pedido_exame" : "receita",
+      tipo: l.itens.some((i) => i.tipo === "valores") ? "resultado" : doc?.envio === "pedido_exame" ? "pedido_exame" : "receita",
       quem: ((us ?? []).find((u) => u.id === l.enviado_por)?.nome as string) || "Alguém da rede",
       arquivo: (doc?.arquivo_url as string) ?? null,
       ehPdf: doc?.tipo === "application/pdf",

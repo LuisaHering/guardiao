@@ -31,7 +31,7 @@ export type PedidoFamilia = {
 export function frasePedido(p: { tipo: TipoPedido; detalhe: string | null; pedido_exame?: PedidoFamilia["pedido_exame"] }): string {
   if (p.tipo === "conferir_exame") {
     const qual = p.pedido_exame?.exames.join(", ");
-    return `Conferir os valores de um exame${qual ? `: ${qual}` : ""}`;
+    return `Conferir os valores de um exame${qual ? `: ${qual}` : ""}${p.detalhe ? `. ${p.detalhe}` : ""}`;
   }
   const base = p.tipo === "outro" ? "Pedido" : (ATALHOS.find((a) => a.tipo === p.tipo)?.rotulo ?? "Pedido");
   return p.detalhe?.trim() ? `${base}: ${p.detalhe.trim()}` : base;

@@ -77,3 +77,73 @@ export function converter(
 function arredondar(v: number): number {
   return Math.round(v * 100) / 100;
 }
+
+/** "13,5" -> 13.5; vazio -> null; texto que não é número -> NaN. */
+export function numeroDoTexto(texto: string): number | null {
+  const t = texto.trim();
+  if (t === "") return null;
+  const n = Number(t.replace(",", "."));
+  return Number.isFinite(n) ? n : NaN;
+}
+
+export type AnalitoConhecido = { id: string; nome_canonico: string; unidade_canonica: string | null };
+
+/** Uma linha de resultado como veio do laudo (ou como a pessoa corrigiu). */
+export type LinhaDeResultado = {
+  nome: string;
+  valor: string;
+  unidade: string;
+  refMin: string;
+  refMax: string;
+  analitoId: string | null;
+};
+
+/** Decide, para uma linha, qual analito ela e, em que unidade fica e se precisa converter. */
+export function resolver(l: LinhaDeResultado, analitos: AnalitoConhecido[]) {
+  const valor = numeroDoTexto(l.valor);
+  const refMin = numeroDoTexto(l.refMin);
+  const refMax = numeroDoTexto(l.refMax);
+
+  const porId = l.analitoId ? analitos.find((a) => a.id === l.analitoId) : undefined;
+  const alvo =
+    porId ??
+    analitos.find((a) => normalizar(a.nome_canonico) === normalizar(l.nome));
+
+  let erro: string | null = null;
+  if (!l.nome.trim()) erro = "Falta o nome.";
+  else if (valor === null || Number.isNaN(valor)) erro = "Valor inválido.";
+  else if (Number.isNaN(refMin) || Number.isNaN(refMax)) erro = "Faixa de referência inválida.";
+
+  let valorFinal = valor;
+  let refMinFinal = refMin;
+  let refMaxFinal = refMax;
+  let unidadeFinal = l.unidade.trim();
+  let convertido = false;
+
+  if (!erro && alvo && alvo.unidade_canonica) {
+    const alvoUn = alvo.unidade_canonica;
+    const c = converter(l.nome, valor as number, unidadeFinal, alvoUn);
+    if (c.semFator) {
+      erro = `Unidade ${unidadeFinal || "?"} diferente de ${alvoUn} e não sei converter. Corrija a unidade ou remova a linha.`;
+    } else if (c.convertido) {
+      convertido = true;
+      valorFinal = c.valor;
+      if (refMin !== null) refMinFinal = converter(l.nome, refMin, unidadeFinal, alvoUn).valor;
+      if (refMax !== null) refMaxFinal = converter(l.nome, refMax, unidadeFinal, alvoUn).valor;
+      unidadeFinal = alvoUn;
+    } else {
+      unidadeFinal = alvoUn;
+    }
+  }
+
+  return {
+    alvo,
+    novo: !alvo,
+    valorFinal,
+    refMinFinal,
+    refMaxFinal,
+    unidadeFinal,
+    convertido,
+    erro,
+  };
+}

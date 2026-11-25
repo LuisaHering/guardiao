@@ -89,36 +89,37 @@ export const exameFeito = (supabase: SupabaseClient, id: string) =>
 export const encerrarExame = (supabase: SupabaseClient, id: string, cancelar = false) =>
   chamar(supabase, "encerrar_exame", { p_pedido: id, p_cancelar: cancelar }, "Não consegui encerrar este pedido.");
 
-/** Liga um arquivo já enviado ao pedido dele, ou o registra sozinho. Devolve o erro, ou null. */
+export type ResultadoLigado = { pedidoId: string } | { erro: string };
+
+/** Liga um arquivo já enviado ao pedido dele, ou o registra sozinho. */
 export async function ligarResultado(
   supabase: SupabaseClient,
   pedidoId: string | null,
   documentoId: string,
-): Promise<string | null> {
-  const r = await (pedidoId
-    ? chamar(
-        supabase,
-        "entregar_resultado_exame",
-        { p_pedido: pedidoId, p_documento: documentoId },
-        "O arquivo chegou à família, mas não consegui ligar ao exame. Tente de novo.",
-      )
-    : chamar(
-        supabase,
-        "registrar_resultado_avulso",
-        { p_documento: documentoId },
-        "O arquivo chegou à família, mas não consegui colocar em Exames. Tente de novo.",
-      ));
-  return r?.erro ?? null;
+): Promise<ResultadoLigado> {
+  if (pedidoId) {
+    const r = await chamar(
+      supabase,
+      "entregar_resultado_exame",
+      { p_pedido: pedidoId, p_documento: documentoId },
+      "O arquivo chegou à família, mas não consegui ligar ao exame. Tente de novo.",
+    );
+    return r ?? { pedidoId };
+  }
+  const { data, error } = await supabase.rpc("registrar_resultado_avulso", { p_documento: documentoId });
+  if (error) return { erro: "O arquivo chegou à família, mas não consegui colocar em Exames. Tente de novo." };
+  window.dispatchEvent(new Event(EVENTO_PEDIDOS));
+  return { pedidoId: data as string };
 }
 
-/** Envia a foto ou o PDF do resultado (com ou sem pedido). Devolve o erro, ou null. */
+/** Envia a foto ou o PDF do resultado (com ou sem pedido). */
 export async function enviarResultado(
   supabase: SupabaseClient,
   idosoId: string,
   pedidoId: string | null,
   arquivo: File,
-): Promise<string | null> {
+): Promise<ResultadoLigado> {
   const enviado = await enviarPapel(supabase, idosoId, arquivo, "resultado_exame");
-  if ("erro" in enviado) return enviado.erro;
+  if ("erro" in enviado) return enviado;
   return ligarResultado(supabase, pedidoId, enviado.id);
 }

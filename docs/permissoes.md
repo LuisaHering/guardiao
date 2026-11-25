@@ -21,7 +21,7 @@ Papel e administração são eixos separados: um familiar administrador não é 
 | Painel, alertas, perfil | sim | sim | sim |
 | Medicação, diário, sintomas, timeline | não | sim | sim |
 | Consultas, pauta médica, receitas | não | sim | sim |
-| Exames: valores e laudos | não (menu) | sim | sim, **só para ver** |
+| Exames: valores e laudos | não (menu) | sim | sim; pode conferir um resultado (seção abaixo) |
 | Pedidos de exame | não (menu) | sim | sim |
 | Tendências | não | sim | sim |
 | Observações | não | sim | **não** |
@@ -281,6 +281,26 @@ testadas nas migrações `20261125130000` a `20261125160000`.
 
 **Limite:** o aviso da véspera é gerado quando alguém abre o aplicativo naquele dia e não chega
 como notificação com o celular fechado.
+
+### Quem confere os valores
+
+Depois de enviar um resultado, quem cuida escolhe **conferir** ou **pedir a um familiar** (pelo
+mesmo sistema de pedidos, para a família toda ou alguém). Na conferência, o arquivo é lido pela
+IA e ela confere o exame, o laboratório e o dia, depois **um valor por tela, como está no
+papel**, e por fim se faltou algum. **Só é guardado se tudo conferir**: um "não, ou não sei",
+uma leitura sem certeza ou uma unidade que o aplicativo não sabe comparar mandam o exame inteiro
+para a família, sem guardar nada. O que é guardado vale na hora, e o administrador recebe o
+pop-up com o arquivo e os valores. Negar tira os valores de Resultados e das tendências e
+devolve o resultado para a família ler.
+
+A conversão de unidade segue a mesma regra da tela da família (`resolver` em
+`src/lib/analitos.ts`, com testes). A gravação é uma função do banco, testada em
+`20261125200000_quem_cuida_confere_valores.sql` e
+`20261125200500_teste_aviso_de_valores_negados.sql`.
+
+**Limite:** conferir número por número é cansativo e erros podem passar, principalmente em
+exames longos; por isso há sempre a opção de pedir a um familiar. Quando quem cuida confere, o
+aplicativo não junta nomes diferentes do mesmo item (isso continua com a família).
 
 ## Pedidos para os familiares
 

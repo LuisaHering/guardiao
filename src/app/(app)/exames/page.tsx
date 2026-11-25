@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Badge, Button, Card, Field, Input } from "@/components/ui";
 import { extensaoDoArquivo, reduzirParaIA } from "@/lib/imagem";
-import { converter, normalizar, normalizarUnidade } from "@/lib/analitos";
+import { normalizarUnidade, numeroDoTexto as num, resolver } from "@/lib/analitos";
 import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
 import { IACarregando } from "@/components/ia-carregando";
 import type { ExameExtraido } from "@/lib/ai/schemas";
@@ -50,13 +50,6 @@ type ResultadoSalvo = {
   analito: { nome_canonico: string } | null;
 };
 
-function num(texto: string): number | null {
-  const t = texto.trim();
-  if (t === "") return null;
-  const n = Number(t.replace(",", "."));
-  return Number.isFinite(n) ? n : NaN;
-}
-
 function fmt(n: number | null | undefined) {
   if (n === null || n === undefined) return "-";
   return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
@@ -73,56 +66,6 @@ function dataCurta(iso: string | null) {
   if (!iso) return "Sem data";
   const [a, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}/${a}`;
-}
-
-/** Decide, para uma linha, qual analito ela e, em que unidade fica e se precisa converter. */
-function resolver(l: Linha, analitos: Analito[]) {
-  const valor = num(l.valor);
-  const refMin = num(l.refMin);
-  const refMax = num(l.refMax);
-
-  const porId = l.analitoId ? analitos.find((a) => a.id === l.analitoId) : undefined;
-  const alvo =
-    porId ??
-    analitos.find((a) => normalizar(a.nome_canonico) === normalizar(l.nome));
-
-  let erro: string | null = null;
-  if (!l.nome.trim()) erro = "Falta o nome.";
-  else if (valor === null || Number.isNaN(valor)) erro = "Valor inválido.";
-  else if (Number.isNaN(refMin) || Number.isNaN(refMax)) erro = "Faixa de referência inválida.";
-
-  let valorFinal = valor;
-  let refMinFinal = refMin;
-  let refMaxFinal = refMax;
-  let unidadeFinal = l.unidade.trim();
-  let convertido = false;
-
-  if (!erro && alvo && alvo.unidade_canonica) {
-    const alvoUn = alvo.unidade_canonica;
-    const c = converter(l.nome, valor as number, unidadeFinal, alvoUn);
-    if (c.semFator) {
-      erro = `Unidade ${unidadeFinal || "?"} diferente de ${alvoUn} e não sei converter. Corrija a unidade ou remova a linha.`;
-    } else if (c.convertido) {
-      convertido = true;
-      valorFinal = c.valor;
-      if (refMin !== null) refMinFinal = converter(l.nome, refMin, unidadeFinal, alvoUn).valor;
-      if (refMax !== null) refMaxFinal = converter(l.nome, refMax, unidadeFinal, alvoUn).valor;
-      unidadeFinal = alvoUn;
-    } else {
-      unidadeFinal = alvoUn;
-    }
-  }
-
-  return {
-    alvo,
-    novo: !alvo,
-    valorFinal,
-    refMinFinal,
-    refMaxFinal,
-    unidadeFinal,
-    convertido,
-    erro,
-  };
 }
 
 export default function ExamesPage() {

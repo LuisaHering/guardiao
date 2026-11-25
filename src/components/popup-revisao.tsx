@@ -237,7 +237,12 @@ function ConteudoDaFoto({ leitura }: { leitura: LeituraParaRevisar }) {
   return (
     <div className="flex flex-col gap-3">
       <h2 id="revisao-titulo" className="text-lg font-semibold text-ink">
-        {leitura.quem} enviou {leitura.tipo === "receita" ? "uma receita" : "um pedido de exame"}
+        {leitura.quem}{" "}
+        {leitura.tipo === "resultado"
+          ? "conferiu um resultado de exame"
+          : leitura.tipo === "receita"
+            ? "enviou uma receita"
+            : "enviou um pedido de exame"}
       </h2>
       <button type="button" onClick={abrir} className="overflow-hidden rounded-lg border border-line bg-panel">
         {url ? (

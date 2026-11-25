@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui";
+import { useRole } from "@/lib/role-context";
+import { QuemConfere } from "@/components/conferir-valores";
 import {
   COLUNAS_PEDIDO,
   enviarResultado,
@@ -13,6 +15,7 @@ import {
   ordenarPedidos,
   situacao,
   type PedidoExame,
+  type ResultadoLigado,
 } from "@/lib/pedidos-exame";
 import { cn } from "@/lib/cn";
 
@@ -64,7 +67,9 @@ export function EnviarResultado({ idosoId, documentoId, onFim }: Props) {
   const [pedidos, setPedidos] = useState<PedidoExame[] | null>(null);
   const [escolha, setEscolha] = useState<PedidoExame | "avulso" | null>(null);
   const [ocupado, setOcupado] = useState(false);
-  const [pronto, setPronto] = useState(false);
+  // o exame em que o resultado ficou, depois de enviado
+  const [pronto, setPronto] = useState<string | null>(null);
+  const cuidador = useRole()?.role === "cuidador";
   const [erro, setErro] = useState<string | null>(null);
   const ligouSozinho = useRef(false);
 
@@ -85,9 +90,9 @@ export function EnviarResultado({ idosoId, documentoId, onFim }: Props) {
       // Arquivo já enviado e nenhum pedido para escolher: não há o que perguntar.
       if (documentoId && !ligouSozinho.current) {
         ligouSozinho.current = true;
-        const falha = await ligarResultado(createClient(), null, documentoId);
-        if (falha) setErro(falha);
-        else setPronto(true);
+        const r = await ligarResultado(createClient(), null, documentoId);
+        if ("erro" in r) setErro(r.erro);
+        else setPronto(r.pedidoId);
       }
     })();
     return () => {
@@ -95,13 +100,13 @@ export function EnviarResultado({ idosoId, documentoId, onFim }: Props) {
     };
   }, [idosoId, documentoId]);
 
-  async function concluir(acao: () => Promise<string | null>) {
+  async function concluir(acao: () => Promise<ResultadoLigado>) {
     setOcupado(true);
     setErro(null);
-    const falha = await acao();
+    const r = await acao();
     setOcupado(false);
-    if (falha) setErro(falha);
-    else setPronto(true);
+    if ("erro" in r) setErro(r.erro);
+    else setPronto(r.pedidoId);
   }
 
   const idDo = (e: PedidoExame | "avulso") => (e === "avulso" ? null : e.id);
@@ -110,6 +115,15 @@ export function EnviarResultado({ idosoId, documentoId, onFim }: Props) {
     setEscolha(e);
     // Com o arquivo já enviado, dizer de qual exame é encerra o envio.
     if (documentoId) concluir(() => ligarResultado(createClient(), idDo(e), documentoId));
+  }
+
+  if (pronto && cuidador) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-xl font-semibold text-success" role="status">✓ Resultado enviado</p>
+        <QuemConfere idosoId={idosoId} pedidoId={pronto} onFim={onFim} />
+      </div>
+    );
   }
 
   if (pronto) {

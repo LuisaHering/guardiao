@@ -10,6 +10,7 @@ import { useRole } from "@/lib/role-context";
 import { Button, Input } from "@/components/ui";
 import { EnviarFoto } from "@/components/papeis";
 import { EnviarResultado, EscolherArquivoDoResultado } from "@/components/enviar-resultado";
+import { QuemConfere } from "@/components/conferir-valores";
 import { abrirArquivo } from "@/lib/documentos";
 import { hojeBR } from "@/lib/medicacao";
 import {
@@ -158,6 +159,35 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
   const supabase = createClient();
   const [marcando, setMarcando] = useState(false);
   const [mandando, setMandando] = useState(false);
+  const [conferindo, setConferindo] = useState(false);
+  const soCuida = useRole()?.role === "cuidador" && !admin;
+  // quem já foi chamado para conferir (para não pedir duas vezes)
+  const [chamado, setChamado] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!soCuida || pedido.status !== "resultado_enviado") return;
+    let cancelado = false;
+    (async () => {
+      const cliente = createClient();
+      const { data } = await cliente
+        .from("pedido_familia")
+        .select("destinatario_id")
+        .eq("pedido_exame_id", pedido.id)
+        .in("status", ["aberto", "assumido"])
+        .maybeSingle();
+      if (!data) {
+        if (!cancelado) setChamado(null);
+        return;
+      }
+      const { data: u } = data.destinatario_id
+        ? await cliente.from("usuario").select("nome").eq("id", data.destinatario_id as string).maybeSingle()
+        : { data: null };
+      if (!cancelado) setChamado((u?.nome as string) || "a família toda");
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [soCuida, pedido.id, pedido.status, conferindo]);
   const [cancelando, setCancelando] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -180,6 +210,10 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
   const grande = "h-16 text-xl";
   const medio = "h-14 text-lg";
   const aberto = pedido.status !== "concluido";
+
+  if (conferindo) {
+    return <QuemConfere idosoId={idosoId} pedidoId={pedido.id} onFim={() => setConferindo(false)} />;
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -239,11 +273,25 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
           {(pedido.status === "feito" || (mandando && pedido.status !== "resultado_enviado")) && (
             <EscolherArquivoDoResultado
               ocupado={ocupado}
-              onEscolher={(arquivo) => fazer(() => enviarResultado(supabase, idosoId, pedido.id, arquivo))}
+              onEscolher={(arquivo) =>
+                fazer(async () => {
+                  const r = await enviarResultado(supabase, idosoId, pedido.id, arquivo);
+                  if ("erro" in r) return r.erro;
+                  if (soCuida) setConferindo(true);
+                  return null;
+                })
+              }
             />
           )}
         </>
       )}
+
+      {soCuida && pedido.status === "resultado_enviado" &&
+        (chamado ? (
+          <p className="rounded-2xl bg-panel p-4 text-lg text-ink">Você pediu para {chamado} conferir os valores.</p>
+        ) : (
+          <Button variant="primary" onClick={() => setConferindo(true)} className={grande}>Conferir os valores</Button>
+        ))}
 
       {pedido.resultado_documento_id && (
         <Button variant="primary" onClick={() => ver(pedido.resultado_documento_id as string)} className={medio}>
