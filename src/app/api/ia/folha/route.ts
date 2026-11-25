@@ -3,6 +3,7 @@ import { exigirMembro, respostaErro } from "@/lib/ai/acesso";
 import { REGRAS_BASE } from "@/lib/ai/comum";
 import { extrair } from "@/lib/ai/ia";
 import { FolhaSchema } from "@/lib/ai/schemas";
+import { COLUNAS_REMEDIO, descreverAgenda, emUso, hojeBR, type Remedio } from "@/lib/medicacao";
 import type { ConteudoFolha } from "@/lib/folha-cuidado/pdf";
 
 // A IA pode levar quase um minuto; sem isso a Vercel corta a funcao em 10 s.
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
         .is("deleted_at", null),
       supabase.from("alergia").select("substancia, reacao, gravidade").eq("idoso_id", id).is("deleted_at", null),
       supabase.from("condicao").select("nome").eq("idoso_id", id).eq("ativa", true).is("deleted_at", null),
-      supabase.from("medicacao").select("nome, dosagem, instrucoes").eq("idoso_id", id).eq("ativo", true).is("deleted_at", null),
+      supabase.from("medicacao").select(COLUNAS_REMEDIO).eq("idoso_id", id).eq("ativo", true).is("deleted_at", null),
       supabase.from("contato_emergencia").select("nome, telefone, relacao").eq("idoso_id", id).is("deleted_at", null),
     ]);
 
@@ -100,7 +101,13 @@ Voce monta uma folha PRATICA de cuidado para quem cuida de uma pessoa idosa (cui
       fatos: {
         alergias: (alergias ?? []) as ConteudoFolha["fatos"]["alergias"],
         condicoes: (condicoes ?? []).map((c) => c.nome as string),
-        medicacoes: (meds ?? []) as ConteudoFolha["fatos"]["medicacoes"],
+        medicacoes: ((meds ?? []) as unknown as Remedio[])
+          .filter((m) => emUso(m, hojeBR()))
+          .map((m) => ({
+            nome: m.confirmado ? m.nome : `${m.nome} (aguardando confirmação)`,
+            dosagem: m.dosagem,
+            instrucoes: [descreverAgenda(m), m.instrucoes].filter(Boolean).join(" · "),
+          })),
         contatos: (contatos ?? []) as ConteudoFolha["fatos"]["contatos"],
       },
       fontes: [...new Set(autorIds.map((a) => nomePorId.get(a)).filter(Boolean))] as string[],

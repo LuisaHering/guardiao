@@ -480,7 +480,7 @@ export default function ConversaPage() {
                   )}
                   {p.dados.tipo === "medicacao" && (
                     <p className="text-sm text-ink">
-                      Registrar <strong>{p.dados.nome}</strong> como tomado hoje (adesão).
+                      Registrar <strong>{p.dados.nome}</strong>{p.dados.horario ? ` (dose das ${p.dados.horario})` : ""} como tomado hoje.
                     </p>
                   )}
                   <p className="text-xs text-subtle">

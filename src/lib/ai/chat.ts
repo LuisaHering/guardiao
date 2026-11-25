@@ -7,6 +7,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
 import { ErroIA } from "@/lib/ai/comum";
+import {
+  COLUNAS_DOSE,
+  COLUNAS_REMEDIO,
+  descreverAgenda,
+  dosesDoDia,
+  horaBR,
+  type RegistroDose,
+  type Remedio,
+} from "@/lib/medicacao";
 import { MODELO as MODELO_CLAUDE } from "@/lib/ai/claude";
 import { provedorAtual } from "@/lib/ai/ia";
 
@@ -77,7 +86,7 @@ export async function montarContexto(
       .single(),
     supabase.from("condicao").select("nome, desde").eq("idoso_id", idosoId).eq("ativa", true).is("deleted_at", null),
     supabase.from("alergia").select("substancia, reacao").eq("idoso_id", idosoId).is("deleted_at", null),
-    supabase.from("medicacao").select("id, nome, dosagem, instrucoes").eq("idoso_id", idosoId).eq("ativo", true).is("deleted_at", null),
+    supabase.from("medicacao").select(COLUNAS_REMEDIO).eq("idoso_id", idosoId).eq("ativo", true).is("deleted_at", null),
     supabase
       .from("preferencia")
       .select("categoria, chave, valor")
@@ -148,21 +157,27 @@ export async function montarContexto(
       .limit(3),
   ]);
 
-  const ids = (meds ?? []).map((m) => m.id as string);
-  const nomeDe = new Map((meds ?? []).map((m) => [m.id as string, m.nome as string]));
+  const remedios = (meds ?? []) as unknown as Remedio[];
+  const ids = remedios.map((m) => m.id);
+  const nomeDe = new Map(remedios.map((m) => [m.id, m.nome]));
   const { data: regs } = ids.length
     ? await supabase
         .from("registro_medicacao")
-        .select("medicacao_id, data, status, motivo")
+        .select(COLUNAS_DOSE)
         .in("medicacao_id", ids)
         .gte("data", desde7)
         .is("deleted_at", null)
-    : { data: [] as { medicacao_id: string; data: string; status: string; motivo: string | null }[] };
-  const deHoje = new Map(
-    (regs ?? []).filter((r) => r.data === hoje).map((r) => [r.medicacao_id as string, r]),
-  );
-  const pendentes = (meds ?? []).filter((m) => !deHoje.has(m.id as string)).map((m) => m.nome as string);
-  const naoDadas = (regs ?? []).filter((r) => r.status === "nao_dada");
+    : { data: [] };
+  const registros = (regs ?? []) as unknown as RegistroDose[];
+  const doses = dosesDoDia(remedios, registros, hoje);
+  // Só entra como pendência o que já deveria ter sido dado (com 1 h de folga): não faz
+  // sentido perguntar de manhã pela dose da noite.
+  const limite = horaBR(new Date(Date.now() + 3_600_000));
+  const virouODia = limite < horaBR();
+  const pendentes = doses
+    .filter((d) => !d.registro && (!d.horario || virouODia || d.horario <= limite))
+    .map((d) => (d.horario ? `${d.remedio.nome} das ${d.horario}` : d.remedio.nome));
+  const naoDadas = registros.filter((r) => r.status === "nao_dada");
 
   // O que foi dito nas conversas anteriores: e o que permite a IA "lembrar" e dar seguimento.
   const idsAnt = (conversasAnt ?? []).map((c) => c.id as string);
@@ -188,18 +203,26 @@ export async function montarContexto(
   if (alergias?.length) {
     linhas.push(`Alergias: ${alergias.map((a) => `${a.substancia}${a.reacao ? ` (${a.reacao})` : ""}`).join("; ")}.`);
   }
-  if (meds?.length) {
+  if (remedios.length) {
     linhas.push(
       "Medicação ativa:\n" +
-        meds
+        remedios
           .map((m) => {
-            const r = deHoje.get(m.id as string);
-            const hojeTxt = r
-              ? r.status === "dada"
-                ? "hoje: registrada como dada"
-                : `hoje: registrada como NÃO dada${r.motivo ? ` (${r.motivo})` : ""}`
-              : "hoje: sem registro";
-            return `- ${m.nome}${m.dosagem ? ` ${m.dosagem}` : ""}${m.instrucoes ? `, ${m.instrucoes}` : ""} (${hojeTxt})`;
+            const doDia = doses.filter((d) => d.remedio.id === m.id);
+            const hojeTxt = doDia.length
+              ? "hoje: " +
+                doDia
+                  .map((d) => {
+                    const quando = d.horario ? `${d.horario} ` : "";
+                    if (!d.registro) return `${quando}sem registro`;
+                    return d.registro.status === "dada"
+                      ? `${quando}dada`
+                      : `${quando}NÃO dada${d.registro.motivo ? ` (${d.registro.motivo})` : ""}`;
+                  })
+                  .join("; ")
+              : "sem dose prevista hoje";
+            const pend = m.confirmado ? "" : " [AGUARDANDO CONFIRMAÇÃO do administrador]";
+            return `- ${m.nome}${m.dosagem ? ` ${m.dosagem}` : ""}${m.instrucoes ? `, ${m.instrucoes}` : ""}. Agenda: ${descreverAgenda(m)} (${hojeTxt})${pend}`;
           })
           .join("\n"),
     );
@@ -330,8 +353,8 @@ export function montarSystem(opts: {
 
   if (opts.tipo === "checkin_diario") {
     const pend = opts.contexto.pendentes.length
-      ? `Remédios sem registro hoje: ${opts.contexto.pendentes.join(", ")}.`
-      : "Todos os remédios de hoje já têm registro; não pergunte sobre medicação, a não ser que a pessoa traga o assunto.";
+      ? `Doses de hoje que já deveriam ter sido dadas e estão sem registro: ${opts.contexto.pendentes.join(", ")}.`
+      : "Não há dose atrasada sem registro; não pergunte sobre medicação, a não ser que a pessoa traga o assunto.";
     partes.push(`${ROTEIRO_CHECKIN}\n${pend}`);
   } else {
     partes.push(

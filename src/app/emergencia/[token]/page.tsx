@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type Alergia = { substancia: string; reacao: string | null; gravidade: string | null };
-type Medicacao = { nome: string; dosagem: string | null };
+type Medicacao = { nome: string; dosagem: string | null; aguardando?: boolean };
 type Contato = { nome: string; telefone: string | null; relacao: string | null };
 type Perfil = {
   nome: string;
@@ -152,6 +152,7 @@ export default function EmergenciaPublicaPage() {
                   <li key={i} className="text-sm text-ink">
                     {m.nome}
                     {m.dosagem && <span className="text-subtle"> · {m.dosagem}</span>}
+                    {m.aguardando && <span className="text-warn"> (aguardando confirmação da família)</span>}
                   </li>
                 ))}
               </ul>

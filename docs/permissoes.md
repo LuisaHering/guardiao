@@ -76,6 +76,36 @@ consultas, diretivas e folha de cuidado) são montadas a partir do que já exist
 arquivo, e seguem a regra de cada origem (o cuidador não vê exames nem diretivas).
 A migração `20261124130000_documentos.sql` leva o seu próprio teste dessas regras.
 
+## Remédios: agenda e confirmação
+
+Cada remédio tem horários, frequência (todo dia, dias da semana, a cada tantos dias ou só
+quando precisar) e período de uso. Cada dose é um registro próprio.
+
+| Ação | Administrador | Demais membros | Garantido no |
+|------|---------------|----------------|--------------|
+| Adicionar remédio | entra confirmado | fica aguardando confirmação | **banco** |
+| Registrar dose, inclusive de remédio aguardando | sim | sim | **banco** |
+| Confirmar ou recusar | sim | não | **banco** |
+| Mudar ou suspender remédio confirmado | direto | só por pedido, que o administrador decide | **banco** |
+| Corrigir ou cancelar o próprio envio ainda não confirmado | sim | sim | **banco** |
+
+Enquanto aguarda, o remédio aparece com esse aviso na lista de doses, no QR de emergência e
+na folha de cuidado: um socorrista precisa saber que a pessoa pode estar tomando.
+
+Duas proteções contra erro de dose:
+
+- Se o horário de um remédio muda depois de uma dose registrada, o registro continua valendo
+  para a dose mais próxima. Sem isso, uma dose já dada voltaria a aparecer como pendente.
+- Uma dose registrada a partir de uma conversa nunca sobrescreve um registro existente.
+
+O alerta de silêncio conta só os dias em que havia dose prevista, então um remédio semanal
+não gera alarme falso. O sistema não envia notificação no horário da dose: o horário
+organiza a lista e marca o atraso.
+
+As regras de agenda e dose ficam em `src/lib/medicacao.ts`, com testes (`npm test`). As
+regras do banco são testadas dentro da migração
+`20261124150000_remedios_agenda_e_confirmacao.sql`.
+
 ## Limitações conhecidas
 
 - O interruptor de participação do idoso como contribuidor (`pode_contribuir` no

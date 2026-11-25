@@ -4,6 +4,7 @@ import { REGRAS_BASE } from "@/lib/ai/comum";
 import { extrair } from "@/lib/ai/ia";
 import { Visao360Schema } from "@/lib/ai/schemas";
 import { fmt, posicaoNaFaixa, rotuloPosicao } from "@/lib/tendencia";
+import { COLUNAS_REMEDIO, descreverAgenda, type Remedio } from "@/lib/medicacao";
 
 // A IA pode levar quase um minuto; sem isso a Vercel corta a funcao em 10 s.
 export const maxDuration = 60;
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
         .single(),
       supabase.from("condicao").select("nome, desde").eq("idoso_id", id).eq("ativa", true).is("deleted_at", null),
       supabase.from("alergia").select("substancia, reacao, gravidade").eq("idoso_id", id).is("deleted_at", null),
-      supabase.from("medicacao").select("id, nome, dosagem, instrucoes").eq("idoso_id", id).eq("ativo", true).is("deleted_at", null),
+      supabase.from("medicacao").select(COLUNAS_REMEDIO).eq("idoso_id", id).eq("ativo", true).is("deleted_at", null),
       supabase
         .from("sintoma")
         .select("data, descricao, gravidade, duracao_declarada, autor_id, origem, resolvido_em")
@@ -174,7 +175,7 @@ export async function POST(req: NextRequest) {
       const ultimo = regs.length ? regs[regs.length - 1].data : null;
       for (const r of regs) datas.add(r.data);
       linhas.push(
-        `- ${m.nome}${m.dosagem ? ` ${m.dosagem}` : ""}${m.instrucoes ? ` | ${m.instrucoes}` : ""} | ultimos 14 dias: ${regs.length} registro(s), ${dadas} dada(s), ${nao.length} nao dada(s)${
+        `- ${m.nome}${m.dosagem ? ` ${m.dosagem}` : ""}${m.instrucoes ? ` | ${m.instrucoes}` : ""} | agenda: ${descreverAgenda(m as unknown as Remedio)}${m.confirmado ? "" : " | AGUARDANDO CONFIRMACAO do administrador"} | ultimos 14 dias: ${regs.length} registro(s), ${dadas} dada(s), ${nao.length} nao dada(s)${
           nao.length ? ` (motivos: ${nao.map((r) => `${r.data} ${r.motivo ?? "sem motivo"}`).join("; ")})` : ""
         }${ultimo ? ` | ultimo registro em ${ultimo}` : " | nenhum registro nos ultimos 14 dias"}`,
       );

@@ -4,6 +4,15 @@ import { ErroIA, REGRAS_BASE } from "@/lib/ai/comum";
 import { extrair } from "@/lib/ai/ia";
 import { ExtracaoConversaSchema } from "@/lib/ai/schemas";
 import { rotuloMotivo } from "@/lib/ingestao";
+import {
+  COLUNAS_DOSE,
+  COLUNAS_REMEDIO,
+  doseParaRegistrar,
+  dosesDoDia,
+  horaBR,
+  type RegistroDose,
+  type Remedio,
+} from "@/lib/medicacao";
 import type { DadosProposta, Proposta } from "@/lib/propostas";
 
 export const maxDuration = 60;
@@ -59,24 +68,27 @@ export async function POST(req: NextRequest) {
       return Response.json({ propostas: [], semFalas: true });
     }
 
-    // Remedios ativos e o que ja tem registro hoje, para casar o nome dito com o cadastro.
-    const { data: meds } = await supabase
+    // Remedios ativos e as doses ja registradas hoje, para casar o que foi dito com a dose certa.
+    const { data: medsData } = await supabase
       .from("medicacao")
-      .select("id, nome")
+      .select(COLUNAS_REMEDIO)
       .eq("idoso_id", idoso.id)
       .eq("ativo", true)
       .is("deleted_at", null);
+    const meds = (medsData ?? []) as unknown as Remedio[];
     const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
-    const medIds = (meds ?? []).map((m) => m.id as string);
-    const { data: regsHoje } = medIds.length
+    const medIds = meds.map((m) => m.id);
+    const { data: regsData } = medIds.length
       ? await supabase
           .from("registro_medicacao")
-          .select("medicacao_id")
+          .select(COLUNAS_DOSE)
           .in("medicacao_id", medIds)
           .eq("data", hoje)
           .is("deleted_at", null)
-      : { data: [] as { medicacao_id: string }[] };
-    const jaTemRegistro = new Set((regsHoje ?? []).map((r) => r.medicacao_id as string));
+      : { data: [] };
+    const regsHoje = (regsData ?? []) as unknown as RegistroDose[];
+    // Remedios cuja proposta nao tem dose pendente: vem desmarcada, para nao registrar em dobro.
+    const semDosePendente = new Set<string>();
 
     // Sintomas ainda em aberto, para a IA poder dizer qual deles passou.
     const { data: abertos } = await supabase
@@ -202,13 +214,25 @@ export async function POST(req: NextRequest) {
     const semAcento = (t: string) => norm(t);
     for (const t of bruto.medicacao_tomada) {
       const dito = semAcento(t.medicacao);
-      const achados = (meds ?? []).filter((m) => {
-        const nome = semAcento(m.nome as string);
+      const achados = meds.filter((m) => {
+        const nome = semAcento(m.nome);
         return dito.length >= 3 && (nome.includes(dito) || dito.includes(nome));
       });
       // So propoe quando o nome bate com UM remedio do cadastro; senao, nao arrisco registrar o errado.
       if (achados.length !== 1) continue;
-      add({ tipo: "medicacao", medicacaoId: achados[0].id as string, nome: achados[0].nome as string }, origem(t.fala, t.trecho));
+      const med = achados[0];
+      const hora = horaBR();
+      const doses = dosesDoDia([med], regsHoje, hoje);
+      let horario = hora;
+      if (doses.length) {
+        const alvo = doseParaRegistrar(doses, hora);
+        if (!alvo) semDosePendente.add(med.id);
+        horario = alvo ? alvo.horario : doses[doses.length - 1].horario;
+      } else if (regsHoje.some((r) => r.medicacao_id === med.id)) {
+        // "So quando precisar" ja registrado hoje: so entra de novo se a pessoa marcar.
+        semDosePendente.add(med.id);
+      }
+      add({ tipo: "medicacao", medicacaoId: med.id, nome: med.nome, horario }, origem(t.fala, t.trecho));
     }
     for (const n of bruto.nao_adesao) {
       add(
@@ -264,7 +288,7 @@ export async function POST(req: NextRequest) {
         ...p,
         jaRegistrado:
           existentes.has(chave(p)) ||
-          (p.dados.tipo === "medicacao" && jaTemRegistro.has(p.dados.medicacaoId)),
+          (p.dados.tipo === "medicacao" && semDosePendente.has(p.dados.medicacaoId)),
       })),
       descartadas:
         bruto.preferencias.length +

@@ -48,11 +48,11 @@ export async function POST(req: NextRequest) {
     ]);
 
     const nomes = new Map((meds ?? []).map((m) => [m.id as string, m.nome as string]));
-    let regs: { data: string; medicacao_id: string; status: string; motivo: string | null }[] = [];
+    let regs: { data: string; medicacao_id: string; status: string; motivo: string | null; horario: string }[] = [];
     if (nomes.size > 0) {
       const { data } = await supabase
         .from("registro_medicacao")
-        .select("data, medicacao_id, status, motivo")
+        .select("data, medicacao_id, status, motivo, horario")
         .in("medicacao_id", [...nomes.keys()])
         .is("deleted_at", null)
         .gte("data", desdeDia)
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       for (const r of regs) {
         datas.add(r.data);
         linhas.push(
-          `${r.data} | ${nomes.get(r.medicacao_id) ?? "remedio"} | ${r.status === "dada" ? "dada" : `nao dada (${r.motivo ?? "sem motivo"})`}`,
+          `${r.data}${r.horario ? ` ${r.horario}` : ""} | ${nomes.get(r.medicacao_id) ?? "remedio"} | ${r.status === "dada" ? "dada" : `nao dada (${r.motivo ?? "sem motivo"})`}`,
         );
       }
 

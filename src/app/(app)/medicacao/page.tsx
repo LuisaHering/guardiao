@@ -1,280 +1,328 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
-import { Button, Card, Field, Input } from "@/components/ui";
+import { Badge, Button, Card } from "@/components/ui";
+import { DosesDeHoje } from "@/components/doses-de-hoje";
+import { FormRemedio, type DadosRemedio } from "@/components/form-remedio";
+import { COLUNAS_REMEDIO, descreverAgenda, emUso, hojeBR, type Remedio } from "@/lib/medicacao";
 
-type Med = {
+type Pedido = {
   id: string;
-  nome: string;
-  dosagem: string | null;
-  instrucoes: string | null;
-};
-type Registro = {
   medicacao_id: string;
-  status: string;
+  tipo: "alterar" | "suspender";
+  dados: Partial<DadosRemedio>;
   motivo: string | null;
+  pedido_por: string;
+  pedido_em: string;
 };
 
-const MOTIVOS = ["esqueceu", "recusou", "acabou", "efeito_adverso", "outro"];
+/** Em edição: "editar" grava direto; "confirmar" grava e confirma; "pedir" vira pedido. */
+type Edicao = { id: string; modo: "editar" | "confirmar" | "pedir" } | null;
 
-function hojeLocal() {
-  const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
+/** O que o pedido mudaria, em frases, para o administrador decidir sabendo o que aprova. */
+function mudancas(r: Remedio, d: Partial<DadosRemedio>): string[] {
+  const linhas: string[] = [];
+  const texto = (rotulo: string, antes: string | null, depois: string | null | undefined) => {
+    if (depois !== undefined && (antes ?? "") !== (depois ?? "")) {
+      linhas.push(`${rotulo}: ${antes || "vazio"} → ${depois || "vazio"}`);
+    }
+  };
+  texto("Nome", r.nome, d.nome);
+  texto("Dosagem", r.dosagem, d.dosagem);
+  texto("Instruções", r.instrucoes, d.instrucoes);
+  const antes = descreverAgenda(r);
+  const depois = descreverAgenda({ ...r, ...d });
+  if (antes !== depois) linhas.push(`Agenda: ${antes} → ${depois}`);
+  if (d.inicio !== undefined && d.inicio !== r.inicio) linhas.push("Data de início alterada");
+  return linhas;
 }
 
 export default function MedicacaoPage() {
   const supabase = createClient();
   const membership = useRole();
   const idosoId = membership?.idosoId;
+  const admin = !!membership?.admin;
 
+  const [remedios, setRemedios] = useState<Remedio[]>([]);
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [nomes, setNomes] = useState<Record<string, string>>({});
+  const [meuId, setMeuId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [meds, setMeds] = useState<Med[]>([]);
-  const [registros, setRegistros] = useState<Record<string, Registro>>({});
-  const [silencioDias, setSilencioDias] = useState<number | null>(null);
-  const [repor, setRepor] = useState<string[]>([]);
+  const [versao, setVersao] = useState(0);
+  const [edicao, setEdicao] = useState<Edicao>(null);
+  const [adicionando, setAdicionando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
-  const [nova, setNova] = useState({ nome: "", dosagem: "", instrucoes: "" });
-  const [motivoAberto, setMotivoAberto] = useState<string | null>(null);
-  const [motivoSel, setMotivoSel] = useState("esqueceu");
-
-  const hoje = hojeLocal();
-
-  const carregar = useCallback(async () => {
-    if (!idosoId) {
-      setCarregando(false);
-      return;
-    }
-    setCarregando(true);
-    const { data: medsData } = await supabase
-      .from("medicacao")
-      .select("id, nome, dosagem, instrucoes")
-      .eq("idoso_id", idosoId)
-      .eq("ativo", true)
-      .is("deleted_at", null)
-      .order("nome");
-    const lista = (medsData ?? []) as Med[];
-    setMeds(lista);
-
-    const ids = lista.map((m) => m.id);
-    if (ids.length > 0) {
-      const [{ data: regsHoje }, { data: recentes }] = await Promise.all([
-        supabase
-          .from("registro_medicacao")
-          .select("medicacao_id, status, motivo")
-          .in("medicacao_id", ids)
-          .eq("data", hoje)
-          .is("deleted_at", null),
-        supabase
-          .from("registro_medicacao")
-          .select("registrado_em")
-          .in("medicacao_id", ids)
-          .is("deleted_at", null)
-          .order("registrado_em", { ascending: false })
-          .limit(1),
-      ]);
-
-      const mapa: Record<string, Registro> = {};
-      for (const r of (regsHoje ?? []) as Registro[]) mapa[r.medicacao_id] = r;
-      setRegistros(mapa);
-      setRepor(
-        Object.values(mapa)
-          .filter((r) => r.motivo === "acabou")
-          .map((r) => lista.find((m) => m.id === r.medicacao_id)?.nome ?? ""),
-      );
-
-      const ultimo = recentes?.[0]?.registrado_em as string | undefined;
-      if (ultimo) {
-        const dias = Math.floor(
-          (Date.now() - new Date(ultimo).getTime()) / 86400000,
-        );
-        setSilencioDias(dias >= 3 ? dias : null);
-      } else {
-        // Sem nenhum registro ainda (cadastro novo): não é silêncio de verdade.
-        setSilencioDias(null);
-      }
-    } else {
-      setRegistros({});
-      setSilencioDias(null);
-      setRepor([]);
-    }
-    setCarregando(false);
-  }, [supabase, idosoId, hoje]);
+  const recarregar = () => setVersao((v) => v + 1);
 
   useEffect(() => {
-    carregar();
-  }, [carregar]);
+    if (!idosoId) return;
+    let cancelado = false;
+    (async () => {
+      const [{ data: ms }, { data: ps }, { data: auth }] = await Promise.all([
+        supabase.from("medicacao").select(COLUNAS_REMEDIO).eq("idoso_id", idosoId).eq("ativo", true).is("deleted_at", null).order("nome"),
+        supabase
+          .from("medicacao_pedido")
+          .select("id, medicacao_id, tipo, dados, motivo, pedido_por, pedido_em")
+          .eq("idoso_id", idosoId)
+          .eq("status", "pendente")
+          .order("pedido_em"),
+        supabase.auth.getUser(),
+      ]);
+      const lista = (ms ?? []) as unknown as Remedio[];
+      const pend = (ps ?? []) as unknown as Pedido[];
+      const ids = [...new Set([...lista.map((m) => m.autor_id), ...pend.map((p) => p.pedido_por)].filter(Boolean))] as string[];
+      const { data: us } = ids.length ? await supabase.from("usuario").select("id, nome").in("id", ids) : { data: [] };
+      if (cancelado) return;
+      setRemedios(lista);
+      setPedidos(pend);
+      setNomes(Object.fromEntries((us ?? []).map((u) => [u.id as string, (u.nome as string) || "Alguém da rede"])));
+      setMeuId(auth.user?.id ?? null);
+      setCarregando(false);
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [supabase, idosoId, versao]);
 
-  async function registrar(medId: string, status: string, motivo?: string) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    await supabase.from("registro_medicacao").upsert(
-      {
-        medicacao_id: medId,
-        data: hoje,
-        status,
-        motivo: motivo ?? null,
-        registrado_por: user!.id,
-        registrado_em: new Date().toISOString(),
-      },
-      { onConflict: "medicacao_id,data" },
-    );
-    setMotivoAberto(null);
-    await carregar();
+  const quem = (id: string | null) => (id ? (id === meuId ? "você" : nomes[id] ?? "alguém da rede") : "alguém da rede");
+
+  function terminar(mensagem: string | null) {
+    setErro(null);
+    setAviso(mensagem);
+    setEdicao(null);
+    setAdicionando(false);
+    recarregar();
   }
 
-  async function addMed(e: React.FormEvent) {
-    e.preventDefault();
-    if (!idosoId || !nova.nome) return;
-    await supabase.from("medicacao").insert({
-      idoso_id: idosoId,
-      nome: nova.nome,
-      dosagem: nova.dosagem || null,
-      instrucoes: nova.instrucoes || null,
-    });
-    setNova({ nome: "", dosagem: "", instrucoes: "" });
-    await carregar();
+  async function adicionar(dados: DadosRemedio): Promise<string | null> {
+    // Quem não administra tem o remédio marcado como pendente pelo próprio banco.
+    const { error } = await supabase.from("medicacao").insert({ idoso_id: idosoId, ...dados });
+    if (error) return "Não consegui salvar o remédio.";
+    terminar(admin ? "Remédio adicionado." : "Enviado. O administrador precisa confirmar; enquanto isso, ele aparece como pendente.");
+    return null;
   }
 
-  async function removerMed(id: string) {
-    await supabase
+  async function salvarEdicao(r: Remedio, modo: "editar" | "confirmar" | "pedir", dados: DadosRemedio, motivo: string) {
+    if (modo === "pedir") {
+      const { error } = await supabase.from("medicacao_pedido").insert({
+        idoso_id: idosoId,
+        medicacao_id: r.id,
+        tipo: "alterar",
+        dados,
+        motivo: motivo || null,
+        pedido_por: meuId,
+      });
+      if (error) return "Não consegui enviar o pedido.";
+      terminar("Pedido enviado. O remédio continua como está até o administrador aprovar.");
+      return null;
+    }
+    const { error } = await supabase
       .from("medicacao")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
-    await carregar();
+      .update(modo === "confirmar" ? { ...dados, confirmado: true } : dados)
+      .eq("id", r.id);
+    if (error) return error.message;
+    terminar(modo === "confirmar" ? "Remédio corrigido e confirmado." : "Remédio atualizado.");
+    return null;
   }
 
-  if (!membership) {
-    return (
-      <p className="text-sm text-subtle">
-        Crie o perfil do idoso primeiro para gerenciar a medicação.
-      </p>
-    );
+  async function atualizar(id: string, campos: Record<string, unknown>, mensagem: string) {
+    const { error } = await supabase.from("medicacao").update(campos).eq("id", id);
+    if (error) {
+      setErro(error.message);
+      return;
+    }
+    terminar(mensagem);
+  }
+
+  const confirmar = (r: Remedio) => atualizar(r.id, { confirmado: true }, `${r.nome} confirmado.`);
+
+  function recusar(r: Remedio) {
+    if (!window.confirm(`Recusar ${r.nome}? Ele sai da lista. Doses já registradas continuam no histórico.`)) return;
+    atualizar(r.id, { ativo: false, recusado_em: new Date().toISOString() }, `${r.nome} não foi confirmado.`);
+  }
+
+  function suspender(r: Remedio) {
+    if (!window.confirm(`Suspender ${r.nome}? Ele deixa de aparecer nas doses; o histórico fica.`)) return;
+    atualizar(r.id, { ativo: false }, `${r.nome} suspenso.`);
+  }
+
+  function remover(r: Remedio) {
+    const texto = r.confirmado ? `Remover ${r.nome} do cadastro? Use só se foi cadastrado por engano.` : `Cancelar o envio de ${r.nome}?`;
+    if (!window.confirm(texto)) return;
+    atualizar(r.id, { deleted_at: new Date().toISOString() }, `${r.nome} removido.`);
+  }
+
+  async function pedirSuspensao(r: Remedio) {
+    const motivo = window.prompt(`Pedir para suspender ${r.nome}. Por quê? (pode deixar em branco)`);
+    if (motivo === null) return;
+    const { error } = await supabase.from("medicacao_pedido").insert({
+      idoso_id: idosoId,
+      medicacao_id: r.id,
+      tipo: "suspender",
+      motivo: motivo.trim() || null,
+      pedido_por: meuId,
+    });
+    if (error) {
+      setErro("Não consegui enviar o pedido.");
+      return;
+    }
+    terminar("Pedido enviado. Continue como está até o administrador aprovar.");
+  }
+
+  async function decidir(p: Pedido, aprovar: boolean) {
+    const { error } = await supabase.rpc("decidir_pedido_medicacao", { p_pedido: p.id, p_aprovar: aprovar });
+    if (error) {
+      setErro(error.message);
+      return;
+    }
+    terminar(aprovar ? "Pedido aprovado." : "Pedido recusado.");
+  }
+
+  if (!membership || !idosoId) {
+    return <p className="text-sm text-subtle">Crie o perfil do idoso primeiro para gerenciar a medicação.</p>;
   }
   if (carregando) return <p className="text-sm text-subtle">Carregando...</p>;
+
+  const pendentes = remedios.filter((r) => !r.confirmado);
+  const hoje = hojeBR();
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold text-ink">Medicação</h1>
         <p className="text-sm text-subtle">
-          Marque o que foi dado hoje. Não precisa ser na hora, pode preencher
-          depois.
+          Marque cada dose de hoje. Não precisa ser na hora, pode preencher depois.
         </p>
       </div>
 
-      {silencioDias !== null && (
-        <Card className="border-warn/40 bg-warn/10">
-          <p className="text-sm font-medium text-warn">
-            Faz {silencioDias} dias que ninguém registra a medicação.
-          </p>
-          <p className="mt-1 text-xs text-subtle">
-            Isso é sobre o registro, não sobre o idoso. Vale conferir se está
-            tudo bem.
-          </p>
-        </Card>
-      )}
+      {aviso && <p className="rounded-lg bg-primary-soft px-3 py-2 text-sm text-primary-ink" role="status">{aviso}</p>}
+      {erro && <p className="text-sm text-danger" role="alert">{erro}</p>}
 
-      {repor.length > 0 && (
-        <Card className="border-primary/30 bg-primary-soft">
-          <p className="text-sm font-medium text-primary">
-            Repor: {repor.join(", ")}
-          </p>
-          <p className="mt-1 text-xs text-primary-ink">
-            Marcado como &quot;acabou&quot; hoje.
-          </p>
-        </Card>
-      )}
+      {admin && (pendentes.length > 0 || pedidos.length > 0) && (
+        <Card className="flex flex-col gap-3 border-warn/50">
+          <h2 className="text-base font-semibold text-ink">Esperando a sua decisão ({pendentes.length + pedidos.length})</h2>
 
-      <Card className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-ink">Medicação de hoje</h2>
-        {meds.length === 0 && (
-          <p className="text-sm text-subtle">
-            Nenhum remédio ativo. Cadastre abaixo.
-          </p>
-        )}
-        {meds.map((m) => {
-          const reg = registros[m.id];
-          const aberto = motivoAberto === m.id;
-          return (
-            <div key={m.id} className="flex flex-col gap-2 border-b border-line pb-3 last:border-0 last:pb-0">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm text-ink">{m.nome}</p>
-                  {m.dosagem && <p className="text-xs text-subtle">{m.dosagem}</p>}
+          {pendentes.map((r) => (
+            <div key={r.id} className="flex flex-col gap-2 border-t border-line pt-3">
+              <p className="text-sm text-ink">
+                <strong>{r.nome}</strong>
+                {r.dosagem ? ` ${r.dosagem}` : ""}, adicionado por {quem(r.autor_id)}
+              </p>
+              <p className="text-sm text-subtle">{[descreverAgenda(r), r.instrucoes].filter(Boolean).join(" · ")}</p>
+              {edicao?.id === r.id && edicao.modo === "confirmar" ? (
+                <FormRemedio inicial={r} rotuloBotao="Salvar e confirmar" onSalvar={(d, m) => salvarEdicao(r, "confirmar", d, m)} onCancelar={() => setEdicao(null)} />
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="primary" onClick={() => confirmar(r)}>Confirmar</Button>
+                  <Button onClick={() => setEdicao({ id: r.id, modo: "confirmar" })}>Corrigir e confirmar</Button>
+                  <Button variant="ghost" onClick={() => recusar(r)}>Recusar</Button>
                 </div>
-                {reg ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-subtle">
-                      {reg.status === "dada" ? "✓ deu" : `não deu · ${reg.motivo ?? ""}`}
-                    </span>
-                    <Button onClick={() => setMotivoAberto(aberto ? null : `edit-${m.id}`)} className="h-8 px-2 text-xs">
-                      alterar
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Button variant="primary" onClick={() => registrar(m.id, "dada")} className="h-8 px-3 text-xs">
-                      Deu
-                    </Button>
-                    <Button onClick={() => { setMotivoAberto(m.id); setMotivoSel("esqueceu"); }} className="h-8 px-3 text-xs">
-                      Não deu
-                    </Button>
-                  </div>
+              )}
+            </div>
+          ))}
+
+          {pedidos.map((p) => {
+            const r = remedios.find((m) => m.id === p.medicacao_id);
+            if (!r) return null;
+            return (
+              <div key={p.id} className="flex flex-col gap-2 border-t border-line pt-3">
+                <p className="text-sm text-ink">
+                  {quem(p.pedido_por)} pede {p.tipo === "suspender" ? "para suspender" : "uma mudança em"} <strong>{r.nome}</strong>
+                </p>
+                {p.motivo && <p className="text-sm text-subtle">Motivo: {p.motivo}</p>}
+                {p.tipo === "alterar" && (
+                  <ul className="list-disc pl-5 text-sm text-ink">
+                    {mudancas(r, p.dados).map((l) => <li key={l}>{l}</li>)}
+                  </ul>
                 )}
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="primary" onClick={() => decidir(p, true)}>Aprovar</Button>
+                  <Button variant="ghost" onClick={() => decidir(p, false)}>Recusar</Button>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      )}
+
+      <DosesDeHoje idosoId={idosoId} versao={versao} />
+
+      <Card className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold text-ink">Remédios cadastrados</h2>
+          <Button className="whitespace-nowrap" variant={adicionando ? "ghost" : "primary"} onClick={() => { setAdicionando(!adicionando); setEdicao(null); }}>
+            {adicionando ? "Fechar" : "+ Adicionar remédio"}
+          </Button>
+        </div>
+
+        {adicionando && (
+          <div className="rounded-lg border border-line p-3">
+            {!admin && (
+              <p className="mb-3 text-sm text-subtle">
+                O remédio fica aguardando o administrador confirmar. Você já pode registrar as doses.
+              </p>
+            )}
+            <FormRemedio rotuloBotao={admin ? "Adicionar" : "Enviar para confirmação"} onSalvar={adicionar} />
+          </div>
+        )}
+
+        {remedios.length === 0 && !adicionando && <p className="text-sm text-subtle">Nenhum remédio ativo.</p>}
+
+        {remedios.map((r) => {
+          const meuPendente = !r.confirmado && r.autor_id === meuId;
+          const comPedido = pedidos.some((p) => p.medicacao_id === r.id);
+          const modo = edicao?.id === r.id && edicao.modo !== "confirmar" ? edicao.modo : null;
+          return (
+            <div key={r.id} className="flex flex-col gap-2 border-t border-line pt-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-ink">
+                  {r.nome}
+                  {r.dosagem ? <span className="font-normal text-subtle"> {r.dosagem}</span> : null}
+                </p>
+                <p className="text-sm text-subtle">{[descreverAgenda(r), r.instrucoes].filter(Boolean).join(" · ")}</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {!r.confirmado && <Badge tone="warn">aguardando confirmação</Badge>}
+                  {comPedido && <Badge tone="warn">pedido de mudança em análise</Badge>}
+                  {!emUso(r, hoje) && <Badge tone="neutral">{r.fim && r.fim < hoje ? "período encerrado" : "ainda não começou"}</Badge>}
+                </div>
               </div>
 
-              {(aberto || motivoAberto === `edit-${m.id}`) && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="primary" onClick={() => registrar(m.id, "dada")} className="h-8 px-3 text-xs">
-                    Deu
-                  </Button>
-                  <select
-                    value={motivoSel}
-                    onChange={(e) => setMotivoSel(e.target.value)}
-                    className="h-8 rounded-lg border border-line bg-card px-2 text-xs text-ink"
-                  >
-                    {MOTIVOS.map((mo) => (
-                      <option key={mo} value={mo}>
-                        {mo.replace("_", " ")}
-                      </option>
-                    ))}
-                  </select>
-                  <Button onClick={() => registrar(m.id, "nao_dada", motivoSel)} className="h-8 px-3 text-xs">
-                    Não deu
-                  </Button>
+              {modo ? (
+                <FormRemedio
+                  inicial={r}
+                  rotuloBotao={modo === "pedir" ? "Enviar pedido" : "Salvar"}
+                  pedirMotivo={modo === "pedir"}
+                  onSalvar={(d, m) => salvarEdicao(r, modo, d, m)}
+                  onCancelar={() => setEdicao(null)}
+                />
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  {(admin || meuPendente) && (
+                    <Button variant="ghost" onClick={() => setEdicao({ id: r.id, modo: "editar" })} className="h-9 px-2 text-xs">Editar</Button>
+                  )}
+                  {admin && r.confirmado && (
+                    <Button variant="ghost" onClick={() => suspender(r)} className="h-9 px-2 text-xs">Suspender</Button>
+                  )}
+                  {(admin || meuPendente) && (
+                    <Button variant="ghost" onClick={() => remover(r)} className="h-9 px-2 text-xs">
+                      {meuPendente && !admin ? "Cancelar envio" : "Remover"}
+                    </Button>
+                  )}
+                  {!admin && r.confirmado && !comPedido && (
+                    <>
+                      <Button variant="ghost" onClick={() => setEdicao({ id: r.id, modo: "pedir" })} className="h-9 px-2 text-xs">Pedir mudança</Button>
+                      <Button variant="ghost" onClick={() => pedirSuspensao(r)} className="h-9 px-2 text-xs">Pedir para suspender</Button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
           );
         })}
-      </Card>
-
-      <Card className="flex flex-col gap-4">
-        <h2 className="text-sm font-medium text-ink">Medicamentos</h2>
-        {meds.map((m) => (
-          <div key={m.id} className="flex items-center justify-between border-b border-line pb-2 last:border-0 last:pb-0">
-            <div>
-              <p className="text-sm text-ink">{m.nome}</p>
-              <p className="text-xs text-subtle">
-                {[m.dosagem, m.instrucoes].filter(Boolean).join(" · ")}
-              </p>
-            </div>
-            <Button variant="ghost" onClick={() => removerMed(m.id)} className="h-8 px-2 text-xs">
-              Remover
-            </Button>
-          </div>
-        ))}
-        <form onSubmit={addMed} className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <Input placeholder="Nome (ex: Losartana)" value={nova.nome} onChange={(e) => setNova({ ...nova, nome: e.target.value })} className="sm:col-span-2" />
-          <Input placeholder="Dosagem (ex: 50mg)" value={nova.dosagem} onChange={(e) => setNova({ ...nova, dosagem: e.target.value })} />
-          <Input placeholder="Instruções" value={nova.instrucoes} onChange={(e) => setNova({ ...nova, instrucoes: e.target.value })} />
-          <Button type="submit" className="sm:col-span-4">Adicionar remédio</Button>
-        </form>
       </Card>
     </div>
   );

@@ -155,13 +155,13 @@ export default function TimelinePage() {
     if (medIds.length > 0) {
       const { data: regs } = await supabase
         .from("registro_medicacao")
-        .select("id, medicacao_id, status, motivo, registrado_em")
+        .select("id, medicacao_id, status, motivo, horario, registrado_em")
         .in("medicacao_id", medIds)
         .is("deleted_at", null)
         .order("registrado_em", { ascending: false })
         .limit(50);
       for (const r of (regs ?? []) as Record<string, unknown>[]) {
-        const nome = medMap.get(r.medicacao_id as string) ?? "Remédio";
+        const nome = `${medMap.get(r.medicacao_id as string) ?? "Remédio"}${r.horario ? ` (${r.horario})` : ""}`;
         const deu = r.status === "dada";
         lista.push({
           id: `med-${r.id}`,

@@ -9,7 +9,7 @@ export type DadosProposta =
   | { tipo: "diario"; alimentacao: string | null; sono: string | null; ocorrencias: string | null }
   | { tipo: "sintoma"; descricao: string; gravidade: number | null }
   | { tipo: "pauta"; titulo: string; detalhe: string | null }
-  | { tipo: "medicacao"; medicacaoId: string; nome: string }
+  | { tipo: "medicacao"; medicacaoId: string; nome: string; horario: string }
   | { tipo: "sintoma_resolvido"; sintomaId: string; descricao: string };
 
 export type Proposta = {

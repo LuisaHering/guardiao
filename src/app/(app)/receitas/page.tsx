@@ -9,6 +9,8 @@ import { normalizar } from "@/lib/analitos";
 import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
 import { IACarregando } from "@/components/ia-carregando";
 import type { ReceitaExtraida } from "@/lib/ai/schemas";
+import { CamposAgenda } from "@/components/campos-agenda";
+import { agendaParaGravar, agendaVazia, sugerirAgenda, validarAgenda, type Agenda } from "@/lib/medicacao";
 
 type Linha = {
   incluir: boolean;
@@ -16,6 +18,7 @@ type Linha = {
   dosagem: string;
   frequencia: string;
   observacoes: string;
+  agenda: Agenda;
   jaExiste: boolean;
 };
 
@@ -140,6 +143,8 @@ export default function ReceitasPage() {
             dosagem: m.dosagem ?? "",
             frequencia: m.frequencia ?? "",
             observacoes: m.observacoes ?? "",
+            // Sugestão a partir do texto lido; quem confirma é a pessoa.
+            agenda: { ...agendaVazia(), ...sugerirAgenda(`${m.frequencia ?? ""} ${m.observacoes ?? ""}`) },
             jaExiste,
           };
         }),
@@ -178,6 +183,13 @@ export default function ReceitasPage() {
     if (escolhidas.length === 0) {
       setErro("Marque ao menos um medicamento para cadastrar.");
       return;
+    }
+    for (const l of escolhidas) {
+      const problema = validarAgenda(l.agenda);
+      if (problema) {
+        setErro(`${l.nome}: ${problema}`);
+        return;
+      }
     }
     setErro(null);
     setSalvando(true);
@@ -225,7 +237,8 @@ export default function ReceitasPage() {
         dosagem: l.dosagem.trim() || null,
         instrucoes:
           [l.frequencia.trim(), l.observacoes.trim()].filter(Boolean).join(" · ") || null,
-        confirmado: true,
+        // Se quem cadastra não administra, o banco deixa o remédio aguardando confirmação.
+        ...agendaParaGravar(l.agenda),
       })),
     );
     if (medErro) {
@@ -353,10 +366,21 @@ export default function ReceitasPage() {
                   placeholder="Observações"
                 />
               </div>
+              {l.incluir && (
+                <div className="rounded-lg border border-line p-3">
+                  <p className="mb-2 text-xs text-subtle">
+                    Quando tomar. Preenchi o que deu para entender da receita: confira com o papel.
+                  </p>
+                  <CamposAgenda valor={l.agenda} onChange={(agenda) => mudarLinha(i, { agenda })} />
+                </div>
+              )}
             </div>
           ))}
 
           {erro && <p className="text-sm text-danger">{erro}</p>}
+          {!membership.admin && (
+            <p className="text-sm text-subtle">Os remédios ficam aguardando o administrador confirmar.</p>
+          )}
           <div className="flex gap-2">
             <Button variant="primary" onClick={confirmar} disabled={salvando}>
               {salvando ? "Cadastrando..." : "Confirmar e cadastrar"}
@@ -414,7 +438,7 @@ export default function ReceitasPage() {
                       : "Remover esta receita da lista?"}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {meds.length > 0 && (
+                    {meds.length > 0 && membership.admin && (
                       <Button
                         variant="primary"
                         onClick={() => removerReceita(r.id, true)}

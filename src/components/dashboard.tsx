@@ -7,9 +7,15 @@ import { useRole } from "@/lib/role-context";
 import { Badge, Card } from "@/components/ui";
 import { CompletudePerfil } from "@/components/completude-perfil";
 import { dataCurta, fmt, posicaoNaFaixa, rotuloPosicao } from "@/lib/tendencia";
+import {
+  COLUNAS_DOSE,
+  COLUNAS_REMEDIO,
+  resumoDoDia,
+  type RegistroDose,
+  type Remedio,
+  type SituacaoDia,
+} from "@/lib/medicacao";
 
-type Remedio = { id: string; nome: string; dosagem: string | null };
-type StatusDia = "dada" | "nao_dada" | null;
 
 type AlertaResumo = {
   id: string;
@@ -22,6 +28,14 @@ type AlertaResumo = {
 type Recente = { id: string; tipo: string; titulo: string; detalhe: string | null; data: string };
 
 type ForaDaFaixa = { nome: string; texto: string; data: string };
+
+const SITUACAO: Record<SituacaoDia, { simbolo: string; rotulo: string; classe: string }> = {
+  dada: { simbolo: "✓", rotulo: "deu", classe: "bg-success/15 text-success" },
+  parcial: { simbolo: "◐", rotulo: "falta registrar dose", classe: "bg-warn/10 text-warn" },
+  nao_dada: { simbolo: "✕", rotulo: "alguma dose não foi dada", classe: "bg-warn/15 text-warn" },
+  sem_registro: { simbolo: "·", rotulo: "sem registro", classe: "bg-panel text-subtle" },
+  sem_dose: { simbolo: "–", rotulo: "sem dose prevista", classe: "text-subtle" },
+};
 
 const ROTULO_TIPO: Record<string, string> = {
   sintoma: "Sintoma",
@@ -73,7 +87,7 @@ export function Dashboard() {
   const [carregando, setCarregando] = useState(true);
   const [dias] = useState(() => diasRecentes(7));
   const [remedios, setRemedios] = useState<Remedio[]>([]);
-  const [registros, setRegistros] = useState<Record<string, StatusDia>>({});
+  const [registros, setRegistros] = useState<RegistroDose[]>([]);
   const [alertas, setAlertas] = useState<AlertaResumo[]>([]);
   const [totalNaoLidos, setTotalNaoLidos] = useState(0);
   const [visao, setVisao] = useState<{ resumo: string; geradoEm: string } | null>(null);
@@ -102,7 +116,7 @@ export function Dashboard() {
     ] = await Promise.all([
       supabase
         .from("medicacao")
-        .select("id, nome, dosagem")
+        .select(COLUNAS_REMEDIO)
         .eq("idoso_id", idosoId)
         .eq("ativo", true)
         .is("deleted_at", null)
@@ -163,18 +177,14 @@ export function Dashboard() {
     if (lista.length > 0) {
       const { data: regs } = await supabase
         .from("registro_medicacao")
-        .select("medicacao_id, data, status")
+        .select(COLUNAS_DOSE)
         .in(
           "medicacao_id",
           lista.map((m) => m.id),
         )
         .is("deleted_at", null)
         .gte("data", dias[0]);
-      const mapa: Record<string, StatusDia> = {};
-      for (const r of (regs ?? []) as { medicacao_id: string; data: string; status: StatusDia }[]) {
-        mapa[`${r.medicacao_id}|${r.data}`] = r.status;
-      }
-      setRegistros(mapa);
+      setRegistros((regs ?? []) as unknown as RegistroDose[]);
     }
 
     // Alertas não lidos (mais recentes primeiro).
@@ -322,39 +332,34 @@ export function Dashboard() {
           ) : (
             <div className="flex flex-col gap-3">
               {remedios.map((m) => {
-                const hojeStatus = registros[`${m.id}|${hoje}`] ?? null;
+                const deHoje = resumoDoDia(m, registros, hoje);
                 return (
                   <div key={m.id} className="flex flex-col gap-1.5">
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="text-sm text-ink">
                         {m.nome}
                         {m.dosagem && <span className="text-xs text-subtle"> · {m.dosagem}</span>}
+                        {!m.confirmado && <span className="text-xs text-warn"> · aguardando confirmação</span>}
                       </p>
-                      <span className="text-xs text-subtle">
-                        hoje:{" "}
-                        {hojeStatus === "dada"
-                          ? "deu"
-                          : hojeStatus === "nao_dada"
-                            ? "não deu"
-                            : "sem registro"}
+                      <span className="shrink-0 text-xs text-subtle">
+                        {deHoje.previstas
+                          ? `hoje: ${deHoje.registradas} de ${deHoje.previstas}`
+                          : deHoje.registradas
+                            ? `hoje: ${deHoje.registradas}x`
+                            : "sem dose prevista hoje"}
                       </span>
                     </div>
                     <div className="flex gap-1" aria-label={`Últimos 7 dias de ${m.nome}`}>
                       {dias.map((d) => {
-                        const s = registros[`${m.id}|${d}`] ?? null;
+                        const { situacao } = resumoDoDia(m, registros, d);
+                        const v = SITUACAO[situacao];
                         return (
                           <span
                             key={d}
-                            title={`${dataCurta(d)}: ${s === "dada" ? "deu" : s === "nao_dada" ? "não deu" : "sem registro"}`}
-                            className={`flex h-6 w-6 items-center justify-center rounded text-[11px] font-semibold ${
-                              s === "dada"
-                                ? "bg-success/15 text-success"
-                                : s === "nao_dada"
-                                  ? "bg-warn/15 text-warn"
-                                  : "bg-panel text-subtle"
-                            }`}
+                            title={`${dataCurta(d)}: ${v.rotulo}`}
+                            className={`flex h-6 w-6 items-center justify-center rounded text-[11px] font-semibold ${v.classe}`}
                           >
-                            {s === "dada" ? "✓" : s === "nao_dada" ? "✕" : "·"}
+                            {v.simbolo}
                           </span>
                         );
                       })}
@@ -363,7 +368,8 @@ export function Dashboard() {
                 );
               })}
               <p className="text-xs text-subtle">
-                ✓ deu · ✕ não deu · · sem registro (não quer dizer que a dose não foi dada).
+                ✓ deu · ◐ falta dose · ✕ alguma não foi dada · – sem dose prevista · · sem registro (não quer
+                dizer que a dose não foi dada).
               </p>
             </div>
           )}
