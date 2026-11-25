@@ -26,6 +26,7 @@ import { rotuloEnvio, type TipoEnvio } from "@/lib/documentos";
 import { EnviarResultado } from "@/components/enviar-resultado";
 import { IACarregando } from "@/components/ia-carregando";
 import { PapelAMao, VerPapel } from "@/components/ver-papel";
+import { ApagarEnvio } from "@/components/apagar-envio";
 import { cn } from "@/lib/cn";
 
 type Etapa = "lendo" | "sem_leitura" | "parece_resultado" | "resultado" | "tipo" | "conferindo" | "faltou" | "gravando" | "falhou" | "pronto";
@@ -273,12 +274,18 @@ function Conferencia({ idosoId, documentoId, arquivo, envio, onFim }: Props) {
     }
   }
 
+  /** Mandou a foto errada: dá para apagar em qualquer ponto. Apagada, a conferência fecha. */
+  const apagar = (rotulo = "Mandei a foto errada") => (
+    <ApagarEnvio documentoId={documentoId} rotulo={rotulo} onApagado={onFim} />
+  );
+
   if (etapa === "lendo") {
     return (
       <div className={cartao} role="status">
         <p className="text-xl font-semibold text-success">✓ Foto enviada à família</p>
         <IACarregando rotulo="Lendo o papel..." grande />
         <p className="text-sm text-subtle">Se sair desta tela, a foto continua com a família.</p>
+        {apagar()}
       </div>
     );
   }
@@ -290,6 +297,7 @@ function Conferencia({ idosoId, documentoId, arquivo, envio, onFim }: Props) {
         <p className="text-lg text-ink">{motivo}</p>
         <p className="text-base text-subtle">Nada foi mudado nos remédios nem nos exames. A família vai olhar a foto.</p>
         <Button onClick={onFim} className="h-14 text-lg">Fechar</Button>
+        {apagar()}
       </div>
     );
   }
@@ -319,6 +327,7 @@ function Conferencia({ idosoId, documentoId, arquivo, envio, onFim }: Props) {
         >
           Não, ou não sei
         </Button>
+        {apagar()}
       </div>
     );
   }
@@ -348,6 +357,7 @@ function Conferencia({ idosoId, documentoId, arquivo, envio, onFim }: Props) {
         >
           É {rotuloEnvio(envio)} mesmo
         </Button>
+        {apagar()}
       </div>
     );
   }
@@ -392,6 +402,7 @@ function Conferencia({ idosoId, documentoId, arquivo, envio, onFim }: Props) {
           />
         </div>
         {botaoVoltar}
+        {apagar()}
       </div>
     );
   }
@@ -407,6 +418,7 @@ function Conferencia({ idosoId, documentoId, arquivo, envio, onFim }: Props) {
           <Button onClick={() => guardar(true)} className="h-14 text-lg">Sim, ficou faltando</Button>
         </div>
         {botaoVoltar}
+        {apagar()}
       </div>
     );
   }
@@ -470,6 +482,7 @@ function Conferencia({ idosoId, documentoId, arquivo, envio, onFim }: Props) {
         </Link>
       )}
       <Button onClick={onFim} className="h-14 text-lg">Fechar</Button>
+      {apagar("Mandei a foto errada, apagar")}
     </div>
   );
 }

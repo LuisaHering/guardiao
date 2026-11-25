@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Button, Input } from "@/components/ui";
 import {
+  apagarPedido,
   ATALHOS,
   criarPedido,
   EVENTO_PEDIDOS_FAMILIA,
@@ -115,13 +116,15 @@ export function PedidosNoPainel({ idosoId }: { idosoId: string }) {
 function Cartao({ pedido: p, nomes, eu }: { pedido: PedidoFamilia; nomes: Record<string, string>; eu: string }) {
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [apagando, setApagando] = useState(false);
+  const admin = !!useRole()?.admin;
   const meu = p.autor_id === eu;
   const aberto = p.status === "aberto" || p.status === "assumido";
   const comigo = p.assumido_por === eu;
   const paraMim = !p.destinatario_id || p.destinatario_id === eu;
   const nome = (id: string | null) => (id === eu ? "você" : (id && nomes[id]) || "alguém da família");
 
-  async function fazer(acao: "assumir" | "largar" | "concluir" | "cancelar") {
+  async function fazer(acao: "assumir" | "largar" | "concluir") {
     setOcupado(true);
     setErro(await mudarPedido(createClient(), p.id, acao));
     setOcupado(false);
@@ -175,14 +178,44 @@ function Cartao({ pedido: p, nomes, eu }: { pedido: PedidoFamilia; nomes: Record
       {aberto && !meu && !comigo && p.status === "assumido" && paraMim && (
         <p className="text-sm text-subtle">Não precisa fazer nada.</p>
       )}
-      {aberto && meu && (
-        <div className="flex flex-wrap gap-2">
-          {p.tipo !== "conferir_exame" && (
-            <Button disabled={ocupado} onClick={() => fazer("concluir")} className="h-12 text-base">Já foi resolvido</Button>
-          )}
-          <Button variant="ghost" disabled={ocupado} onClick={() => fazer("cancelar")} className="h-12 text-base">Cancelar pedido</Button>
-        </div>
+      {aberto && meu && p.tipo !== "conferir_exame" && (
+        <Button disabled={ocupado} onClick={() => fazer("concluir")} className="h-12 text-base">Já foi resolvido</Button>
       )}
+
+      {(meu || admin) &&
+        (apagando ? (
+          <div className="flex flex-col gap-2 rounded-xl border-2 border-danger/60 p-3">
+            <p className="text-lg font-semibold text-ink">Apagar este pedido? Ele some para todos.</p>
+            {p.status === "assumido" && !comigo && (
+              <p className="text-base text-ink">
+                {nomes[p.assumido_por ?? ""] || "Alguém"} disse que vai resolver e não recebe aviso. Se precisar, ligue.
+              </p>
+            )}
+            <Button variant="primary" disabled={ocupado} onClick={() => setApagando(false)} className="h-14 text-lg">
+              Não, deixar como está
+            </Button>
+            <Button
+              disabled={ocupado}
+              onClick={async () => {
+                setOcupado(true);
+                setErro(await apagarPedido(createClient(), p.id));
+                setOcupado(false);
+              }}
+              className="h-12 border-danger! text-base text-danger!"
+            >
+              Sim, apagar
+            </Button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={ocupado}
+            onClick={() => setApagando(true)}
+            className="self-center py-1 text-base text-subtle underline underline-offset-4 hover:text-danger disabled:opacity-50"
+          >
+            Apagar pedido
+          </button>
+        ))}
     </article>
   );
 }

@@ -90,6 +90,41 @@ caminho (seção abaixo) e o "Ler como receita", quando a família escolhe.
 Regras testadas nas migrações `20261124130000_documentos.sql` e
 `20261125100000_consulta_e_documentos.sql`.
 
+### Apagar o que foi enviado errado
+
+Vale para receita, pedido de exame, resultado e qualquer outro papel enviado. Cada pessoa apaga só
+o que ela mesma enviou; o administrador, qualquer envio.
+
+| Momento | O que acontece |
+|---------|----------------|
+| Antes de a família aceitar | apaga na hora, e a família não recebe aviso novo (os avisos daquele envio saem dos não lidos) |
+| Depois do aceite | vira um pedido: o administrador é avisado, vê no pop-up o arquivo e o que sairia, e confirma ou não. Até a resposta, nada muda; quem pediu pode desistir |
+
+Conta como aceite: o administrador marcar a foto como certa ou corrigi-la, aprovar um remédio
+dela, cadastrar o que tinha ficado esperando, concluir o exame a partir dela, guardar o arquivo em
+uma pasta ou marcar "levar nas consultas".
+
+**Apagar desfaz o que veio daquele arquivo**, e a tela lista isso antes. A lista não é um texto
+fixo: o banco executa a exclusão, anota o que fez e desfaz tudo.
+
+- Remédio que a foto colocou sai da lista. Se já havia dose marcada ou já tinha sido revisado, ele
+  é encerrado e o histórico fica.
+- Mudança de dose ou horário que veio da foto volta ao que era, a não ser que o remédio tenha sido
+  mudado de novo depois.
+- O que estava "Esperando a família" sai.
+- O pedido de exame da foto sai, com a tarefa e o lembrete. Se ele já tem resultado ou foi
+  concluído, continua na lista e sai só a foto.
+- Num resultado, os valores conferidos a partir dele saem de Resultados e das tendências, o pedido
+  para alguém conferir é cancelado, e o exame volta ao estado de antes (um resultado sem pedido sai
+  da lista). Valores digitados antes de 25/11/2026 não têm essa ligação, e a tela avisa.
+
+Quem cuida é avisado quando a confirmação muda algo, quando o administrador apaga um envio de
+outra pessoa e quando a lista de remédios muda por uma exclusão feita por outra pessoa.
+
+Não há exclusão física: registros e arquivos ficam escondidos. O aplicativo não consegue apagar
+direto na tabela um envio que já tem algo ligado a ele; só pelas funções. Regras testadas em
+`20261125230000_apagar_o_que_foi_enviado.sql`.
+
 ## Ida ao médico (quem cuida)
 
 Dois botões principais: **Gravar a consulta** (começa na hora) e **Contar sobre a consulta**
@@ -338,9 +373,14 @@ papel de familiar.
 | Ver um pedido | quem pediu, a quem foi dirigido e o administrador (que vê todos) | **banco** (RLS) |
 | Receber o aviso | só a quem foi dirigido; o administrador não é avisado do que é de outra pessoa | **banco** |
 | "Eu resolvo", desistir, marcar como feito | quem recebe (o administrador também); um pedido tem um responsável por vez | **banco** |
-| Marcar o próprio como resolvido ou cancelar | quem pediu | **banco** |
+| Marcar o próprio como resolvido | quem pediu | **banco** |
+| Apagar um pedido, em qualquer situação (inclusive resolvido) | quem pediu e o administrador | **banco** |
 
-Regras testadas na migração `20261125190000_pedidos_para_os_familiares.sql`.
+Apagar um pedido o tira da lista de todos e dos avisos não lidos, sem aviso novo. Se alguém já
+tinha dito que resolve, a tela avisa quem está apagando que essa pessoa não é notificada.
+
+Regras testadas nas migrações `20261125190000_pedidos_para_os_familiares.sql` e
+`20261125230000_apagar_o_que_foi_enviado.sql`.
 
 **Limite:** o aviso aparece quando a pessoa abre o aplicativo, sem notificação com o celular
 fechado. Um pedido não substitui uma ligação, e a tela de urgência lembra o 192.

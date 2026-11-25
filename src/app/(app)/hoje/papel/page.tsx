@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRole } from "@/lib/role-context";
 import { EnviarFoto } from "@/components/papeis";
+import { MeusEnvios } from "@/components/meus-envios";
 
 /** Atalho da tela Hoje: receita, pedido de exame ou resultado de exame. */
 export default function PapelNovoPage() {
   const membership = useRole();
+  const [versao, setVersao] = useState(0);
   if (!membership?.idosoId) return null;
 
   return (
@@ -15,7 +18,12 @@ export default function PapelNovoPage() {
         <span aria-hidden>←</span> Voltar
       </Link>
       <h1 className="text-2xl font-semibold text-ink">Exame ou receita nova</h1>
-      <EnviarFoto idosoId={membership.idosoId} tipos={["receita", "pedido_exame", "resultado_exame"]} />
+      <EnviarFoto
+        idosoId={membership.idosoId}
+        tipos={["receita", "pedido_exame", "resultado_exame"]}
+        onEnviado={() => setVersao((v) => v + 1)}
+      />
+      <MeusEnvios idosoId={membership.idosoId} versao={versao} />
     </div>
   );
 }

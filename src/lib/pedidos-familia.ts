@@ -103,10 +103,17 @@ export async function criarPedido(
   return null;
 }
 
+/** Quem pediu apaga em qualquer situação. */
+export async function apagarPedido(supabase: SupabaseClient, id: string): Promise<string | null> {
+  const { error } = await supabase.rpc("apagar_pedido_familia", { p_pedido: id });
+  window.dispatchEvent(new Event(EVENTO_PEDIDOS_FAMILIA));
+  return error ? "Não consegui apagar. Confira a internet e tente de novo." : null;
+}
+
 export async function mudarPedido(
   supabase: SupabaseClient,
   id: string,
-  acao: "assumir" | "largar" | "concluir" | "cancelar",
+  acao: "assumir" | "largar" | "concluir",
 ): Promise<string | null> {
   const { error } = await supabase.rpc("mudar_pedido_familia", { p_pedido: id, p_acao: acao });
   window.dispatchEvent(new Event(EVENTO_PEDIDOS_FAMILIA));

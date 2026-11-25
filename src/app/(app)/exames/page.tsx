@@ -338,7 +338,7 @@ export default function ExamesPage() {
     }
 
     if (pedidoDeOrigem.current) {
-      const falha = await encerrarExame(supabase, pedidoDeOrigem.current);
+      const falha = await encerrarExame(supabase, pedidoDeOrigem.current, false, caminho);
       if (falha) setErro("Os valores foram salvos, mas o pedido continua aberto. Conclua em Pedidos de exame.");
       pedidoDeOrigem.current = null;
     }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui";
 import { descreverAgenda } from "@/lib/medicacao";
 import { carregarLeituras, decidirLeitura, type LeituraParaRevisar } from "@/lib/leituras";
 import { abrirArquivo } from "@/lib/documentos";
+import { apagarEnvio, avisarTelas, carregarExclusoes, decidirExclusao, type ExclusaoPedida } from "@/lib/apagar";
 import { carregarRevisoes, decidirRevisao, efeitoDeNegar, EVENTO_REMEDIOS, type Revisao } from "@/lib/revisoes";
 import { EVENTO_ALERTAS } from "@/components/sino-alertas";
 
@@ -26,8 +27,9 @@ function lerAdiadas(): string[] {
 const assinatura = (r: Revisao) => `${r.chave}|${r.tipo}|${r.mudancas.join("|")}`;
 
 type NaFila = { chave: string; assinatura: string } & (
-  | { leitura: LeituraParaRevisar; revisao?: undefined }
-  | { revisao: Revisao; leitura?: undefined }
+  | { exclusao: ExclusaoPedida; leitura?: undefined; revisao?: undefined }
+  | { leitura: LeituraParaRevisar; exclusao?: undefined; revisao?: undefined }
+  | { revisao: Revisao; exclusao?: undefined; leitura?: undefined }
 );
 
 const TITULO: Record<Revisao["tipo"], string> = {
@@ -46,6 +48,7 @@ export function PopupRevisao() {
   const router = useRouter();
   const [itens, setItens] = useState<Revisao[]>([]);
   const [leituras, setLeituras] = useState<LeituraParaRevisar[]>([]);
+  const [exclusoes, setExclusoes] = useState<ExclusaoPedida[]>([]);
   const [adiadas, setAdiadas] = useState<string[]>([]);
   const [negando, setNegando] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -60,8 +63,13 @@ export function PopupRevisao() {
     let cancelado = false;
     const conferir = async () => {
       const cliente = createClient();
-      const [lista, fotos] = await Promise.all([carregarRevisoes(cliente, idosoId), carregarLeituras(cliente, idosoId)]);
+      const [lista, fotos, paraApagar] = await Promise.all([
+        carregarRevisoes(cliente, idosoId),
+        carregarLeituras(cliente, idosoId),
+        carregarExclusoes(cliente, idosoId),
+      ]);
       if (cancelado) return;
+      setExclusoes(paraApagar);
       setItens(lista);
       setLeituras(fotos);
       setAdiadas(lerAdiadas());
@@ -81,6 +89,8 @@ export function PopupRevisao() {
   // O que veio de uma foto é decidido junto com ela, não remédio por remédio.
   const cobertas = new Set(leituras.flatMap((l) => l.cobre));
   const fila: NaFila[] = [
+    // Quem pediu para apagar está esperando: vem antes.
+    ...exclusoes.map((x) => ({ chave: `exclusao:${x.id}`, assinatura: `exclusao:${x.id}`, exclusao: x })),
     ...leituras.map((l) => ({ chave: l.chave, assinatura: l.chave, leitura: l })),
     ...itens.filter((r) => !cobertas.has(r.chave)).map((r) => ({ chave: r.chave, assinatura: assinatura(r), revisao: r })),
   ];
@@ -100,12 +110,15 @@ export function PopupRevisao() {
     setErro(null);
   }
 
+  /** Numa exclusão, "aprovar" é confirmar que pode apagar. */
   async function decidir(i: NaFila, aprovar: boolean) {
     setOcupado(true);
     setErro(null);
-    const falha = i.leitura
-      ? await decidirLeitura(createClient(), i.leitura.id, aprovar)
-      : await decidirRevisao(createClient(), i.revisao, aprovar);
+    const falha = i.exclusao
+      ? await decidirExclusao(createClient(), i.exclusao.id, aprovar)
+      : i.leitura
+        ? await decidirLeitura(createClient(), i.leitura.id, aprovar)
+        : await decidirRevisao(createClient(), i.revisao, aprovar);
     setOcupado(false);
     if (falha) {
       setErro(falha);
@@ -113,6 +126,10 @@ export function PopupRevisao() {
       setNegando(null);
       setLeituras((l) => l.filter((x) => x.chave !== i.chave));
       setItens((l) => l.filter((x) => x.chave !== i.chave));
+      if (i.exclusao) {
+        setExclusoes((l) => l.filter((x) => x.id !== i.exclusao.id));
+        avisarTelas();
+      }
       window.dispatchEvent(new Event(EVENTO_REMEDIOS));
       window.dispatchEvent(new Event(EVENTO_ALERTAS));
     }
@@ -137,7 +154,9 @@ export function PopupRevisao() {
           {naFila.length > 1 && <p className="text-xs text-subtle">1 de {naFila.length}</p>}
         </div>
 
-        {atual.leitura ? (
+        {atual.exclusao ? (
+          <ConteudoDaExclusao key={atual.exclusao.id} exclusao={atual.exclusao} />
+        ) : atual.leitura ? (
           <ConteudoDaFoto leitura={atual.leitura} />
         ) : (
           <div className="flex flex-col gap-2">
@@ -166,7 +185,16 @@ export function PopupRevisao() {
 
         {erro && <p className="text-sm text-danger" role="alert">{erro}</p>}
 
-        {confirmandoNegar ? (
+        {atual.exclusao ? (
+          <div className="grid grid-cols-2 gap-2">
+            <Button disabled={ocupado} onClick={() => decidir(atual, true)} className="h-12 border-danger! text-base text-danger!">
+              {ocupado ? "Salvando..." : "Confirmar e apagar"}
+            </Button>
+            <Button variant="primary" disabled={ocupado} onClick={() => decidir(atual, false)} className="h-12 text-base">
+              Não apagar
+            </Button>
+          </div>
+        ) : confirmandoNegar ? (
           <div className="flex flex-col gap-3 rounded-lg border border-danger/50 p-3">
             <p className="text-sm text-ink">{atual.leitura ? atual.leitura.efeitoDeNegar : efeitoDeNegar(atual.revisao)}</p>
             <div className="grid grid-cols-2 gap-2">
@@ -230,14 +258,51 @@ export function PopupRevisao() {
   );
 }
 
-/** A foto que a pessoa usou, ao lado do que aconteceu com cada item. */
-function ConteudoDaFoto({ leitura }: { leitura: LeituraParaRevisar }) {
-  const [link, setLink] = useState<{ de: string; url: string } | null>(null);
+/** O arquivo e o que sai junto, se o administrador confirmar. */
+function ConteudoDaExclusao({ exclusao }: { exclusao: ExclusaoPedida }) {
+  const [efeitos, setEfeitos] = useState<string[] | null>(null);
   const [falha, setFalha] = useState<string | null>(null);
-  const arquivo = leitura.arquivo;
 
   useEffect(() => {
-    if (!arquivo || leitura.ehPdf) return;
+    let cancelado = false;
+    (async () => {
+      const r = await apagarEnvio(createClient(), exclusao.id, true);
+      if (cancelado) return;
+      if ("erro" in r) setFalha(r.erro);
+      else setEfeitos(r.efeitos);
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [exclusao.id]);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <h2 id="revisao-titulo" className="text-lg font-semibold text-ink">
+        {exclusao.quem} quer apagar &quot;{exclusao.nome}&quot;
+      </h2>
+      <p className="text-sm font-medium text-warn">Você já tinha aceitado. Nada foi apagado ainda.</p>
+      <FotoUsada arquivo={exclusao.arquivo} ehPdf={exclusao.ehPdf} />
+      <p className="text-sm font-semibold text-ink">Se você confirmar:</p>
+      {falha && <p className="text-sm text-danger" role="alert">{falha}</p>}
+      {!efeitos && !falha && <p className="text-sm text-subtle">Carregando...</p>}
+      {efeitos && (
+        <ul className="flex flex-col gap-2">
+          {efeitos.map((e) => (
+            <li key={e} className="rounded-lg bg-panel p-3 text-sm text-ink">{e}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function FotoUsada({ arquivo, ehPdf }: { arquivo: string | null; ehPdf: boolean }) {
+  const [link, setLink] = useState<{ de: string; url: string } | null>(null);
+  const [falha, setFalha] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!arquivo || ehPdf) return;
     let cancelado = false;
     createClient()
       .storage.from("documentos")
@@ -248,13 +313,31 @@ function ConteudoDaFoto({ leitura }: { leitura: LeituraParaRevisar }) {
     return () => {
       cancelado = true;
     };
-  }, [arquivo, leitura.ehPdf]);
+  }, [arquivo, ehPdf]);
 
   const url = link && link.de === arquivo ? link.url : null;
   const abrir = async () => {
     if (arquivo) setFalha(await abrirArquivo(createClient(), "documentos", arquivo));
   };
 
+  return (
+    <>
+      <button type="button" onClick={abrir} className="overflow-hidden rounded-lg border border-line bg-panel">
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt="Foto que foi usada" className="max-h-56 w-full object-contain" />
+        ) : (
+          <span className="block p-6 text-sm text-subtle">{ehPdf ? "PDF enviado" : "Carregando a foto..."}</span>
+        )}
+        <span className="block p-2 text-sm text-primary">Abrir em tamanho grande</span>
+      </button>
+      {falha && <p className="text-sm text-danger" role="alert">{falha}</p>}
+    </>
+  );
+}
+
+/** A foto que a pessoa usou, ao lado do que aconteceu com cada item. */
+function ConteudoDaFoto({ leitura }: { leitura: LeituraParaRevisar }) {
   return (
     <div className="flex flex-col gap-3">
       <h2 id="revisao-titulo" className="text-lg font-semibold text-ink">
@@ -265,16 +348,7 @@ function ConteudoDaFoto({ leitura }: { leitura: LeituraParaRevisar }) {
             ? "enviou uma receita"
             : "enviou um pedido de exame"}
       </h2>
-      <button type="button" onClick={abrir} className="overflow-hidden rounded-lg border border-line bg-panel">
-        {url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt="Foto que foi usada" className="max-h-56 w-full object-contain" />
-        ) : (
-          <span className="block p-6 text-sm text-subtle">{leitura.ehPdf ? "PDF enviado" : "Carregando a foto..."}</span>
-        )}
-        <span className="block p-2 text-sm text-primary">Abrir em tamanho grande</span>
-      </button>
-      {falha && <p className="text-sm text-danger" role="alert">{falha}</p>}
+      <FotoUsada key={leitura.arquivo} arquivo={leitura.arquivo} ehPdf={leitura.ehPdf} />
       <ul className="flex flex-col gap-2">
         {leitura.linhas.map((l, i) => (
           <li key={i} className={l.urgente ? "rounded-lg border-2 border-danger bg-danger/10 p-3" : l.atencao ? "rounded-lg border border-warn/60 bg-warn/10 p-3" : "rounded-lg bg-panel p-3"}>

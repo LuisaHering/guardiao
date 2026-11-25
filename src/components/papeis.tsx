@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui";
+import { MeusEnvios } from "@/components/meus-envios";
 import { ConferirPapel } from "@/components/conferir-papel";
 import { EnviarResultado } from "@/components/enviar-resultado";
 import { AVISO_PLANO_GRATIS, NOME_PROVEDOR } from "@/lib/ai/nome-provedor";
@@ -154,30 +154,7 @@ export function EnviarFoto({ idosoId, tipos, onEnviado }: { idosoId: string; tip
 
 /** A tela de Documentos de quem cuida: sem pastas. */
 export function DocumentosCuidadora({ idosoId, nome }: { idosoId: string; nome: string }) {
-  const supabase = createClient();
-  const [enviados, setEnviados] = useState<Doc[]>([]);
   const [versao, setVersao] = useState(0);
-  const [erro, setErro] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelado = false;
-    (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      const { data } = await supabase
-        .from("documento")
-        .select("id, nome, arquivo_url, envio, created_at")
-        .eq("idoso_id", idosoId)
-        .eq("autor_id", auth.user?.id ?? "")
-        .not("envio", "is", null)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      if (!cancelado) setEnviados((data ?? []) as Doc[]);
-    })();
-    return () => {
-      cancelado = true;
-    };
-  }, [supabase, idosoId, versao]);
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-5">
@@ -190,18 +167,7 @@ export function DocumentosCuidadora({ idosoId, nome }: { idosoId: string; nome: 
         <h2 className="text-lg font-semibold text-ink">Enviar foto de um papel</h2>
         <EnviarFoto idosoId={idosoId} onEnviado={() => setVersao((v) => v + 1)} />
       </section>
-      {enviados.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold text-ink">O que você enviou</h2>
-          {erro && <p className="text-base text-danger" role="alert">{erro}</p>}
-          {enviados.map((d) => (
-            <div key={d.id} className="flex items-center justify-between gap-2 rounded-2xl bg-panel px-4 py-2">
-              <span className="text-base text-ink">{d.nome}</span>
-              <Button className="h-11" onClick={async () => setErro(await abrirArquivo(supabase, "documentos", d.arquivo_url))}>Ver</Button>
-            </div>
-          ))}
-        </section>
-      )}
+      <MeusEnvios idosoId={idosoId} versao={versao} />
     </div>
   );
 }

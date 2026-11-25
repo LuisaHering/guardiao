@@ -13,6 +13,7 @@ import { EnviarFoto } from "@/components/papeis";
 import { EnviarResultado, EscolherArquivoDoResultado } from "@/components/enviar-resultado";
 import { QuemConfere } from "@/components/conferir-valores";
 import { PapelAMao, VerPapel } from "@/components/ver-papel";
+import { ApagarEnvio } from "@/components/apagar-envio";
 import { hojeBR, somarDias } from "@/lib/medicacao";
 import {
   COLUNAS_PEDIDO,
@@ -389,8 +390,24 @@ function Detalhe({ idosoId, pedido, admin, onVoltar }: { idosoId: string; pedido
       {!marcando && pedido.resultado_documento_id && (
         <ArquivoGuardado key={pedido.resultado_documento_id} documentoId={pedido.resultado_documento_id} rotulo="Abrir o resultado" />
       )}
+      {!marcando && pedido.resultado_documento_id && (
+        <ApagarEnvio
+          key={`apagar-${pedido.resultado_documento_id}`}
+          documentoId={pedido.resultado_documento_id}
+          rotulo="Apagar o resultado"
+          onApagado={(apagou) => apagou && onVoltar()}
+        />
+      )}
       {!marcando && pedido.documento_id && (
         <ArquivoGuardado key={pedido.documento_id} documentoId={pedido.documento_id} rotulo="Abrir o pedido" />
+      )}
+      {!marcando && pedido.documento_id && (
+        <ApagarEnvio
+          key={`apagar-${pedido.documento_id}`}
+          documentoId={pedido.documento_id}
+          rotulo="Apagar este pedido"
+          onApagado={(apagou) => apagou && onVoltar()}
+        />
       )}
 
       {!marcando && !mandando && antesDeFazer && (

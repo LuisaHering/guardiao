@@ -119,8 +119,14 @@ export const marcarExame = (
 export const exameFeito = (supabase: SupabaseClient, id: string) =>
   chamar(supabase, "exame_feito", { p_pedido: id }, "Não consegui guardar. Tente de novo.");
 
-export const encerrarExame = (supabase: SupabaseClient, id: string, cancelar = false) =>
-  chamar(supabase, "encerrar_exame", { p_pedido: id, p_cancelar: cancelar }, "Não consegui encerrar este pedido.");
+/** `arquivo`: o dos valores lidos, para saírem junto se o resultado for apagado. */
+export const encerrarExame = (supabase: SupabaseClient, id: string, cancelar = false, arquivo: string | null = null) =>
+  chamar(
+    supabase,
+    "encerrar_exame",
+    { p_pedido: id, p_cancelar: cancelar, p_arquivo: arquivo },
+    "Não consegui encerrar este pedido.",
+  );
 
 export type ResultadoLigado = { pedidoId: string } | { erro: string };
 

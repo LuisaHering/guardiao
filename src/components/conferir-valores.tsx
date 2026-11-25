@@ -9,6 +9,7 @@ import { Button, Input } from "@/components/ui";
 import { ParaQuem } from "@/components/pedidos-familia";
 import { IACarregando } from "@/components/ia-carregando";
 import { PapelAMao, VerPapel } from "@/components/ver-papel";
+import { ApagarEnvio } from "@/components/apagar-envio";
 import { criarPedido, type Familiar } from "@/lib/pedidos-familia";
 import { EVENTO_PEDIDOS } from "@/lib/pedidos-exame";
 import { numeroDoTexto, resolver, type AnalitoConhecido, type LinhaDeResultado } from "@/lib/analitos";
@@ -23,6 +24,18 @@ type Props = { idosoId: string; pedidoId: string; onFim: () => void };
 
 export function QuemConfere({ idosoId, pedidoId, onFim }: Props) {
   const [escolha, setEscolha] = useState<"perguntando" | "eu" | "familiar">("perguntando");
+  const [documentoId, setDocumentoId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      const { data } = await createClient().from("pedido_exame").select("resultado_documento_id").eq("id", pedidoId).maybeSingle();
+      if (!cancelado) setDocumentoId((data?.resultado_documento_id as string) ?? null);
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [pedidoId]);
 
   if (escolha === "eu") return <ConferirValores idosoId={idosoId} pedidoId={pedidoId} onFim={onFim} />;
   if (escolha === "familiar") return <PedirConferencia idosoId={idosoId} pedidoId={pedidoId} onFim={onFim} />;
@@ -39,6 +52,7 @@ export function QuemConfere({ idosoId, pedidoId, onFim }: Props) {
       </Button>
       <Button variant="ghost" onClick={onFim} className="h-12 text-base">Decidir depois</Button>
       <p className="text-sm text-subtle">Para você conferir, o arquivo é lido pela {NOME_PROVEDOR}.</p>
+      {documentoId && <ApagarEnvio documentoId={documentoId} rotulo="Mandei o arquivo errado" onApagado={onFim} />}
     </div>
   );
 }
