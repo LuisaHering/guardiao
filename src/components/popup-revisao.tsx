@@ -120,6 +120,10 @@ export function PopupRevisao() {
   }
 
   const confirmandoNegar = negando === atual.chave;
+  const destino =
+    atual.leitura && atual.leitura.tipo !== "receita"
+      ? { href: "/pedidos", rotulo: "Abrir Pedidos e resultados" }
+      : { href: "/medicacao", rotulo: "Abrir a Medicação" };
   const podeNegar = atual.leitura ? atual.leitura.podeNegar : true;
 
   return (
@@ -194,11 +198,11 @@ export function PopupRevisao() {
             type="button"
             onClick={() => {
               adiar();
-              router.push("/medicacao");
+              router.push(destino.href);
             }}
             className="text-sm text-primary hover:underline"
           >
-            Abrir a Medicação
+            {destino.rotulo}
           </button>
           <button type="button" onClick={adiar} className="text-sm text-subtle hover:text-ink hover:underline">
             Ver depois

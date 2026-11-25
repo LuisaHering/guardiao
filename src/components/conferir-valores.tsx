@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Input } from "@/components/ui";
 import { ParaQuem } from "@/components/pedidos-familia";
+import { IACarregando } from "@/components/ia-carregando";
+import { PapelAMao, VerPapel } from "@/components/ver-papel";
 import { criarPedido, type Familiar } from "@/lib/pedidos-familia";
 import { EVENTO_PEDIDOS } from "@/lib/pedidos-exame";
 import { numeroDoTexto, resolver, type AnalitoConhecido, type LinhaDeResultado } from "@/lib/analitos";
@@ -261,10 +263,7 @@ function ConferirValores({ idosoId, pedidoId, onFim }: Props) {
   if (etapa === "lendo") {
     return (
       <div className={cartao} role="status">
-        <p className="text-lg text-ink">Estou lendo o exame. Pode levar até um minuto.</p>
-        <div className="h-2.5 overflow-hidden rounded-full bg-panel">
-          <div className="h-full w-1/2 animate-pulse rounded-full bg-primary" />
-        </div>
+        <IACarregando rotulo="Lendo o exame..." grande />
       </div>
     );
   }
@@ -280,96 +279,106 @@ function ConferirValores({ idosoId, pedidoId, onFim }: Props) {
     );
   }
   if (!lido) return null;
-  const total = lido.linhas.length;
-  const quantos = `${total} ${total === 1 ? "valor" : "valores"}`;
 
-  if (etapa === "pronto") {
-    return (
-      <div className={cartao} role="status">
-        <p className="text-2xl font-semibold text-success">✓ Pronto</p>
-        <p className="text-lg text-ink">{total === 1 ? "O valor já aparece" : `Os ${quantos} já aparecem`} em Resultados.</p>
-        <p className="text-base text-subtle">A família vai conferir com o arquivo.</p>
-        <Button variant="primary" onClick={onFim} className="h-14 text-lg">Fechar</Button>
-      </div>
-    );
-  }
+  return <PapelAMao arquivo={lido.arquivo}>{telaComPapel()}</PapelAMao>;
 
-  if (etapa === "inicio") {
-    return (
-      <div ref={topo} className={`${cartao} scroll-mt-16`}>
-        <p className="text-2xl font-bold text-ink">Li {quantos}.</p>
-        <p className="text-lg text-ink">Tenha o papel na mão. Vou perguntar um por vez.</p>
-        <Button variant="primary" onClick={() => setEtapa("cabecalho")} className="h-16 text-xl">Começar</Button>
-        {pedirAUmFamiliar}
-      </div>
-    );
-  }
+  function telaComPapel() {
+    if (!lido) return null;
+    const total = lido.linhas.length;
+    const quantos = `${total} ${total === 1 ? "valor" : "valores"}`;
 
-  if (etapa === "cabecalho") {
-    const semData = !dataValida(lido.exame.data);
-    return (
-      <div ref={topo} className={`${cartao} scroll-mt-16`}>
-        <div className="rounded-xl bg-panel px-3 py-4 text-center">
-          <p className="text-2xl font-bold text-ink">{lido.exame.tipo || "Exame"}</p>
-          <p className="text-lg text-ink">{lido.exame.laboratorio || "Não li o laboratório"}</p>
-          {!semData && <p className="text-lg text-ink">Dia: {data.split("-").reverse().join("/")}</p>}
+    if (etapa === "pronto") {
+      return (
+        <div className={cartao} role="status">
+          <p className="text-2xl font-semibold text-success">✓ Pronto</p>
+          <p className="text-lg text-ink">{total === 1 ? "O valor já aparece" : `Os ${quantos} já aparecem`} em Resultados.</p>
+          <p className="text-base text-subtle">A família vai conferir com o arquivo.</p>
+          <Button variant="primary" onClick={onFim} className="h-14 text-lg">Fechar</Button>
         </div>
-        {semData && (
-          <label className="flex flex-col gap-1 text-lg font-semibold text-ink">
-            Olhe o papel. Que dia foi a coleta?
-            <Input type="date" max={hojeBR()} value={data} onChange={(e) => setData(e.target.value)} className="h-14 text-lg font-normal" />
-          </label>
-        )}
-        <p className="text-xl font-semibold text-ink">Olhe o papel. É este exame{semData ? "" : ", neste dia"}?</p>
-        <Button variant="primary" disabled={!data} onClick={() => { setIndice(0); setEtapa("valores"); }} className="h-16 text-xl">
-          Sim, está igual
-        </Button>
-        <Button onClick={() => naoConferiu("o nome, o laboratório ou o dia do exame")} className="h-14 text-lg">Não, ou não sei</Button>
-        {pedirAUmFamiliar}
-      </div>
-    );
-  }
+      );
+    }
 
-  if (etapa === "valores") {
-    const l = lido.linhas[indice];
+    if (etapa === "inicio") {
+      return (
+        <div ref={topo} className={`${cartao} scroll-mt-16`}>
+          <p className="text-2xl font-bold text-ink">Li {quantos}.</p>
+          <p className="text-lg text-ink">Tenha o papel na mão. Vou perguntar um por vez.</p>
+          <VerPapel />
+          <Button variant="primary" onClick={() => setEtapa("cabecalho")} className="h-16 text-xl">Começar</Button>
+          {pedirAUmFamiliar}
+        </div>
+      );
+    }
+
+    if (etapa === "cabecalho") {
+      const semData = !dataValida(lido.exame.data);
+      return (
+        <div ref={topo} className={`${cartao} scroll-mt-16`}>
+          <div className="rounded-xl bg-panel px-3 py-4 text-center">
+            <p className="text-2xl font-bold text-ink">{lido.exame.tipo || "Exame"}</p>
+            <p className="text-lg text-ink">{lido.exame.laboratorio || "Não li o laboratório"}</p>
+            {!semData && <p className="text-lg text-ink">Dia: {data.split("-").reverse().join("/")}</p>}
+          </div>
+          {semData && (
+            <label className="flex flex-col gap-1 text-lg font-semibold text-ink">
+              Olhe o papel. Que dia foi a coleta?
+              <Input type="date" max={hojeBR()} value={data} onChange={(e) => setData(e.target.value)} className="h-14 text-lg font-normal" />
+            </label>
+          )}
+          <p className="text-xl font-semibold text-ink">Olhe o papel. É este exame{semData ? "" : ", neste dia"}?</p>
+          <VerPapel />
+          <Button variant="primary" disabled={!data} onClick={() => { setIndice(0); setEtapa("valores"); }} className="h-16 text-xl">
+            Sim, está igual
+          </Button>
+          <Button onClick={() => naoConferiu("o nome, o laboratório ou o dia do exame")} className="h-14 text-lg">Não, ou não sei</Button>
+          {pedirAUmFamiliar}
+        </div>
+      );
+    }
+
+    if (etapa === "valores") {
+      const l = lido.linhas[indice];
+      return (
+        <div className="flex flex-col gap-3">
+          <div ref={topo} className={`${cartao} scroll-mt-16`}>
+            <p className="text-base text-subtle">Valor {indice + 1} de {total}</p>
+            <p className="text-2xl font-bold leading-tight text-ink">{l.nome}</p>
+            <div className="rounded-xl bg-panel px-3 py-4 text-center">
+              <p className="text-3xl font-bold text-ink">{comoNoPapel(l.valor)} {l.unidade}</p>
+              <p className="mt-1 text-base text-subtle">{referencia(l)}</p>
+            </div>
+            <p className="text-xl font-semibold text-ink">Olhe o papel. Está igual?</p>
+            <VerPapel />
+            <Button
+              variant="primary"
+              onClick={() => (indice + 1 < total ? setIndice(indice + 1) : setEtapa("faltou"))}
+              className="h-16 text-xl"
+            >
+              Sim, está igual
+            </Button>
+            <Button onClick={() => naoConferiu(l.nome)} className="h-14 text-lg">Não, ou não sei</Button>
+          </div>
+          <Button variant="ghost" onClick={() => (indice > 0 ? setIndice(indice - 1) : setEtapa("cabecalho"))} className="h-12 text-base">
+            ← Voltar
+          </Button>
+          {pedirAUmFamiliar}
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col gap-3">
         <div ref={topo} className={`${cartao} scroll-mt-16`}>
-          <p className="text-base text-subtle">Valor {indice + 1} de {total}</p>
-          <p className="text-2xl font-bold leading-tight text-ink">{l.nome}</p>
-          <div className="rounded-xl bg-panel px-3 py-4 text-center">
-            <p className="text-3xl font-bold text-ink">{comoNoPapel(l.valor)} {l.unidade}</p>
-            <p className="mt-1 text-base text-subtle">{referencia(l)}</p>
-          </div>
-          <p className="text-xl font-semibold text-ink">Olhe o papel. Está igual?</p>
-          <Button
-            variant="primary"
-            onClick={() => (indice + 1 < total ? setIndice(indice + 1) : setEtapa("faltou"))}
-            className="h-16 text-xl"
-          >
-            Sim, está igual
+          <p className="text-xl font-semibold text-ink">Olhe o papel. Ficou faltando algum valor?</p>
+          <p className="text-base text-subtle">Conferimos {quantos}.</p>
+          <VerPapel />
+          <Button variant="primary" onClick={guardar} className="h-16 text-xl">Não, apareceram todos</Button>
+          <Button onClick={() => naoConferiu("a quantidade de valores (ficou faltando algum)")} className="h-14 text-lg">
+            Sim, ou não sei
           </Button>
-          <Button onClick={() => naoConferiu(l.nome)} className="h-14 text-lg">Não, ou não sei</Button>
         </div>
-        <Button variant="ghost" onClick={() => (indice > 0 ? setIndice(indice - 1) : setEtapa("cabecalho"))} className="h-12 text-base">
-          ← Voltar
-        </Button>
-        {pedirAUmFamiliar}
+        <Button variant="ghost" onClick={() => { setIndice(total - 1); setEtapa("valores"); }} className="h-12 text-base">← Voltar</Button>
       </div>
     );
   }
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div ref={topo} className={`${cartao} scroll-mt-16`}>
-        <p className="text-xl font-semibold text-ink">Olhe o papel. Ficou faltando algum valor?</p>
-        <p className="text-base text-subtle">Conferimos {quantos}.</p>
-        <Button variant="primary" onClick={guardar} className="h-16 text-xl">Não, apareceram todos</Button>
-        <Button onClick={() => naoConferiu("a quantidade de valores (ficou faltando algum)")} className="h-14 text-lg">
-          Sim, ou não sei
-        </Button>
-      </div>
-      <Button variant="ghost" onClick={() => { setIndice(total - 1); setEtapa("valores"); }} className="h-12 text-base">← Voltar</Button>
-    </div>
-  );
 }

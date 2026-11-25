@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
  * Monte o componente so enquanto a operacao roda: ao desmontar o cronometro
  * zera sozinho. Mostra os segundos para a pessoa ver que algo esta andando.
  */
-export function IACarregando({ rotulo }: { rotulo: string }) {
+/** `grande`: letra maior, para as telas de quem cuida. */
+export function IACarregando({ rotulo, grande }: { rotulo: string; grande?: boolean }) {
   const [segundos, setSegundos] = useState(0);
 
   useEffect(() => {
@@ -19,10 +20,10 @@ export function IACarregando({ rotulo }: { rotulo: string }) {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-center gap-3 rounded-lg bg-panel px-3 py-2.5 text-sm"
+      className={`flex items-center gap-3 rounded-lg bg-panel px-3 py-2.5 ${grande ? "text-lg" : "text-sm"}`}
     >
       <span
-        className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent"
+        className={`shrink-0 animate-spin rounded-full border-primary border-t-transparent ${grande ? "h-9 w-9 border-4" : "h-4 w-4 border-2"}`}
         aria-hidden
       />
       <span className="text-ink">

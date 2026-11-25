@@ -24,6 +24,8 @@ import {
 import { gravarConferencia, lerPapel, SEM_PREPARO, type ItemRemedio, type Leitura } from "@/lib/leituras";
 import { rotuloEnvio, type TipoEnvio } from "@/lib/documentos";
 import { EnviarResultado } from "@/components/enviar-resultado";
+import { IACarregando } from "@/components/ia-carregando";
+import { PapelAMao, VerPapel } from "@/components/ver-papel";
 import { cn } from "@/lib/cn";
 
 type Etapa = "lendo" | "sem_leitura" | "parece_resultado" | "resultado" | "tipo" | "conferindo" | "faltou" | "gravando" | "falhou" | "pronto";
@@ -119,7 +121,15 @@ function frase(a: Agenda): string {
   return partes.join(", ");
 }
 
-export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: Props) {
+export function ConferirPapel(props: Props) {
+  return (
+    <PapelAMao arquivo={props.arquivo}>
+      <Conferencia {...props} />
+    </PapelAMao>
+  );
+}
+
+function Conferencia({ idosoId, documentoId, arquivo, envio, onFim }: Props) {
   const [etapa, setEtapa] = useState<Etapa>("lendo");
   const [leitura, setLeitura] = useState<Leitura | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -127,7 +137,6 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
   const [historico, setHistorico] = useState<Posicao[]>([]);
   const [respostas, setRespostas] = useState<Respostas>({ agendas: {}, recusas: {} });
   const [faltou, setFaltou] = useState(false);
-  const [previa, setPrevia] = useState<string | null>(null);
   const pergunta = useRef<HTMLDivElement>(null);
   // Uma leitura por foto: o efeito pode rodar duas vezes, e a cota gratuita da IA é pequena.
   const pedido = useRef<ReturnType<typeof lerPapel> | null>(null);
@@ -138,17 +147,6 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
       pergunta.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [etapa, posicao]);
-
-  useEffect(() => {
-    if (!arquivo.type.startsWith("image/")) return;
-    const url = URL.createObjectURL(arquivo);
-    let vivo = true;
-    Promise.resolve().then(() => vivo && setPrevia(url));
-    return () => {
-      vivo = false;
-      URL.revokeObjectURL(url);
-    };
-  }, [arquivo]);
 
   useEffect(() => {
     let cancelado = false;
@@ -275,22 +273,11 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
     }
   }
 
-  const foto = previa && (
-    <details className="rounded-2xl bg-panel p-3">
-      <summary className="cursor-pointer text-base font-medium text-ink">Ver a foto que você tirou</summary>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={previa} alt="Foto do papel" className="mt-2 w-full rounded-xl" />
-    </details>
-  );
-
   if (etapa === "lendo") {
     return (
       <div className={cartao} role="status">
         <p className="text-xl font-semibold text-success">✓ Foto enviada à família</p>
-        <p className="text-lg text-ink">Agora estou lendo o papel. Pode levar até um minuto.</p>
-        <div className="h-2.5 overflow-hidden rounded-full bg-panel">
-          <div className="h-full w-1/2 animate-pulse rounded-full bg-primary" />
-        </div>
+        <IACarregando rotulo="Lendo o papel..." grande />
         <p className="text-sm text-subtle">Se sair desta tela, a foto continua com a família.</p>
       </div>
     );
@@ -312,7 +299,7 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
       <div className={cartao}>
         <p className="text-xl font-semibold text-ink">Isto parece um resultado de exame.</p>
         <p className="text-base text-subtle">Olhe o papel. É um resultado?</p>
-        {foto}
+        <VerPapel />
         <Button
           variant="primary"
           onClick={async () => {
@@ -348,7 +335,7 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
           Você escolheu {rotuloEnvio(envio)}, mas parece {rotuloEnvio(lido)}.
         </p>
         <p className="text-base text-subtle">O que é este papel?</p>
-        {foto}
+        <VerPapel />
         <Button variant="primary" onClick={() => confirmarTipo(lido)} className="h-14 text-lg">
           É {rotuloEnvio(lido)}
         </Button>
@@ -385,7 +372,6 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
           {onde}
           {numero > 0 && perguntas.length > 1 ? ` · pergunta ${numero} de ${perguntas.length}` : ""}
         </p>
-        {foto}
         <div ref={pergunta} className={`${cartao} scroll-mt-16`}>
           <Tela
             key={`${posicao.bloco}:${posicao.passo}`}
@@ -413,10 +399,10 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
   if (etapa === "faltou") {
     return (
       <div className="flex flex-col gap-3">
-        {foto}
         <div ref={pergunta} className={`${cartao} scroll-mt-16`}>
           <p className="text-xl font-semibold text-ink">Olhe o papel. Ficou faltando alguma coisa?</p>
           <p className="text-base text-subtle">Um remédio ou um exame que não apareceu.</p>
+          <VerPapel />
           <Button variant="primary" onClick={() => guardar(false)} className="h-16 text-xl">Não, apareceu tudo</Button>
           <Button onClick={() => guardar(true)} className="h-14 text-lg">Sim, ficou faltando</Button>
         </div>
@@ -504,6 +490,7 @@ function SimNao({ pergunta, onSim, onNao }: { pergunta: string; onSim: () => voi
   return (
     <>
       <p className="pt-1 text-xl font-semibold text-ink">Olhe o papel. {pergunta}</p>
+      <VerPapel />
       <Button variant="primary" onClick={onSim} className="h-16 text-xl">Sim, está igual</Button>
       <Button onClick={onNao} className="h-14 text-lg">Não, ou não sei</Button>
     </>
@@ -610,6 +597,7 @@ function Tela({ leitura, bloco, passo, agenda: escolhida, recusa, onSim, onNao, 
         <p className="text-lg text-ink">
           {classe.acao === "duvida" ? `Porque ${classe.motivo}. A família vai olhar a foto.` : "Não mudei nada. Fale com a família antes da próxima dose."}
         </p>
+        <VerPapel />
         <Button variant="primary" onClick={onProximo} className="h-16 text-xl">Entendi, continuar</Button>
       </>
     );
@@ -701,6 +689,7 @@ function Tela({ leitura, bloco, passo, agenda: escolhida, recusa, onSim, onNao, 
     return (
       <>
         {titulo}
+        <VerPapel />
         <EscolherDia
           recorrencia={classe.recorrencia}
           marcados={agenda.dias_semana}

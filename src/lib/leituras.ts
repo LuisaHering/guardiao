@@ -251,6 +251,10 @@ export async function carregarLeituras(supabase: SupabaseClient, idosoId: string
         }
         continue;
       }
+      if (i.tipo !== "remedio" && i.tipo !== "exame") {
+        linhas.push({ rotulo: "Atualize a página", texto: "Há um item que esta tela não sabe mostrar. Não decida antes de atualizar.", atencao: true });
+        continue;
+      }
       const m = i.medicacao_id ? med.get(i.medicacao_id) : undefined;
       const noPapel = i.texto ? `No papel: ${i.texto}` : undefined;
       if (i.tipo === "exame") {
