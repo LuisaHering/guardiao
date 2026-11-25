@@ -347,8 +347,17 @@ export type RemedioLido = {
   medicacao_id: string | null;
 };
 
+/** `vezes`: quantos dias por semana o papel pede, quando diz. */
+export type Recorrencia = { tipo: "semana"; vezes: number | null } | { tipo: "intervalo" };
+
 export type Classificacao =
-  | { acao: "novo"; agenda: Agenda; instrucoes: string | null }
+  | {
+      acao: "novo";
+      agenda: Agenda;
+      instrucoes: string | null;
+      /** não é de todo dia: quem confere precisa confirmar de novo, com atenção */
+      recorrencia: Recorrencia | null;
+    }
   | { acao: "ja_toma"; alvo: Remedio }
   | { acao: "mudar"; alvo: Remedio; dados: { dosagem?: string; horarios?: string[] }; mudancas: string[] }
   | { acao: "duvida"; alvo: Remedio | null; motivo: string }
@@ -376,15 +385,41 @@ function parentesco(a: string, b: string): "mesmo" | "talvez" | "outro" {
 }
 
 /** Posologias que a tela não sabe montar sozinha sem arriscar virar "todo dia, para sempre". */
-const NAO_E_DIARIO =
-  /mensal|quinzen|(ao|por) m[eê]s|a cada \d+ (m[eê]s|meses)|dose [uú]nica|[uú]nica vez|\b(segundas?|ter[cç]as?|quartas?|quintas?|sextas?)\b|s[aá]bado|domingo/;
+const NAO_E_DIARIO = /mensal|quinzen|(ao|por) m[eê]s|a cada \d+ (m[eê]s|meses)|dose [uú]nica|[uú]nica vez/;
+
+/** "por 2 semanas" é duração, não "toda semana": sai do texto antes de ler a frequência. */
+const DURACAO = /(?:por|durante)\s+(\d{1,3}|uma?|duas|dois|tr[eê]s)\s*(dias?|semanas?|m[eê]s(?:es)?)/g;
+
+const NUMEROS: Record<string, number> = { um: 1, uma: 1, dois: 2, duas: 2, "três": 3, tres: 3 };
+const numero = (t: string) => NUMEROS[t] ?? Number(t);
 
 /** Dias de tratamento escritos no texto; "meses" devolve -1 (não dá para converter com segurança). */
 function duracaoNoTexto(t: string): number | null {
-  const m = t.match(/(?:por|durante)\s+(\d{1,3})\s*(dias?|semanas?|m[eê]s(?:es)?)/);
+  const m = [...t.matchAll(DURACAO)][0];
   if (!m) return null;
   if (m[2].startsWith("m")) return -1;
-  return Number(m[1]) * (m[2].startsWith("s") ? 7 : 1);
+  return numero(m[1]) * (m[2].startsWith("s") ? 7 : 1);
+}
+
+const TODA_SEMANA =
+  /semanal|(?:vez|vezes|x)\s*(?:por|na|a cada|ao longo da)\s+semana\b|(?:por|toda|cada)\s+semana\b|a cada 7 dias/;
+
+/** Dias da semana citados. "segunda dose" não é dia: exige plural, "-feira" ou "toda/às". */
+const DIAS_DA_SEMANA: [number, RegExp][] = [
+  [0, /\bdomingos?\b/],
+  [1, /\bsegundas\b|\bsegunda[- ]feira|\b(?:toda|na|às|as)\s+segunda\b/],
+  [2, /\bter[cç]as\b|\bter[cç]a[- ]feira|\b(?:toda|na|às|as)\s+ter[cç]a\b/],
+  [3, /\bquartas\b|\bquarta[- ]feira|\b(?:toda|na|às|as)\s+quarta\b/],
+  [4, /\bquintas\b|\bquinta[- ]feira|\b(?:toda|na|às|as)\s+quinta\b/],
+  [5, /\bsextas\b|\bsexta[- ]feira|\b(?:toda|na|às|as)\s+sexta\b/],
+  [6, /\bs[aá]bados?\b/],
+];
+
+/** Quantos dias por semana o papel pede ("2 vezes por semana"), ou null se não diz. */
+function vezesPorSemana(t: string): number | null {
+  const m = t.match(/(\d|uma?|duas|três|tres)\s*(?:vez|vezes|x)\s*(?:por|na|ao longo da)\s+semana/);
+  if (m) return numero(m[1]);
+  return /semanal|a cada 7 dias/.test(t) ? 1 : null;
 }
 
 const mesmosHorarios = (a: string[], b: string[]) =>
@@ -401,14 +436,23 @@ export function classificarRemedio(lido: RemedioLido, ativos: Remedio[], hoje: s
 
   const texto = [lido.frequencia, lido.observacoes].filter(Boolean).join(" · ").normalize("NFC");
   const baixo = texto.toLowerCase();
-  const sugestao = sugerirAgenda(texto);
+  const semDuracao = baixo.replace(DURACAO, " ");
+  const sugestao = sugerirAgenda(semDuracao);
+  const diasCitados = DIAS_DA_SEMANA.filter(([, regra]) => regra.test(semDuracao)).map(([d]) => d);
+  const semanal = TODA_SEMANA.test(semDuracao) || diasCitados.length > 0;
+  // A leitura geral chama de "semana" qualquer texto com essa palavra; aqui vale a regra estrita.
+  if (sugestao.frequencia === "semana") {
+    delete sugestao.frequencia;
+    delete sugestao.dias_semana;
+  }
   const duvida = (motivo: string): Classificacao => ({ acao: "duvida", alvo: alvoProvavel, motivo });
 
   if (mesmos.length > 1) return duvida("há mais de um remédio com esse nome na lista");
 
   if (mesmos.length === 1) {
     const alvo = mesmos[0];
-    if ((sugestao.frequencia && sugestao.frequencia !== alvo.frequencia) || NAO_E_DIARIO.test(baixo)) {
+    const frequenciaLida = semanal ? "semana" : sugestao.frequencia;
+    if ((frequenciaLida && frequenciaLida !== alvo.frequencia) || NAO_E_DIARIO.test(baixo)) {
       return duvida("o papel parece mudar os dias de tomar");
     }
     const dados: { dosagem?: string; horarios?: string[] } = {};
@@ -428,7 +472,6 @@ export function classificarRemedio(lido: RemedioLido, ativos: Remedio[], hoje: s
 
   if (parecidos.length > 0) return duvida(`pode ser o mesmo que ${parecidos[0].nome}, que já está na lista`);
   if (!lido.dosagem?.trim()) return duvida("não deu para ler a dose");
-  if (sugestao.frequencia === "semana") return duvida("é de alguns dias da semana, e não sei quais");
   if (NAO_E_DIARIO.test(baixo)) return duvida("não é um remédio de todo dia");
 
   const escrita = duracaoNoTexto(baixo);
@@ -438,6 +481,18 @@ export function classificarRemedio(lido: RemedioLido, ativos: Remedio[], hoje: s
     return duvida("não entendi por quanto tempo");
   }
 
-  const agenda: Agenda = { ...agendaVazia(hoje), ...sugestao, fim: dias ? somarDias(hoje, dias - 1) : null };
-  return { acao: "novo", agenda: agendaParaGravar(agenda), instrucoes: texto || null };
+  const base: Agenda = { ...agendaVazia(hoje), ...sugestao, fim: dias ? somarDias(hoje, dias - 1) : null };
+  let recorrencia: Recorrencia | null = null;
+  if (semanal && base.frequencia !== "quando_precisar") {
+    base.frequencia = "semana";
+    base.intervalo_dias = null;
+    const vezes = vezesPorSemana(semDuracao);
+    // Só vem marcado quando o papel cita um dia (ou exatamente quantos pede): "segunda a sexta" não.
+    const claro = diasCitados.length === (vezes ?? 1) && !/ (?:a|até) (?:segunda|ter|quarta|quinta|sexta|s[aá]bado|domingo)/.test(semDuracao);
+    base.dias_semana = claro ? diasCitados : [];
+    recorrencia = { tipo: "semana", vezes };
+  } else if (base.frequencia === "intervalo") {
+    recorrencia = { tipo: "intervalo" };
+  }
+  return { acao: "novo", agenda: agendaParaGravar(base), instrucoes: texto || null, recorrencia };
 }

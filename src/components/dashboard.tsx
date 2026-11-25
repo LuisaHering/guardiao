@@ -199,6 +199,7 @@ export function Dashboard() {
       .filter((a) => a.alerta)
       .sort(
         (a, b) =>
+          Number(b.alerta!.severidade === "urgente") - Number(a.alerta!.severidade === "urgente") ||
           new Date(b.alerta!.gerado_em).getTime() - new Date(a.alerta!.gerado_em).getTime(),
       );
     setTotalNaoLidos(naoLidos.length);
@@ -390,6 +391,7 @@ export function Dashboard() {
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium text-ink">{a.titulo}</p>
                     {a.severidade === "atencao" && <Badge tone="warn">atenção</Badge>}
+                    {a.severidade === "urgente" && <Badge tone="danger">urgente</Badge>}
                   </div>
                   <p className="text-xs text-subtle">{a.texto}</p>
                   <p className="text-[11px] text-subtle">{quando(a.geradoEm)}</p>

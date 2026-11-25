@@ -80,6 +80,7 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
   const membership = useRole();
   const idosoId = membership?.idosoId;
   const [dados, setDados] = useState<Dados | null>(null);
+  const [esperando, setEsperando] = useState(0);
   const [recarga, setRecarga] = useState(0);
   const [aberta, setAberta] = useState<string | null>(null);
   const [nota, setNota] = useState("");
@@ -112,6 +113,11 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
           supabase.from("conversa").select("iniciada_por, updated_at").eq("idoso_id", idosoId).eq("tipo", "checkin_diario").eq("data_referencia", hoje).eq("status", "concluida").limit(1),
           supabase.auth.getUser(),
         ]);
+      const { count: nEsperando } = await supabase
+        .from("remedio_pendente")
+        .select("id", { count: "exact", head: true })
+        .eq("idoso_id", idosoId)
+        .eq("status", "esperando");
       const remedios = (ms ?? []) as unknown as Remedio[];
       const tarefas = (ts ?? []) as unknown as Tarefa[];
       const [{ data: ds }, { data: rs }] = await Promise.all([
@@ -134,6 +140,7 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
       const ids = [...new Set([...respostas.map((r) => r.registrado_por), diaContado?.quemId].filter(Boolean))] as string[];
       const { data: us } = ids.length ? await supabase.from("usuario").select("id, nome").in("id", ids) : { data: [] };
       if (cancelado) return;
+      setEsperando(nEsperando ?? 0);
       setDados({
         remedios,
         doses: (ds ?? []) as unknown as RegistroDose[],
@@ -342,6 +349,18 @@ export function HojeCuidadora({ primeiroNome }: { primeiroNome: string }) {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-5">
       {cabecalho}
+
+      {esperando > 0 && (
+        <Link href="/hoje/remedios" className="flex min-h-[72px] items-center gap-3 rounded-2xl border-2 border-danger bg-danger/10 px-4 py-3">
+          <span className="min-w-0 flex-1">
+            <span className="block text-lg font-bold leading-tight text-danger">
+              {esperando === 1 ? "1 remédio esperando a família" : `${esperando} remédios esperando a família`}
+            </span>
+            <span className="block text-base text-ink">Não está na lista. Toque para ver e pedir a aprovação.</span>
+          </span>
+          <span className="text-2xl text-danger" aria-hidden>›</span>
+        </Link>
+      )}
 
       <section className="flex flex-col gap-3" aria-label="O que fazer hoje">
         <div className="flex items-baseline justify-between">

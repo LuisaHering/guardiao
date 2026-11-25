@@ -72,7 +72,7 @@ export function Card({
 }
 
 type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {
-  tone?: "neutral" | "primary" | "success" | "warn";
+  tone?: "neutral" | "primary" | "success" | "warn" | "danger";
 };
 
 export function Badge({ tone = "neutral", className, ...props }: BadgeProps) {
@@ -81,6 +81,7 @@ export function Badge({ tone = "neutral", className, ...props }: BadgeProps) {
     primary: "bg-primary-soft text-primary",
     success: "bg-success/15 text-success",
     warn: "bg-warn/15 text-warn",
+    danger: "bg-danger/15 text-danger",
   };
   return (
     <span

@@ -131,7 +131,9 @@ export function PopupRevisao() {
         className="flex max-h-full w-full max-w-md flex-col gap-4 overflow-y-auto rounded-2xl border border-line bg-card p-5 shadow-xl"
       >
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-warn">Para você revisar</p>
+          <p className={`text-xs font-semibold uppercase tracking-wide ${atual.leitura?.urgente ? "text-danger" : "text-warn"}`}>
+            {atual.leitura?.urgente ? "Urgente · para você revisar" : "Para você revisar"}
+          </p>
           {naFila.length > 1 && <p className="text-xs text-subtle">1 de {naFila.length}</p>}
         </div>
 
@@ -249,13 +251,16 @@ function ConteudoDaFoto({ leitura }: { leitura: LeituraParaRevisar }) {
       {falha && <p className="text-sm text-danger" role="alert">{falha}</p>}
       <ul className="flex flex-col gap-2">
         {leitura.linhas.map((l, i) => (
-          <li key={i} className={l.atencao ? "rounded-lg border border-warn/60 bg-warn/10 p-3" : "rounded-lg bg-panel p-3"}>
-            <p className={`text-xs font-semibold uppercase tracking-wide ${l.atencao ? "text-warn" : "text-subtle"}`}>{l.rotulo}</p>
+          <li key={i} className={l.urgente ? "rounded-lg border-2 border-danger bg-danger/10 p-3" : l.atencao ? "rounded-lg border border-warn/60 bg-warn/10 p-3" : "rounded-lg bg-panel p-3"}>
+            <p className={`text-xs font-semibold uppercase tracking-wide ${l.urgente ? "text-danger" : l.atencao ? "text-warn" : "text-subtle"}`}>{l.rotulo}</p>
             <p className="text-sm font-medium text-ink">{l.texto}</p>
             {l.detalhe && <p className="text-sm text-subtle">{l.detalhe}</p>}
           </li>
         ))}
       </ul>
+      {leitura.temEsperando && (
+        <p className="text-sm text-ink">O que não entrou continua esperando você em Medicação, mesmo depois deste aviso.</p>
+      )}
       {leitura.podeNegar && <p className="text-sm font-medium text-warn">O que entrou já está valendo.</p>}
     </div>
   );

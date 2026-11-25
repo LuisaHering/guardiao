@@ -20,10 +20,10 @@ type Linha = {
   } | null;
 };
 
-const SEVERIDADE: Record<string, { rotulo: string; tom: "neutral" | "warn" }> = {
+const SEVERIDADE: Record<string, { rotulo: string; tom: "neutral" | "warn" | "danger" }> = {
   info: { rotulo: "informação", tom: "neutral" },
   atencao: { rotulo: "atenção", tom: "warn" },
-  urgente: { rotulo: "urgente", tom: "warn" },
+  urgente: { rotulo: "urgente", tom: "danger" },
 };
 
 function quando(iso: string) {
@@ -164,7 +164,7 @@ export default function AlertasPage() {
         return (
           <Card
             key={l.id}
-            className={`flex flex-col gap-2 ${lido ? "opacity-70" : "border-primary/40"}`}
+            className={`flex flex-col gap-2 ${lido ? "opacity-70" : a.severidade === "urgente" ? "border-2 border-danger!" : "border-primary/40"}`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">

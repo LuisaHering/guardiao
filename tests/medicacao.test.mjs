@@ -217,8 +217,8 @@ test("receita: se a IA acha que é um da lista com outro nome, não entra sozinh
   assert.equal(classe({ nome: "Cozaar", medicacao_id: "m1" }).acao, "duvida");
 });
 
-test("receita: semanal, mensal, dose única e meses não entram sozinhos", () => {
-  for (const frequencia of ["1 vez por semana", "1 vez ao mês", "dose única", "às segundas", "por 3 meses"]) {
+test("receita: mensal, dose única e meses não entram sozinhos", () => {
+  for (const frequencia of ["1 vez ao mês", "dose única", "mensal", "por 3 meses"]) {
     assert.equal(classe({ nome: "Metotrexato", frequencia }).acao, "duvida", frequencia);
   }
 });
@@ -232,3 +232,35 @@ test("receita: acento escrito em duas partes não esconde o período", () => {
   const c = classe({ frequencia: "1 comprimido a\u0300 noite" });
   assert.deepEqual(c.agenda.horarios, ["noite"]);
 });
+
+
+const semanalDe = (frequencia) => classe({ nome: "Alendronato", dosagem: "70 mg", frequencia });
+
+test("receita: semanal entra, pedindo confirmação; o dia só vem marcado se o papel disser", () => {
+  const semDia = semanalDe("1 comprimido 1 vez por semana");
+  assert.equal(semDia.acao, "novo");
+  assert.deepEqual(semDia.recorrencia, { tipo: "semana", vezes: 1 });
+  assert.equal(semDia.agenda.frequencia, "semana");
+  assert.deepEqual(semDia.agenda.dias_semana, []);
+  assert.deepEqual(semanalDe("tomar às segundas-feiras").agenda.dias_semana, [1]);
+  assert.deepEqual(semanalDe("2 vezes por semana").recorrencia, { tipo: "semana", vezes: 2 });
+});
+
+test("receita: intervalo de vários dias também pede confirmação; o diário não", () => {
+  assert.deepEqual(semanalDe("a cada 15 dias").recorrencia, { tipo: "intervalo" });
+  assert.equal(semanalDe("1 vez ao dia").recorrencia, null);
+});
+
+test("receita: 'por 2 semanas' é duração, não remédio semanal", () => {
+  const c = semanalDe("de 12 em 12 horas por 2 semanas");
+  assert.equal(c.agenda.frequencia, "diaria");
+  assert.equal(c.recorrencia, null);
+  assert.equal(c.agenda.fim, "2026-12-08");
+  assert.equal(semanalDe("1 vez ao dia durante uma semana").agenda.fim, "2026-12-01");
+});
+
+test("receita: 'segunda dose' não é segunda-feira, e 'segunda a sexta' não marca dias sozinho", () => {
+  assert.equal(semanalDe("segunda dose após 12 horas").recorrencia, null);
+  assert.deepEqual(semanalDe("de segunda-feira a sexta-feira").agenda.dias_semana, []);
+});
+

@@ -216,8 +216,14 @@ família ler a foto:
 | Já está na lista com a mesma dose e horário | não duplica |
 | Já está na lista com outra dose ou horário claro | muda, depois de quem enviou conferir |
 | Nome parecido ou outra fórmula (ex: associação, liberação prolongada) | não entra |
-| Sem dose, semanal, mensal, dose única ou tratamento contado em meses | não entra |
+| Semanal ou a cada tantos dias | entra, depois de um segundo "Você tem certeza?" (com a escolha do dia da semana), e o administrador recebe um aviso **urgente** |
+| Sem dose, mensal, dose única ou tratamento contado em meses | não entra |
 | O papel manda parar um remédio | nada é suspenso; aviso para falar com a família |
+
+**O que não entra não some.** Fica "esperando a família" na tela de remédios de quem cuida, com
+um destaque na tela Hoje e o botão "Pedir para a família aprovar", que manda um aviso urgente
+(no máximo um por hora para cada item). Só o administrador resolve: coloca na lista ou decide
+não colocar. Aceitar a foto no pop-up não resolve esses itens.
 
 Essas regras são código, não decisão da IA (`classificarRemedio` em `src/lib/medicacao.ts`,
 com testes). A gravação e a decisão do administrador são funções do banco, testadas na

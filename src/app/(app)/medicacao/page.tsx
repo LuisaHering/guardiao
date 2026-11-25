@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRole } from "@/lib/role-context";
 import { Badge, Button, Card } from "@/components/ui";
 import { DosesDeHoje } from "@/components/doses-de-hoje";
+import { RemediosEsperando } from "@/components/remedios-esperando";
 import { FormRemedio, type DadosRemedio } from "@/components/form-remedio";
 import { COLUNAS_REMEDIO, descreverAgenda, emUso, hojeBR, type Remedio } from "@/lib/medicacao";
 import { carregarRevisoes, decidirRevisao, efeitoDeNegar, EVENTO_REMEDIOS, type Revisao } from "@/lib/revisoes";
@@ -161,6 +162,8 @@ export default function MedicacaoPage() {
 
       {aviso && <p className="rounded-lg bg-primary-soft px-3 py-2 text-sm text-primary-ink" role="status">{aviso}</p>}
       {erro && <p className="text-sm text-danger" role="alert">{erro}</p>}
+
+      <RemediosEsperando idosoId={idosoId} />
 
       {admin && revisoes.length > 0 && (
         <Card className="flex flex-col gap-3 border-warn/50">

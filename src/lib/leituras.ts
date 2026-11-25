@@ -15,7 +15,8 @@ export type ItemRemedio = {
   /** o que está escrito no papel sobre como tomar */
   texto: string;
   classe: Classificacao;
-  resposta: Resposta | null;
+  /** "sem_certeza": não é de todo dia e quem conferiu não quis confirmar */
+  resposta: Resposta | "sem_certeza" | null;
 };
 
 export type Leitura = {
@@ -93,7 +94,10 @@ export async function gravarConferencia(
     p_dados: {
       receita: { medico: leitura.papel.medico, data: dataValida(leitura.papel.data), arquivo: caminho },
       remedios: leitura.remedios.map((i) => {
-        const c = i.classe;
+        const c: Classificacao =
+          i.resposta === "sem_certeza"
+            ? { acao: "duvida", alvo: null, motivo: "quem conferiu não teve certeza de que não é de todo dia" }
+            : i.classe;
         const base = {
           resposta: i.resposta,
           acao: c.acao,
@@ -138,7 +142,7 @@ type ItemGravado = {
   pedido_id?: string | null;
 };
 
-export type LinhaRevisao = { rotulo: string; texto: string; detalhe?: string; atencao?: boolean };
+export type LinhaRevisao = { rotulo: string; texto: string; detalhe?: string; atencao?: boolean; urgente?: boolean };
 
 export type LeituraParaRevisar = {
   chave: string;
@@ -149,6 +153,10 @@ export type LeituraParaRevisar = {
   arquivo: string | null;
   ehPdf: boolean;
   linhas: LinhaRevisao[];
+  /** entrou um remédio que não é de todo dia: aparece primeiro e em vermelho */
+  urgente: boolean;
+  /** há remédio que não entrou e continua esperando em Medicação */
+  temEsperando: boolean;
   /** há algo que "negar" desfaz */
   podeNegar: boolean;
   efeitoDeNegar: string;
@@ -193,7 +201,7 @@ export async function carregarLeituras(supabase: SupabaseClient, idosoId: string
     ((ps ?? []) as unknown as { id: string; status: string; antes: Partial<Remedio> | null }[]).map((p) => [p.id, p]),
   );
 
-  return leituras.map((l) => {
+  const prontas = leituras.map((l): LeituraParaRevisar => {
     const doc = (docs ?? []).find((d) => d.id === l.documento_id);
     const linhas: LinhaRevisao[] = [];
     const cobre: string[] = [];
@@ -219,8 +227,10 @@ export async function carregarLeituras(supabase: SupabaseClient, idosoId: string
           desfaz.add("o remédio novo sai da lista");
         }
         const semHorario = m && m.frequencia !== "quando_precisar" && m.horarios.length === 0;
+        const naoDiario = !revisado && (m?.frequencia === "semana" || m?.frequencia === "intervalo");
         linhas.push({
-          rotulo: revisado ? "Entrou (você já revisou)" : "Entrou na lista",
+          urgente: naoDiario,
+          rotulo: naoDiario ? "URGENTE: não é de todo dia. Confira na foto" : revisado ? "Entrou (você já revisou)" : "Entrou na lista",
           texto: m ? `${[m.nome, m.dosagem].filter(Boolean).join(" ")} · ${descreverAgenda(m)}` : i.nome,
           detalhe: [noPapel, semHorario ? "Sem horário: defina na Medicação." : ""].filter(Boolean).join(" "),
           atencao: !!semHorario,
@@ -271,11 +281,15 @@ export async function carregarLeituras(supabase: SupabaseClient, idosoId: string
       arquivo: (doc?.arquivo_url as string) ?? null,
       ehPdf: doc?.tipo === "application/pdf",
       linhas,
+      urgente: linhas.some((x) => x.urgente),
+      temEsperando: l.itens.some((i) => i.tipo === "remedio" && ["duvida", "nao_entrou", "parar"].includes(i.resultado)),
       podeNegar: desfaz.size > 0,
       efeitoDeNegar: efeitos ? `${efeitos.charAt(0).toUpperCase()}${efeitos.slice(1)}. Quem cuida é avisado.` : "",
       cobre,
     };
   });
+  // O que é urgente vem primeiro.
+  return prontas.sort((a, b) => Number(b.urgente) - Number(a.urgente));
 }
 
 export async function decidirLeitura(supabase: SupabaseClient, id: string, aceitar: boolean): Promise<string | null> {

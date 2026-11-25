@@ -8,11 +8,11 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui";
-import { descreverAgenda, type Agenda } from "@/lib/medicacao";
+import { descreverAgenda, type Agenda, type Recorrencia } from "@/lib/medicacao";
 import { gravarConferencia, lerPapel, SEM_PREPARO, type Leitura, type Resposta } from "@/lib/leituras";
 import { rotuloEnvio, type TipoEnvio } from "@/lib/documentos";
 
-type Etapa = "lendo" | "sem_leitura" | "tipo" | "itens" | "faltou" | "gravando" | "falhou" | "pronto";
+type Etapa = "lendo" | "sem_leitura" | "tipo" | "itens" | "certeza" | "faltou" | "gravando" | "falhou" | "pronto";
 
 type Props = {
   idosoId: string;
@@ -38,7 +38,7 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
 
   // A cada pergunta a tela vai até ela, para os botões não ficarem escondidos.
   useEffect(() => {
-    if (etapa === "itens" || etapa === "faltou" || etapa === "pronto") {
+    if (etapa === "itens" || etapa === "certeza" || etapa === "faltou" || etapa === "pronto") {
       pergunta.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [etapa, indice]);
@@ -83,12 +83,37 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
   const total = leitura ? leitura.remedios.length + (leitura.papel.exames.length ? 1 : 0) : 0;
 
   function avancar() {
-    if (indice + 1 < total) setIndice(indice + 1);
-    else setEtapa("faltou");
+    if (indice + 1 < total) {
+      setIndice(indice + 1);
+      setEtapa("itens");
+    } else {
+      setEtapa("faltou");
+    }
+  }
+
+  /** Depois do "Tem certeza?": confirma com os dias escolhidos, ou deixa para a família. */
+  function concluirCerteza(agenda: Agenda | null) {
+    if (!leitura) return;
+    setLeitura({
+      ...leitura,
+      remedios: leitura.remedios.map((r, i) =>
+        i !== indice || r.classe.acao !== "novo"
+          ? r
+          : agenda
+            ? { ...r, resposta: "igual", classe: { ...r.classe, agenda } }
+            : { ...r, resposta: "sem_certeza" },
+      ),
+    });
+    avancar();
   }
 
   function responder(resposta: Resposta | null) {
     if (!leitura) return;
+    const classe = leitura.remedios[indice]?.classe;
+    if (resposta === "igual" && classe?.acao === "novo" && classe.recorrencia) {
+      setEtapa("certeza");
+      return;
+    }
     if (indice < leitura.remedios.length) {
       setLeitura({ ...leitura, remedios: leitura.remedios.map((r, i) => (i === indice ? { ...r, resposta } : r)) });
     } else {
@@ -201,6 +226,21 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
     );
   }
 
+  if (etapa === "certeza" && leitura) {
+    const item = leitura.remedios[indice];
+    if (item.classe.acao === "novo" && item.classe.recorrencia) {
+      return (
+        <div className="flex flex-col gap-3">
+          {foto}
+          <div ref={pergunta} className="flex scroll-mt-16 flex-col gap-3 rounded-2xl border-4 border-danger bg-card p-4">
+            <Certeza key={indice} item={item} agenda={item.classe.agenda} recorrencia={item.classe.recorrencia} onPronto={concluirCerteza} />
+          </div>
+          <Button variant="ghost" onClick={() => setEtapa("itens")} className="h-12 text-base">← Voltar</Button>
+        </div>
+      );
+    }
+  }
+
   if (etapa === "faltou") {
     return (
       <div className="flex flex-col gap-3">
@@ -246,7 +286,7 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
     (r) => r.resposta === "igual" && (r.classe.acao === "novo" || r.classe.acao === "mudar"),
   );
   const paraFamilia = leitura.remedios.filter(
-    (r) => r.resposta === "diferente" || r.classe.acao === "duvida" || r.classe.acao === "parar",
+    (r) => r.resposta === "diferente" || r.resposta === "sem_certeza" || r.classe.acao === "duvida" || r.classe.acao === "parar",
   );
   const parar = leitura.remedios.some((r) => r.classe.acao === "parar");
 
@@ -269,6 +309,7 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
             <strong>Não coloquei:</strong>{" "}
             {[...paraFamilia.map((r) => r.nome), ...(exames === "diferente" ? ["o pedido de exame"] : [])].join(", ")}. A
             família vai olhar a foto.
+            {paraFamilia.length > 0 && " Os remédios ficam em “Esperando a família”, e você pode pedir a aprovação."}
           </p>
         )}
         {parar && (
@@ -278,7 +319,7 @@ export function ConferirPapel({ idosoId, documentoId, arquivo, envio, onFim }: P
         )}
         <p className="text-base text-subtle">A família vai conferir com a foto.</p>
       </div>
-      {valendo.length > 0 && (
+      {(valendo.length > 0 || paraFamilia.length > 0) && (
         <Link href="/hoje/remedios" className="flex min-h-14 items-center justify-center rounded-lg bg-primary text-lg font-medium text-white">
           Ver os remédios de hoje
         </Link>
@@ -297,10 +338,13 @@ const NoPapel = ({ texto }: { texto: string }) =>
 
 function ComoEntra({ agenda }: { agenda: Agenda }) {
   const semHorario = agenda.frequencia !== "quando_precisar" && agenda.horarios.length === 0;
+  const faltaDia = agenda.frequencia === "semana" && agenda.dias_semana.length === 0;
   return (
     <div className="rounded-xl bg-panel p-3">
       <p className="text-base text-subtle">Na lista vai ficar:</p>
-      <p className="text-lg font-medium text-ink">{descreverAgenda(agenda)}</p>
+      <p className="text-lg font-medium text-ink">
+        {faltaDia ? "Toda semana (você escolhe o dia a seguir)" : descreverAgenda(agenda)}
+      </p>
       {semHorario && (
         <p className="mt-1 text-base font-medium text-warn">
           Sem horário: aparece uma vez por dia na lista. Se for mais de uma vez, siga o papel e avise a família.
@@ -375,6 +419,72 @@ function Remedio({ item }: { item: Leitura["remedios"][number] }) {
       {nome}
       <NoPapel texto={item.texto} />
       <p className="text-lg text-ink">Porque {c.motivo}. A família vai olhar a foto.</p>
+    </>
+  );
+}
+
+const DIAS: [number, string][] = [
+  [1, "Segunda"], [2, "Terça"], [3, "Quarta"], [4, "Quinta"], [5, "Sexta"], [6, "Sábado"], [0, "Domingo"],
+];
+
+/** Segunda conferência, com atenção: remédio que não é de todo dia. */
+function Certeza({
+  item,
+  agenda,
+  recorrencia,
+  onPronto,
+}: {
+  item: Leitura["remedios"][number];
+  agenda: Agenda;
+  recorrencia: Recorrencia;
+  onPronto: (agenda: Agenda | null) => void;
+}) {
+  const [dias, setDias] = useState<number[]>(agenda.dias_semana);
+  const semana = recorrencia.tipo === "semana";
+  const pedidos = recorrencia.tipo === "semana" ? recorrencia.vezes : null;
+  const diasCertos = !semana || (pedidos ? dias.length === pedidos : dias.length > 0);
+  const escolhidos = DIAS.filter(([d]) => dias.includes(d)).map(([, n]) => n.toLowerCase());
+
+  return (
+    <>
+      <p className="text-2xl font-bold leading-tight text-danger">Atenção: este remédio não é de todo dia</p>
+      <p className="text-xl font-bold text-ink">
+        {item.nome} {item.dosagem}
+      </p>
+      <p className="rounded-xl bg-panel p-3 text-lg text-ink">No papel: {item.texto}</p>
+      {semana ? (
+        <>
+          <p className="text-lg font-semibold text-ink">
+            Em que dia da semana?{pedidos && pedidos > 1 ? ` Escolha ${pedidos}.` : ""}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {DIAS.map(([d, nome]) => (
+              <button
+                key={d}
+                type="button"
+                aria-pressed={dias.includes(d)}
+                onClick={() => setDias((l) => (l.includes(d) ? l.filter((x) => x !== d) : [...l, d].sort()))}
+                className={`min-h-14 rounded-xl border-2 text-lg font-semibold ${dias.includes(d) ? "border-primary bg-primary text-white" : "border-line bg-card text-ink"}`}
+              >
+                {nome}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="text-lg font-semibold text-ink">
+          Na lista: a cada {agenda.intervalo_dias} dias, contando a partir de hoje.
+        </p>
+      )}
+      <p className="text-xl font-bold text-ink">
+        Olhe o papel de novo. Você tem certeza de que é{" "}
+        {semana ? "toda semana" : `a cada ${agenda.intervalo_dias} dias`}
+        {semana && escolhidos.length ? `, ${escolhidos.join(" e ")}` : ""}?
+      </p>
+      <Button variant="primary" disabled={!diasCertos} onClick={() => onPronto({ ...agenda, dias_semana: dias })} className="h-16 text-xl">
+        Sim, tenho certeza
+      </Button>
+      <Button onClick={() => onPronto(null)} className="h-14 text-lg">Não tenho certeza</Button>
     </>
   );
 }
